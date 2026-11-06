@@ -15,6 +15,7 @@ import (
 	"os"
 	"strings"
 
+	"dario.cat/mergo"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/editor"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
@@ -215,6 +216,11 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 }
 
 func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte, extraFields ...map[string]any) error {
+	return EditResourceWithMergeOpts(cmd, path, url, cliParams, openapiSpec, nil, extraFields...)
+}
+
+// EditResourceWithMergeOpts is EditResource with custom merge behaviour (e.g. utils.ReplaceSlices).
+func EditResourceWithMergeOpts(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte, mergeOpts []func(*mergo.Config), extraFields ...map[string]any) error {
 	if cmd.Flags().NFlag() == 0 {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
 		return nil
@@ -246,7 +252,7 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 		}
 
 		// Merge CLI parameters with file parameters (CLI takes precedence)
-		if err := utils.MergeMaps(fileParameters, cliParameters); err != nil {
+		if err := utils.MergeMaps(fileParameters, cliParameters, mergeOpts...); err != nil {
 			return fmt.Errorf("failed to merge CLI parameters with file parameters: %w", err)
 		}
 
@@ -260,7 +266,7 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 	}
 
 	// Merge CLI parameters with the fetched object
-	if err := utils.MergeMaps(object, cliParameters); err != nil {
+	if err := utils.MergeMaps(object, cliParameters, mergeOpts...); err != nil {
 		return fmt.Errorf("failed to merge CLI parameters into example: %w", err)
 	}
 

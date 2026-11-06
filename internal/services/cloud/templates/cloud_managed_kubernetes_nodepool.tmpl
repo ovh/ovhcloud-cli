@@ -1,65 +1,91 @@
 🚀 Managed Kubernetes Node Pool {{.ServiceName}}
 =======
+{{- $current := .Result.currentState}}
+{{- with $current}}
 
-_{{index .Result "name"}}_
+_{{.name}}_
+{{- end}}
 
 ## General information
-
-**Status**:             {{index .Result "status"}}
-**Project ID**:         {{index .Result "projectId"}}
-**Availability Zones**: {{join (index .Result "availabilityZones")}}
-**Monthly Billed**:     {{index .Result "monthlyBilled"}}
-**Flavor**:             {{index .Result "flavor"}}
-**Creation date**:      {{index .Result "createdAt"}}
-**Update date**:        {{index .Result "updatedAt"}}
-
-**Anti Affinity**:      {{index .Result "antiAffinity"}}
-**Autoscale**:          {{index .Result "autoscale"}}
-
-**AttachFloatingIP**:   {{ range $k, $v := index .Result "attachFloatingIps" }}
-                            {{- if $k = "enabled" -}} 
-                                {{$v}}
-                            {{end}}
-                        {{- end}}
-
-**Autoscaling**:
-    - Scale Down Unneeded Time (s): {{index .Result "autoscaling" "scaleDownUnneededTimeSeconds"}}
-    - Scale Down Unready Time (s):  {{index .Result "autoscaling" "scaleDownUnreadyTimeSeconds"}}
-    - Scale Down Utilization Threshold*: {{index .Result "autoscaling" "scaleDownUtilizationThreshold"}}
-
-\* Sum of CPU or memory of all pods running on the node divided by node's corresponding allocatable resource.
+{{with $current}}
+{{- with .nodeConfig}}
+**Flavor**:            {{.flavor}}
+{{- with .attachFloatingIp}}
+**Floating IP**:       {{.enabled}}
+{{- end}}
+{{- end}}
+{{- with .availabilityZone}}
+**Availability zone**: {{.}}
+{{- end}}
+**Billing type**:      {{.billingType}}
+{{- with .antiAffinity}}
+**Anti-affinity**:     {{.enabled}}
+{{- end}}
+{{- with .rollout}}
+**Rollout strategy**:  {{.strategy}}
+{{- end}}
+{{- end}}
+**Creation date**:     {{.Result.createdAt}}
+**Update date**:       {{.Result.updatedAt}}
 
 ## Node pool state
 
-**Ready nodes**:        {{index .Result "availableNodes"}}
-**Current Nodes**:      {{index .Result "currentNodes"}}
-**Desired Nodes**:      {{index .Result "desiredNodes"}}
-**Max Nodes**:          {{index .Result "maxNodes"}}
-**Min Nodes**:          {{index .Result "minNodes"}}
-**Size Status**:        {{index .Result "sizeStatus"}}
-**Up To Date Nodes**:   {{index .Result "upToDateNodes"}}
+**Status**:           {{.Result.resourceStatus}}
+{{- with $current}}
+**Desired nodes**:    {{.desiredNodes}}
+{{- with .status}}
+**Current nodes**:    {{.currentNodes}}
+**Ready nodes**:      {{.readyNodes}}
+**Up-to-date nodes**: {{.upToDateNodes}}
+{{- end}}
+
+## Autoscaler
+
+{{- if and .autoscaler .autoscaler.enabled}}
+{{- with .autoscaler}}
+
+**Enabled**:   true
+**Min nodes**: {{.minNodes}}
+**Max nodes**: {{.maxNodes}}
+{{- with .scaleDown}}
+**Scale down unneeded time (s)**: {{.unneededTimeSeconds}}
+**Scale down unready time (s)**:  {{.unreadyTimeSeconds}}
+**Scale down utilization threshold**: {{.utilizationThreshold}}
+{{- end}}
+{{- end}}
+{{- else}}
+
+**Enabled**:   false
+{{- end}}
+{{- with .template}}
 
 ## Template
+{{- with .metadata}}
 
-### Metadata
-
-**Annotations**:
-{{- range $k, $v := index .Result "template" "metadata" "annotations" }}
-    - {{$k}}: {{$v}}
-{{- end}}
-**Finalizers**: {{join (index .Result "template" "metadata" "finalizers")}}
 **Labels**:
-{{- range $k, $v := index .Result "template" "metadata" "labels" }}
+{{- range $k, $v := .labels}}
     - {{$k}}: {{$v}}
 {{- end}}
-
-### Spec
+**Annotations**:
+{{- range $k, $v := .annotations}}
+    - {{$k}}: {{$v}}
+{{- else}} []
+{{- end}}
+**Finalizers**:
+{{- with .finalizers}} {{join .}}
+{{- else}} []
+{{- end}}
+{{- end}}
+{{- with .spec}}
 
 **Taints**:
-{{- range $t := index .Result "template" "spec" "taints" }}
-    - Effect: {{index $t "effect"}}, Key: {{index $t "key"}}, Value: {{index $t "value"}}
+{{- range .taints}}
+    - {{.key}}={{.value}}:{{.effect}}
+{{- else}} []
 {{- end}}
-**Unschedulable**: {{index .Result "template" "spec" "unschedulable"}}
-
+**Unschedulable**: {{.unschedulable}}
+{{- end}}
+{{- end}}
+{{- end}}
 
 💡 Use option -o json or -o yaml to get the raw output with all information

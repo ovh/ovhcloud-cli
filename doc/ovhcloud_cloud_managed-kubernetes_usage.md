@@ -1,15 +1,11 @@
-## ovhcloud cloud managed-kubernetes customization get
+## ovhcloud cloud managed-kubernetes usage
 
-Get the customization of the given Kubernetes cluster
-
-```
-ovhcloud cloud managed-kubernetes customization get <cluster_id> [flags]
-```
+Inspect the resource usage of a Kubernetes cluster
 
 ### Options
 
 ```
-  -h, --help   help for get
+  -h, --help   help for usage
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +30,6 @@ ovhcloud cloud managed-kubernetes customization get <cluster_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes customization](ovhcloud_cloud_managed-kubernetes_customization.md)	 - Manage Kubernetes cluster customizations
+* [ovhcloud cloud managed-kubernetes](ovhcloud_cloud_managed-kubernetes.md)	 - Manage Kubernetes clusters in the given cloud project
+* [ovhcloud cloud managed-kubernetes usage etcd](ovhcloud_cloud_managed-kubernetes_usage_etcd.md)	 - Get the etcd storage usage of the given Kubernetes cluster
 

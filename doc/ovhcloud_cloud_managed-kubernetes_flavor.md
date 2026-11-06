@@ -1,18 +1,11 @@
-## ovhcloud cloud managed-kubernetes private-network-configuration edit
+## ovhcloud cloud managed-kubernetes flavor
 
-Edit the private network configuration for the given Kubernetes cluster
-
-```
-ovhcloud cloud managed-kubernetes private-network-configuration edit <cluster_id> [flags]
-```
+Explore the Kubernetes node flavors
 
 ### Options
 
 ```
-      --default-vrack-gateway string   If defined, all egress traffic will be routed towards this IP address, which should belong to the private network
-      --editor                         Use a text editor to define parameters
-  -h, --help                           help for edit
-      --routing-as-default             Set private network routing as default
+  -h, --help   help for flavor
 ```
 
 ### Options inherited from parent commands
@@ -37,5 +30,6 @@ ovhcloud cloud managed-kubernetes private-network-configuration edit <cluster_id
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes private-network-configuration](ovhcloud_cloud_managed-kubernetes_private-network-configuration.md)	 - Manage private network configuration for Kubernetes clusters
+* [ovhcloud cloud managed-kubernetes](ovhcloud_cloud_managed-kubernetes.md)	 - Manage Kubernetes clusters in the given cloud project
+* [ovhcloud cloud managed-kubernetes flavor list](ovhcloud_cloud_managed-kubernetes_flavor_list.md)	 - List the node flavors available in the given region
 

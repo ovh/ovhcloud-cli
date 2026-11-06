@@ -32,19 +32,19 @@ Manage Kubernetes clusters in the given cloud project
 
 * [ovhcloud cloud](ovhcloud_cloud.md)	 - Manage your projects and services in the Public Cloud universe (MKS, MPR, MRS, Object Storage...)
 * [ovhcloud cloud managed-kubernetes create](ovhcloud_cloud_managed-kubernetes_create.md)	 - Create a new Kubernetes cluster
-* [ovhcloud cloud managed-kubernetes customization](ovhcloud_cloud_managed-kubernetes_customization.md)	 - Manage Kubernetes cluster customizations
 * [ovhcloud cloud managed-kubernetes delete](ovhcloud_cloud_managed-kubernetes_delete.md)	 - Delete the given Kubernetes cluster
 * [ovhcloud cloud managed-kubernetes edit](ovhcloud_cloud_managed-kubernetes_edit.md)	 - Edit the given Kubernetes cluster
+* [ovhcloud cloud managed-kubernetes event](ovhcloud_cloud_managed-kubernetes_event.md)	 - Inspect the events of a Kubernetes cluster
+* [ovhcloud cloud managed-kubernetes flavor](ovhcloud_cloud_managed-kubernetes_flavor.md)	 - Explore the Kubernetes node flavors
 * [ovhcloud cloud managed-kubernetes get](ovhcloud_cloud_managed-kubernetes_get.md)	 - Get the given Kubernetes cluster
-* [ovhcloud cloud managed-kubernetes ip-restrictions](ovhcloud_cloud_managed-kubernetes_ip-restrictions.md)	 - Manage IP restrictions for Kubernetes clusters
 * [ovhcloud cloud managed-kubernetes kubeconfig](ovhcloud_cloud_managed-kubernetes_kubeconfig.md)	 - Manage the kubeconfig for the given Kubernetes cluster
 * [ovhcloud cloud managed-kubernetes list](ovhcloud_cloud_managed-kubernetes_list.md)	 - List your Kubernetes clusters
-* [ovhcloud cloud managed-kubernetes node](ovhcloud_cloud_managed-kubernetes_node.md)	 - Manage Kubernetes nodes
+* [ovhcloud cloud managed-kubernetes node](ovhcloud_cloud_managed-kubernetes_node.md)	 - Inspect Kubernetes nodes
 * [ovhcloud cloud managed-kubernetes nodepool](ovhcloud_cloud_managed-kubernetes_nodepool.md)	 - Manage Kubernetes node pools
-* [ovhcloud cloud managed-kubernetes oidc](ovhcloud_cloud_managed-kubernetes_oidc.md)	 - Manage OpenID Connect (OIDC) integration for Kubernetes clusters
-* [ovhcloud cloud managed-kubernetes private-network-configuration](ovhcloud_cloud_managed-kubernetes_private-network-configuration.md)	 - Manage private network configuration for Kubernetes clusters
-* [ovhcloud cloud managed-kubernetes reset](ovhcloud_cloud_managed-kubernetes_reset.md)	 - Reset the given Kubernetes cluster
+* [ovhcloud cloud managed-kubernetes plan](ovhcloud_cloud_managed-kubernetes_plan.md)	 - Explore the Kubernetes cluster plans
+* [ovhcloud cloud managed-kubernetes region](ovhcloud_cloud_managed-kubernetes_region.md)	 - Explore the Kubernetes regions
 * [ovhcloud cloud managed-kubernetes restart](ovhcloud_cloud_managed-kubernetes_restart.md)	 - Restart control plane apiserver to invalidate cache without downtime
-* [ovhcloud cloud managed-kubernetes set-load-balancers-subnet](ovhcloud_cloud_managed-kubernetes_set-load-balancers-subnet.md)	 - Update the load balancers subnet ID for the given Kubernetes cluster
-* [ovhcloud cloud managed-kubernetes update](ovhcloud_cloud_managed-kubernetes_update.md)	 - Update the given Kubernetes cluster
+* [ovhcloud cloud managed-kubernetes task](ovhcloud_cloud_managed-kubernetes_task.md)	 - Inspect the asynchronous tasks of a Kubernetes cluster
+* [ovhcloud cloud managed-kubernetes usage](ovhcloud_cloud_managed-kubernetes_usage.md)	 - Inspect the resource usage of a Kubernetes cluster
+* [ovhcloud cloud managed-kubernetes version](ovhcloud_cloud_managed-kubernetes_version.md)	 - Explore the Kubernetes versions
 

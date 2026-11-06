@@ -1,15 +1,11 @@
-## ovhcloud cloud managed-kubernetes set-load-balancers-subnet
+## ovhcloud cloud managed-kubernetes region
 
-Update the load balancers subnet ID for the given Kubernetes cluster
-
-```
-ovhcloud cloud managed-kubernetes set-load-balancers-subnet <cluster_id> <subnet_id> [flags]
-```
+Explore the Kubernetes regions
 
 ### Options
 
 ```
-  -h, --help   help for set-load-balancers-subnet
+  -h, --help   help for region
 ```
 
 ### Options inherited from parent commands
@@ -35,4 +31,5 @@ ovhcloud cloud managed-kubernetes set-load-balancers-subnet <cluster_id> <subnet
 ### SEE ALSO
 
 * [ovhcloud cloud managed-kubernetes](ovhcloud_cloud_managed-kubernetes.md)	 - Manage Kubernetes clusters in the given cloud project
+* [ovhcloud cloud managed-kubernetes region list](ovhcloud_cloud_managed-kubernetes_region_list.md)	 - List the regions available for Kubernetes cluster creation
 

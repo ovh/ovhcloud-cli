@@ -5,147 +5,94 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
+	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/completion"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
+	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
 	// Cluster related vars
-	ciliumClusterID    uint8
-	hubbleEnabled      bool
-	hubbleRelayEnabled bool
-	hubbleUIEnabled    bool
-	clusterMeshEnabled bool
+	ciliumClusterID          uint8
+	hubbleEnabled            bool
+	hubbleRelayEnabled       bool
+	hubbleUIEnabled          bool
+	clusterMeshEnabled       bool
+	autoUpgradePatchEnabled  bool
+	apiServerAuthorizedIPs   []string
+	admissionPluginsEnabled  []string
+	admissionPluginsDisabled []string
 
 	// Nodepool related vars
-	desiredNodes             int
-	maxNodes                 int
-	minNodes                 int
-	attachFloatingIpsEnabled bool
+	desiredNodes            int
+	autoscalerEnabled       bool
+	autoscalerMaxNodes      int
+	autoscalerMinNodes      int
+	antiAffinityEnabled     bool
+	attachFloatingIpEnabled bool
+	templateUnschedulable   bool
+	templateTaints          []string
 )
 
-func initKubeCommand(cloudCmd *cobra.Command) {
-	kubeCmd := &cobra.Command{
+func initManagedKubernetesCommand(cloudCmd *cobra.Command) {
+	managedKubernetesCmd := &cobra.Command{
 		Use:     "managed-kubernetes",
 		Aliases: []string{"mks"},
 		Short:   "Manage Kubernetes clusters in the given cloud project",
 	}
-	kubeCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
+	managedKubernetesCmd.PersistentFlags().StringVar(&cloud.CloudProject, "cloud-project", "", "Cloud project ID")
 
-	// Command to list Kuberetes clusters
-	kubeListCmd := &cobra.Command{
+	// Command to list Kubernetes clusters
+	managedKubernetesListCmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List your Kubernetes clusters",
-		Run:     cloud.ListKubes,
+		Run:     cloud.ListManagedKubernetes,
 	}
-	kubeCmd.AddCommand(withFilterFlag(kubeListCmd))
+	managedKubernetesCmd.AddCommand(withFilterFlag(managedKubernetesListCmd))
 
 	// Command to get a Kubernetes cluster
-	kubeCmd.AddCommand(&cobra.Command{
+	managedKubernetesCmd.AddCommand(&cobra.Command{
 		Use:               "get <cluster_id>",
 		Short:             "Get the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.GetKube,
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
+		Run:               cloud.GetManagedKubernetes,
 		Args:              cobra.ExactArgs(1),
 	})
 
 	// Command to create a Kubernetes cluster
-	kubeCmd.AddCommand(getKubeCreateCmd())
+	managedKubernetesCmd.AddCommand(getManagedKubernetesCreateCmd())
 
 	// Command to edit a Kubernetes cluster
-	kubeEditCmd := &cobra.Command{
-		Use:               "edit <cluster_id>",
-		Short:             "Edit the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.EditKube,
-		Args:              cobra.ExactArgs(1),
-	}
-	kubeEditCmd.Flags().StringVar(&cloud.KubeSpec.Name, "name", "", "Name of the Kubernetes cluster")
-	kubeEditCmd.Flags().StringVar(&cloud.KubeSpec.UpdatePolicy, "update-policy", "", "Update policy for the cluster (ALWAYS_UPDATE, MINIMAL_DOWNTIME, NEVER_UPDATE)")
-	kubeEditCmd.Flags().BoolVar(&flags.ParametersViaEditor, "editor", false, "Use a text editor to define edit parameters")
-	kubeCmd.AddCommand(kubeEditCmd)
+	managedKubernetesCmd.AddCommand(getManagedKubernetesEditCmd())
 
 	// Command to delete a Kubernetes cluster
-	kubeCmd.AddCommand(&cobra.Command{
+	managedKubernetesCmd.AddCommand(&cobra.Command{
 		Use:               "delete <cluster_id>",
 		Short:             "Delete the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.DeleteKube,
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
+		Run:               cloud.DeleteManagedKubernetes,
 		Args:              cobra.ExactArgs(1),
 	})
-
-	// Command to manage Kubernetes cluster customizations
-	customizationCmd := &cobra.Command{
-		Use:   "customization",
-		Short: "Manage Kubernetes cluster customizations",
-	}
-	kubeCmd.AddCommand(customizationCmd)
-
-	customizationCmd.AddCommand(&cobra.Command{
-		Use:               "get <cluster_id>",
-		Short:             "Get the customization of the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.GetKubeCustomization,
-		Args:              cobra.ExactArgs(1),
-	})
-
-	customizationEditCmd := &cobra.Command{
-		Use:               "edit <cluster_id>",
-		Short:             "Edit the customization of the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.EditKubeCustomization,
-		Args:              cobra.ExactArgs(1),
-	}
-
-	setKubeCommonFlags(customizationEditCmd)
-
-	addInteractiveEditorFlag(customizationEditCmd)
-	customizationCmd.AddCommand(customizationEditCmd)
-
-	ipRestrictionsCmd := &cobra.Command{
-		Use:   "ip-restrictions",
-		Short: "Manage IP restrictions for Kubernetes clusters",
-	}
-	kubeCmd.AddCommand(ipRestrictionsCmd)
-
-	ipRestrictionsCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:               "list <cluster_id>",
-		Aliases:           []string{"ls"},
-		Short:             "List IP restrictions for the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.ListKubeIPRestrictions,
-		Args:              cobra.ExactArgs(1),
-	}))
-
-	ipRestrictionsEditCmd := &cobra.Command{
-		Use:               "edit <cluster_id>",
-		Short:             "Edit IP restrictions for the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.EditKubeIPRestrictions,
-		Args:              cobra.ExactArgs(1),
-	}
-	ipRestrictionsEditCmd.Flags().StringSliceVar(&cloud.KubeIPRestrictions, "ips", nil, "List of IPs to restrict access to the Kubernetes cluster")
-	addInteractiveEditorFlag(ipRestrictionsEditCmd)
-	markFlagsMutuallyExclusive(ipRestrictionsEditCmd, "ips", "editor")
-	ipRestrictionsCmd.AddCommand(ipRestrictionsEditCmd)
 
 	kubeConfigCmd := &cobra.Command{
 		Use:   "kubeconfig",
 		Short: "Manage the kubeconfig for the given Kubernetes cluster",
 	}
-	kubeCmd.AddCommand(kubeConfigCmd)
+	managedKubernetesCmd.AddCommand(kubeConfigCmd)
 
 	kubeConfigCmd.AddCommand(&cobra.Command{
 		Use:               "generate <cluster_id>",
 		Short:             "Generate the kubeconfig for the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
 		Run:               cloud.GenerateKubeConfig,
 		Args:              cobra.ExactArgs(1),
 	})
@@ -153,181 +100,251 @@ func initKubeCommand(cloudCmd *cobra.Command) {
 	kubeConfigCmd.AddCommand(&cobra.Command{
 		Use:               "reset <cluster_id>",
 		Short:             "Reset the kubeconfig for the given Kubernetes cluster. Certificates will be regenerated and nodes will be reinstalled",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
 		Run:               cloud.ResetKubeConfig,
 		Args:              cobra.ExactArgs(1),
 	})
 
 	nodeCmd := &cobra.Command{
 		Use:   "node",
-		Short: "Manage Kubernetes nodes",
+		Short: "Inspect Kubernetes nodes",
 	}
-	kubeCmd.AddCommand(nodeCmd)
+	managedKubernetesCmd.AddCommand(nodeCmd)
 
-	nodeCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:               "list <cluster_id>",
+	nodeListCmd := &cobra.Command{
+		Use:               "list <cluster_id> <nodepool_id>",
 		Aliases:           []string{"ls"},
-		Short:             "List nodes in the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.ListKubeNodes,
-		Args:              cobra.ExactArgs(1),
-	}))
+		Short:             "List nodes in the given Kubernetes node pool",
+		ValidArgsFunction: completion.CloudResourceWithChild(cloud.ManagedKubernetesV2EndpointFormat, cloud.ManagedKubernetesNodepoolsEndpointFormat),
+		Run:               cloud.ListManagedKubernetesNodes,
+		Args:              cobra.ExactArgs(2),
+	}
+	nodeListCmd.Flags().BoolVar(&cloud.ManagedKubernetesNodeIncludeDeleted, "include-deleted", false, "Include deleted nodes still kept in retention")
+	nodeListCmd.Flags().StringVar(&cloud.ManagedKubernetesNodeResourceStatus, "resource-status", "", "List only the nodes in this lifecycle status (CREATING, DELETED, DELETING, ERROR, OUT_OF_SYNC, READY, UNKNOWN, UPDATING). DELETED requires --include-deleted")
+	nodeCmd.AddCommand(withFilterFlag(nodeListCmd))
 
 	nodeCmd.AddCommand(&cobra.Command{
-		Use:               "get <cluster_id> <node_id>",
+		Use:               "get <cluster_id> <nodepool_id> <node_id>",
 		Short:             "Get the given Kubernetes node",
-		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/node"),
-		Run:               cloud.GetKubeNode,
-		Args:              cobra.ExactArgs(2),
-	})
-
-	nodeCmd.AddCommand(&cobra.Command{
-		Use:               "delete <cluster_id> <node_id>",
-		Short:             "Delete the given Kubernetes node",
-		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/node"),
-		Run:               cloud.DeleteKubeNode,
-		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completion.CloudResourceChain(cloud.ManagedKubernetesV2EndpointFormat, cloud.ManagedKubernetesNodepoolsEndpointFormat, cloud.ManagedKubernetesNodesEndpointFormat),
+		Run:               cloud.GetManagedKubernetesNode,
+		Args:              cobra.ExactArgs(3),
 	})
 
 	nodepoolCmd := &cobra.Command{
 		Use:   "nodepool",
 		Short: "Manage Kubernetes node pools",
 	}
-	kubeCmd.AddCommand(nodepoolCmd)
+	managedKubernetesCmd.AddCommand(nodepoolCmd)
 
 	nodepoolCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:               "list <cluster_id>",
 		Aliases:           []string{"ls"},
 		Short:             "List node pools in the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.ListKubeNodepools,
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
+		Run:               cloud.ListManagedKubernetesNodepools,
 		Args:              cobra.ExactArgs(1),
 	}))
 
 	nodepoolCmd.AddCommand(&cobra.Command{
 		Use:               "get <cluster_id> <nodepool_id>",
 		Short:             "Get the given Kubernetes node pool",
-		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/nodepool"),
-		Run:               cloud.GetKubeNodepool,
+		ValidArgsFunction: completion.CloudResourceWithChild(cloud.ManagedKubernetesV2EndpointFormat, cloud.ManagedKubernetesNodepoolsEndpointFormat),
+		Run:               cloud.GetManagedKubernetesNodepool,
 		Args:              cobra.ExactArgs(2),
 	})
 
-	nodepoolCmd.AddCommand(getNodepoolEditCmd())
+	nodepoolCmd.AddCommand(getManagedKubernetesNodepoolEditCmd())
 
 	nodepoolCmd.AddCommand(&cobra.Command{
 		Use:               "delete <cluster_id> <nodepool_id>",
 		Short:             "Delete the given Kubernetes node pool",
-		ValidArgsFunction: completion.CloudResourceWithChild("/v1/cloud/project/%s/kube", "/v1/cloud/project/%s/kube/%s/nodepool"),
-		Run:               cloud.DeleteKubeNodepool,
+		ValidArgsFunction: completion.CloudResourceWithChild(cloud.ManagedKubernetesV2EndpointFormat, cloud.ManagedKubernetesNodepoolsEndpointFormat),
+		Run:               cloud.DeleteManagedKubernetesNodepool,
 		Args:              cobra.ExactArgs(2),
 	})
 
-	nodepoolCmd.AddCommand(getKubeNodePoolCreateCmd())
+	nodepoolCmd.AddCommand(getManagedKubernetesNodepoolCreateCmd())
 
-	oidcCmd := &cobra.Command{
-		Use:   "oidc",
-		Short: "Manage OpenID Connect (OIDC) integration for Kubernetes clusters",
+	nodepoolTaskCmd := &cobra.Command{
+		Use:   "task",
+		Short: "Inspect the asynchronous tasks of a Kubernetes node pool",
 	}
-	kubeCmd.AddCommand(oidcCmd)
+	nodepoolCmd.AddCommand(nodepoolTaskCmd)
 
-	oidcCmd.AddCommand(&cobra.Command{
-		Use:               "get <cluster_id>",
-		Short:             "Get the OIDC configuration for the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.GetKubeOIDCIntegration,
+	nodepoolTaskCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "list <cluster_id> <nodepool_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List the tasks of the given Kubernetes node pool",
+		ValidArgsFunction: completion.CloudResourceWithChild(cloud.ManagedKubernetesV2EndpointFormat, cloud.ManagedKubernetesNodepoolsEndpointFormat),
+		Run:               cloud.ListManagedKubernetesNodepoolTasks,
+		Args:              cobra.ExactArgs(2),
+	}))
+
+	nodepoolTaskCmd.AddCommand(&cobra.Command{
+		Use:               "get <cluster_id> <nodepool_id> <task_id>",
+		Short:             "Get the given Kubernetes node pool task",
+		ValidArgsFunction: completion.CloudResourceChain(cloud.ManagedKubernetesV2EndpointFormat, cloud.ManagedKubernetesNodepoolsEndpointFormat, cloud.ManagedKubernetesNodepoolTasksEndpointFormat),
+		Run:               cloud.GetManagedKubernetesNodepoolTask,
+		Args:              cobra.ExactArgs(3),
+	})
+
+	nodepoolEventCmd := &cobra.Command{
+		Use:   "event",
+		Short: "Inspect the events of a Kubernetes node pool",
+	}
+	nodepoolCmd.AddCommand(nodepoolEventCmd)
+
+	nodepoolEventListCmd := &cobra.Command{
+		Use:               "list <cluster_id> <nodepool_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List the events of the given Kubernetes node pool",
+		ValidArgsFunction: completion.CloudResourceWithChild(cloud.ManagedKubernetesV2EndpointFormat, cloud.ManagedKubernetesNodepoolsEndpointFormat),
+		Run:               cloud.ListManagedKubernetesNodepoolEvents,
+		Args:              cobra.ExactArgs(2),
+	}
+	nodepoolEventListCmd.Flags().StringVar(&cloud.ManagedKubernetesEventTaskID, "task-id", "", "List only the events of the given task")
+	nodepoolEventCmd.AddCommand(withFilterFlag(nodepoolEventListCmd))
+
+	taskCmd := &cobra.Command{
+		Use:   "task",
+		Short: "Inspect the asynchronous tasks of a Kubernetes cluster",
+	}
+	managedKubernetesCmd.AddCommand(taskCmd)
+
+	taskCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "list <cluster_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List the tasks of the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
+		Run:               cloud.ListManagedKubernetesTasks,
+		Args:              cobra.ExactArgs(1),
+	}))
+
+	taskCmd.AddCommand(&cobra.Command{
+		Use:               "get <cluster_id> <task_id>",
+		Short:             "Get the given Kubernetes cluster task",
+		ValidArgsFunction: completion.CloudResourceWithChild(cloud.ManagedKubernetesV2EndpointFormat, cloud.ManagedKubernetesTasksEndpointFormat),
+		Run:               cloud.GetManagedKubernetesTask,
+		Args:              cobra.ExactArgs(2),
+	})
+
+	eventCmd := &cobra.Command{
+		Use:   "event",
+		Short: "Inspect the events of a Kubernetes cluster",
+	}
+	managedKubernetesCmd.AddCommand(eventCmd)
+
+	eventListCmd := &cobra.Command{
+		Use:               "list <cluster_id>",
+		Aliases:           []string{"ls"},
+		Short:             "List the events of the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
+		Run:               cloud.ListManagedKubernetesEvents,
+		Args:              cobra.ExactArgs(1),
+	}
+	eventListCmd.Flags().StringVar(&cloud.ManagedKubernetesEventTaskID, "task-id", "", "List only the events of the given task")
+	eventCmd.AddCommand(withFilterFlag(eventListCmd))
+
+	usageCmd := &cobra.Command{
+		Use:   "usage",
+		Short: "Inspect the resource usage of a Kubernetes cluster",
+	}
+	managedKubernetesCmd.AddCommand(usageCmd)
+
+	usageCmd.AddCommand(&cobra.Command{
+		Use:               "etcd <cluster_id>",
+		Short:             "Get the etcd storage usage of the given Kubernetes cluster",
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
+		Run:               cloud.GetManagedKubernetesEtcdUsage,
 		Args:              cobra.ExactArgs(1),
 	})
 
-	editCmd := &cobra.Command{
-		Use:               "edit <cluster_id>",
-		Short:             "Edit the OIDC configuration for the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.EditKubeOIDCIntegration,
-		Args:              cobra.ExactArgs(1),
+	planCmd := &cobra.Command{
+		Use:   "plan",
+		Short: "Explore the Kubernetes cluster plans",
 	}
-	editCmd.Flags().StringVar(&cloud.KubeOIDCConfig.CaContent, "ca-content", "", "CA certificate content for the OIDC provider")
-	editCmd.Flags().StringVar(&cloud.KubeOIDCConfig.ClientId, "client-id", "", "OIDC client ID")
-	editCmd.Flags().StringSliceVar(&cloud.KubeOIDCConfig.GroupsClaim, "groups-claim", nil, "OIDC groups claim(s)")
-	editCmd.Flags().StringVar(&cloud.KubeOIDCConfig.GroupsPrefix, "groups-prefix", "", "Prefix prepended to group claims")
-	editCmd.Flags().StringVar(&cloud.KubeOIDCConfig.IssuerUrl, "issuer-url", "", "OIDC issuer URL")
-	editCmd.Flags().StringSliceVar(&cloud.KubeOIDCConfig.RequiredClaim, "required-claim", nil, "OIDC required claim(s)")
-	editCmd.Flags().StringSliceVar(&cloud.KubeOIDCConfig.SigningAlgorithms, "signing-algorithms", nil, "OIDC signing algorithm(s) (ES256, ES384, ES512, PS256, PS384, PS512, RS256, RS384, RS512)")
-	editCmd.Flags().StringVar(&cloud.KubeOIDCConfig.UsernameClaim, "username-claim", "", "OIDC username claim")
-	editCmd.Flags().StringVar(&cloud.KubeOIDCConfig.UsernamePrefix, "username-prefix", "", "Prefix prepended to username claims")
-	oidcCmd.AddCommand(editCmd)
+	managedKubernetesCmd.AddCommand(planCmd)
 
-	oidcCmd.AddCommand(getKubeOIDCCreateCmd())
+	planListCmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List the plans available for Kubernetes cluster creation",
+		Run:     cloud.ListManagedKubernetesPlans,
+		Args:    cobra.NoArgs,
+	}
+	planListCmd.Flags().StringVar(&cloud.ManagedKubernetesReferenceRegion, "region", "", "Region to list the plans for (required)")
+	planListCmd.MarkFlagRequired("region") //nolint:errcheck
+	planCmd.AddCommand(withFilterFlag(planListCmd))
 
-	oidcCmd.AddCommand(&cobra.Command{
-		Use:               "delete <cluster_id>",
-		Short:             "Delete the OIDC integration for the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.DeleteKubeOIDCIntegration,
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Explore the Kubernetes versions",
+	}
+	managedKubernetesCmd.AddCommand(versionCmd)
+
+	versionCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List the versions available for Kubernetes cluster creation",
+		Run:     cloud.ListManagedKubernetesVersions,
+		Args:    cobra.NoArgs,
+	}))
+
+	versionCmd.AddCommand(&cobra.Command{
+		Use:               "capabilities <cluster_id>",
+		Short:             "Get the patch/minor versions the given Kubernetes cluster can be upgraded to",
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
+		Run:               cloud.GetManagedKubernetesVersionCapabilities,
 		Args:              cobra.ExactArgs(1),
 	})
 
-	privateNetworkConfigCmd := &cobra.Command{
-		Use:   "private-network-configuration",
-		Short: "Manage private network configuration for Kubernetes clusters",
+	regionCmd := &cobra.Command{
+		Use:   "region",
+		Short: "Explore the Kubernetes regions",
 	}
-	kubeCmd.AddCommand(privateNetworkConfigCmd)
+	managedKubernetesCmd.AddCommand(regionCmd)
 
-	privateNetworkConfigCmd.AddCommand(&cobra.Command{
-		Use:               "get <cluster_id>",
-		Short:             "Get the private network configuration for the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.GetKubePrivateNetworkConfiguration,
-		Args:              cobra.ExactArgs(1),
-	})
+	regionCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List the regions available for Kubernetes cluster creation",
+		Run:     cloud.ListManagedKubernetesRegions,
+		Args:    cobra.NoArgs,
+	}))
 
-	privateNetworkConfigEditCmd := &cobra.Command{
-		Use:               "edit <cluster_id>",
-		Short:             "Edit the private network configuration for the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.EditKubePrivateNetworkConfiguration,
-		Args:              cobra.ExactArgs(1),
+	flavorCmd := &cobra.Command{
+		Use:   "flavor",
+		Short: "Explore the Kubernetes node flavors",
 	}
-	privateNetworkConfigEditCmd.Flags().StringVar(&cloud.KubeSpec.PrivateNetworkConfiguration.DefaultVrackGateway, "default-vrack-gateway", "", "If defined, all egress traffic will be routed towards this IP address, which should belong to the private network")
-	privateNetworkConfigEditCmd.Flags().BoolVar(&cloud.KubeSpec.PrivateNetworkConfiguration.PrivateNetworkRoutingAsDefault, "routing-as-default", false, "Set private network routing as default")
-	addInteractiveEditorFlag(privateNetworkConfigEditCmd)
-	privateNetworkConfigCmd.AddCommand(privateNetworkConfigEditCmd)
+	managedKubernetesCmd.AddCommand(flavorCmd)
 
-	kubeCmd.AddCommand(getKubeResetCmd())
+	flavorListCmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List the node flavors available in the given region",
+		Run:     cloud.ListManagedKubernetesFlavors,
+		Args:    cobra.NoArgs,
+	}
+	flavorListCmd.Flags().StringVar(&cloud.ManagedKubernetesReferenceRegion, "region", "", "Region to list the flavors for (required)")
+	flavorListCmd.MarkFlagRequired("region") //nolint:errcheck
+	flavorCmd.AddCommand(withFilterFlag(flavorListCmd))
 
-	kubeRestartCmd := &cobra.Command{
+	managedKubernetesRestartCmd := &cobra.Command{
 		Use:               "restart <cluster_id>",
 		Short:             "Restart control plane apiserver to invalidate cache without downtime",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.RestartKubeCluster,
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
+		Run:               cloud.RestartManagedKubernetes,
 		Args:              cobra.ExactArgs(1),
 	}
-	kubeRestartCmd.Flags().BoolVar(&cloud.KubeForceAction, "force", false, "Force restart the Kubernetes cluster (will create a slight downtime)")
-	kubeCmd.AddCommand(kubeRestartCmd)
+	managedKubernetesRestartCmd.Flags().BoolVar(&cloud.ManagedKubernetesForceAction, "force", false, "Force restart the Kubernetes cluster (will create a slight downtime)")
+	managedKubernetesCmd.AddCommand(managedKubernetesRestartCmd)
 
-	kubeUpdateCmd := &cobra.Command{
-		Use:               "update <cluster_id>",
-		Short:             "Update the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.UpdateKubeCluster,
-		Args:              cobra.ExactArgs(1),
-	}
-	kubeUpdateCmd.Flags().StringVar(&cloud.KubeUpdateStrategy, "strategy", "", "Update strategy to apply on your service (LATEST_PATCH, NEXT_MINOR)")
-	kubeUpdateCmd.Flags().BoolVar(&cloud.KubeForceAction, "force", false, "Force redeploying the control plane / reinstalling the nodes regardless of their current version")
-	kubeCmd.AddCommand(kubeUpdateCmd)
-
-	kubeCmd.AddCommand(&cobra.Command{
-		Use:               "set-load-balancers-subnet <cluster_id> <subnet_id>",
-		Short:             "Update the load balancers subnet ID for the given Kubernetes cluster",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.UpdateKubeLoadBalancersSubnet,
-		Args:              cobra.ExactArgs(2),
-	})
-
-	cloudCmd.AddCommand(kubeCmd)
+	cloudCmd.AddCommand(managedKubernetesCmd)
 }
 
-func getKubeCreateCmd() *cobra.Command {
-	kubeCreateCmd := &cobra.Command{
+func getManagedKubernetesCreateCmd() *cobra.Command {
+	managedKubernetesCreateCmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a new Kubernetes cluster",
 		Long: `Use this command to create a managed Kubernetes cluster in the given public cloud project.
@@ -335,7 +352,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud managed-kubernetes create --name MyNewCluster --region SBG5 --version 1.32
+	ovhcloud cloud managed-kubernetes create --name MyNewCluster --region SBG5 --plan FREE
 
 2. Using a configuration file:
 
@@ -367,191 +384,210 @@ There are three ways to define the creation parameters:
 
 	ovhcloud cloud managed-kubernetes create --editor --region BHS5
 `,
-		Run: cloud.CreateKube,
+		Run: cloud.CreateManagedKubernetes,
 	}
 
-	// All flags for Kubernetes cluster creation
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Name, "name", "", "Name of the Kubernetes cluster")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Region, "region", "", "Region for the Kubernetes cluster")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Version, "version", "", "Kubernetes version")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.Plan, "plan", "", "Kubernetes cluster plan (free or standard, default: free)")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.KubeProxyMode, "kube-proxy-mode", "", "Kube-proxy mode (iptables or ipvs)")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.LoadBalancersSubnetId, "load-balancers-subnet-id", "", "OpenStack subnet ID that the load balancers will use")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.NodesSubnetId, "nodes-subnet-id", "", "OpenStack subnet ID that the cluster nodes will use")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.PrivateNetworkId, "private-network-id", "", "OpenStack private network ID that the cluster will use")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.UpdatePolicy, "update-policy", "", "Update policy for the cluster (ALWAYS_UPDATE, MINIMAL_DOWNTIME, NEVER_UPDATE)")
+	// Immutable parameters, only settable at creation time
+	managedKubernetesCreateCmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Region, "region", "", "Region for the Kubernetes cluster (required)")
+	managedKubernetesCreateCmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Plan, "plan", "", "Plan of the Kubernetes cluster: FREE, STANDARD (required)")
+	managedKubernetesCreateCmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Type, "cni-type", "", "CNI plugin of the cluster (CANAL for the FREE plan, CILIUM for the STANDARD plan). Derived from --plan when omitted")
+	managedKubernetesCreateCmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.IPAllocationPolicy.Pods, "ip-allocation-policy-pods", "", "IPv4 CIDR block allocated for pod networking (e.g. '10.0.0.0/16')")
+	managedKubernetesCreateCmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.IPAllocationPolicy.Services, "ip-allocation-policy-services", "", "IPv4 CIDR block allocated for service networking (e.g. '10.96.0.0/12')")
 
-	// Private network configuration
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.PrivateNetworkConfiguration.DefaultVrackGateway, "private-network.default-vrack-gateway", "", "If defined, all egress traffic will be routed towards this IP address, which should belong to the private network")
-	kubeCreateCmd.Flags().BoolVar(&cloud.KubeSpec.PrivateNetworkConfiguration.PrivateNetworkRoutingAsDefault, "private-network.routing-as-default", false, "Set private network routing as default")
+	// Network topology, immutable after creation except for the default egress
+	managedKubernetesCreateCmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Network.Type, "network-type", "", "Network topology of the cluster nodes (PUBLIC, VRACK). When omitted, VRACK if a vRack private network is given, PUBLIC otherwise")
+	managedKubernetesCreateCmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Network.Vrack.PrivateNetworkId, "network-vrack-private-network-id", "", "Private network ID used by the cluster nodes (VRACK topology)")
+	managedKubernetesCreateCmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Network.Vrack.SubnetId, "network-vrack-subnet-id", "", "Subnet ID used by the cluster nodes (VRACK topology)")
+	managedKubernetesCreateCmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Network.Vrack.LoadBalancerSubnetId, "network-vrack-load-balancer-subnet-id", "", "Subnet ID used by the load balancers (VRACK topology)")
+	managedKubernetesCreateCmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Canal.KubeProxy.Mode, "kube-proxy-mode", "", "Kube-proxy mode (IPTABLES, IPVS), immutable after creation")
 
-	// CIDR configuration
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.IPAllocationPolicy.PodsIPv4CIDR, "ip-allocation-policy-pods-ipv4-cidr", "", "IPv4 CIDR for pods")
-	kubeCreateCmd.Flags().StringVar(&cloud.KubeSpec.IPAllocationPolicy.ServicesIPv4CIDR, "ip-allocation-policy-services-ipv4-cidr", "", "IPv4 CIDR for services")
+	setManagedKubernetesMutableFlags(managedKubernetesCreateCmd)
 
-	setKubeCommonFlags(kubeCreateCmd)
+	// Common flags for other means to define parameters.
+	addParameterFileFlags(managedKubernetesCreateCmd, false, assets.CloudV2OpenapiSchema, cloud.ManagedKubernetesV2SchemaPath, "post", "", nil)
+	setPreRunE(managedKubernetesCreateCmd, func(cmd *cobra.Command, args []string) error {
+		// Required only with flags alone: a file, the editor or a pipe can provide them.
+		if flags.ParametersFile == "" && !flags.ParametersViaEditor && !utils.IsInputFromPipe() {
+			var missing []string
+			for _, name := range []string{"region", "plan"} {
+				if !cmd.Flags().Changed(name) {
+					missing = append(missing, fmt.Sprintf("%q", name))
+				}
+			}
+			if len(missing) > 0 {
+				return fmt.Errorf("required flag(s) %s not set", strings.Join(missing, ", "))
+			}
+		}
+		return managedKubernetesPreRunE(cmd, args)
+	})
+	addInteractiveEditorFlag(managedKubernetesCreateCmd)
+	markFlagsMutuallyExclusive(managedKubernetesCreateCmd, "from-file", "editor")
 
-	// Common flags for other means to define parameters
-	addParameterFileFlags(kubeCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube", "post", cloud.CloudKubeCreationExample, nil)
-	addInteractiveEditorFlag(kubeCreateCmd)
-	markFlagsMutuallyExclusive(kubeCreateCmd, "from-file", "editor")
-
-	return kubeCreateCmd
+	return managedKubernetesCreateCmd
 }
 
-func getKubeResetCmd() *cobra.Command {
-	kubeResetCmd := &cobra.Command{
-		Use:   "reset <cluster_id>",
-		Short: "Reset the given Kubernetes cluster",
-		Long: `Reset the given Kubernetes cluster.
-All Kubernetes data will be erased (pods, services, configuration, etc), nodes will be either deleted or reinstalled.
-
-There are three ways to define the reset parameters:
-
-1. Using only CLI flags:
-
-	ovhcloud cloud managed-kubernetes reset <cluster_id> --name MyNewCluster --version 1.32
-
-2. Using a configuration file:
-
-  First you can generate an example of parameters file using the following command:
-
-	ovhcloud cloud managed-kubernetes reset <cluster_id> --init-file ./params.json
-
-  You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
-  After editing the file to set the correct parameters, run:
-
-	ovhcloud cloud managed-kubernetes reset <cluster_id> --from-file ./params.json
-
-  Note that you can also pipe the content of the parameters file, like the following:
-
-	cat ./params.json | ovhcloud cloud managed-kubernetes reset <cluster_id>
-
-  In both cases, you can override the parameters in the given file using command line flags, for example:
-
-	ovhcloud cloud managed-kubernetes reset <cluster_id> --from-file ./params.json --name NameOverriden
-
-3. Using your default text editor:
-
-	ovhcloud cloud managed-kubernetes reset <cluster_id> --editor
-
-  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
-  default text editor to update the parameters. When saving the file, the reset will start.
-
-  Note that it is also possible to override values in the presented examples using command line flags like the following:
-
-	ovhcloud cloud managed-kubernetes reset <cluster_id> --editor --version 1.31
-`,
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.ResetKubeCluster,
+func getManagedKubernetesEditCmd() *cobra.Command {
+	managedKubernetesEditCmd := &cobra.Command{
+		Use:               "edit <cluster_id>",
+		Short:             "Edit the given Kubernetes cluster",
+		Long:              "Edit the given Kubernetes cluster. Only the mutable part of the cluster specification can be changed: to change the region, the plan, the network topology or the pods and services CIDRs, a new cluster must be created.",
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
+		Run:               cloud.EditManagedKubernetes,
 		Args:              cobra.ExactArgs(1),
 	}
 
-	// All flags for Kubernetes cluster reset
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Name, "name", "", "Name of the Kubernetes cluster")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.Version, "version", "", "Kubernetes version")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.KubeProxyMode, "kube-proxy-mode", "", "Kube-proxy mode (iptables or ipvs)")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.LoadBalancersSubnetId, "load-balancers-subnet-id", "", "OpenStack subnet ID that the load balancers will use")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.NodesSubnetId, "nodes-subnet-id", "", "OpenStack subnet ID that the cluster nodes will use")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.PrivateNetworkId, "private-network-id", "", "OpenStack private network ID that the cluster will use")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.UpdatePolicy, "update-policy", "", "Update policy for the cluster (ALWAYS_UPDATE, MINIMAL_DOWNTIME, NEVER_UPDATE)")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.WorkerNodesPolicy, "worker-nodes-policy", "", "Worker nodes reset policy (delete, reinstall)")
+	setManagedKubernetesMutableFlags(managedKubernetesEditCmd)
 
-	// Private network configuration
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.PrivateNetworkConfiguration.DefaultVrackGateway, "private-network.default-vrack-gateway", "", "If defined, all egress traffic will be routed towards this IP address, which should belong to the private network")
-	kubeResetCmd.Flags().BoolVar(&cloud.KubeSpec.PrivateNetworkConfiguration.PrivateNetworkRoutingAsDefault, "private-network.routing-as-default", false, "Set private network routing as default")
+	setPreRunE(managedKubernetesEditCmd, managedKubernetesPreRunE)
+	addInteractiveEditorFlag(managedKubernetesEditCmd)
 
-	// CIDR configuration
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.IPAllocationPolicy.PodsIPv4CIDR, "ip-allocation-policy-pods-ipv4-cidr", "", "IPv4 CIDR for pods")
-	kubeResetCmd.Flags().StringVar(&cloud.KubeSpec.IPAllocationPolicy.ServicesIPv4CIDR, "ip-allocation-policy-services-ipv4-cidr", "", "IPv4 CIDR for services")
-
-	setKubeCommonFlags(kubeResetCmd)
-
-	// Common flags for other means to define parameters
-	addParameterFileFlags(kubeResetCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/reset", "post", cloud.CloudKubeResetExample, nil)
-	addInteractiveEditorFlag(kubeResetCmd)
-	markFlagsMutuallyExclusive(kubeResetCmd, "from-file", "editor")
-
-	return kubeResetCmd
+	return managedKubernetesEditCmd
 }
 
-func setKubeCommonFlags(cmd *cobra.Command) {
-	// API Server Admission Plugins
-	cmd.Flags().StringSliceVar(&cloud.KubeSpec.Customization.APIServer.AdmissionPlugins.Enabled, "api-server.admission-plugins.enabled", nil, "Admission plugins to enable on API server (AlwaysPullImages, NodeRestriction)")
-	cmd.Flags().StringSliceVar(&cloud.KubeSpec.Customization.APIServer.AdmissionPlugins.Disabled, "api-server.admission-plugins.disabled", nil, "Admission plugins to disable on API server (AlwaysPullImages, NodeRestriction)")
+// setManagedKubernetesMutableFlags registers the flags mapping onto the mutable part of the cluster
+// specification, shared by the create and edit commands.
+func setManagedKubernetesMutableFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Name, "name", "", "Name of the Kubernetes cluster (auto-generated at creation if omitted)")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Version, "version", "", "Kubernetes version (a minor version such as '1.34' is only accepted at creation time, which defaults to the latest supported version if omitted)")
+	cmd.Flags().BoolVar(&autoUpgradePatchEnabled, "auto-upgrade-patch-enabled", true, "Automatically upgrade the cluster to the latest patch version")
 
-	// KubeProxy IPTables
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPTables.MinSyncPeriod, "kube-proxy.iptables.min-sync-period", "", "Minimum period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPTables.SyncPeriod, "kube-proxy.iptables.sync-period", "", "Period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
+	// API server
+	cmd.Flags().StringSliceVar(&apiServerAuthorizedIPs, "api-server-authorized-ips", nil, "CIDR blocks allowed to reach the API server, '0.0.0.0/0' to allow all (replaces the current allowlist when editing)")
+	cmd.Flags().StringSliceVar(&admissionPluginsEnabled, "api-server-admission-plugins-enabled", nil, "Admission plugins to enable on API server (AlwaysPullImages, NodeRestriction)")
+	cmd.Flags().StringSliceVar(&admissionPluginsDisabled, "api-server-admission-plugins-disabled", nil, "Admission plugins to disable on API server (AlwaysPullImages, NodeRestriction)")
 
-	// KubeProxy IPVS
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.MinSyncPeriod, "kube-proxy.ipvs.min-sync-period", "", "Minimum period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.Scheduler, "kube-proxy.ipvs.scheduler", "", "Scheduler for kube-proxy ipvs (dh, lc, nq, rr, sed, sh)")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.SyncPeriod, "kube-proxy.ipvs.sync-period", "", "Period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPFinTimeout, "kube-proxy.ipvs.tcp-fin-timeout", "", "Timeout value used for IPVS TCP sessions after receiving a FIN in RFC3339 duration format (e.g. 'PT60S')")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.TCPTimeout, "kube-proxy.ipvs.tcp-timeout", "", "Timeout value used for idle IPVS TCP sessions in RFC3339 duration format (e.g. 'PT60S')")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.KubeProxy.IPVS.UDPTimeout, "kube-proxy.ipvs.udp-timeout", "", "Timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S')")
+	// Default egress of the cluster nodes, only relevant for a VRACK network topology
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Network.Vrack.DefaultEgress.Type, "network-vrack-default-egress-type", "", "Default egress route of the cluster nodes (MANAGED_GATEWAY, NODE_PUBLIC_INTERFACE, USER_GATEWAY). Defaults to MANAGED_GATEWAY on STANDARD plan, NODE_PUBLIC_INTERFACE on FREE plan")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Network.Vrack.DefaultEgress.UserGateway.IP, "network-vrack-default-egress-user-gateway-ip", "", "IP address of the egress gateway, required when the default egress type is USER_GATEWAY")
 
-	// Cilium configuration
+	// Kube-proxy, only available with the CANAL CNI
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Canal.KubeProxy.IPTables.MinSyncPeriod, "kube-proxy-iptables-min-sync-period", "", "Minimum period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Canal.KubeProxy.IPTables.SyncPeriod, "kube-proxy-iptables-sync-period", "", "Period that iptables rules are refreshed, in RFC3339 duration format (e.g. 'PT60S')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Canal.KubeProxy.IPVS.MinSyncPeriod, "kube-proxy-ipvs-min-sync-period", "", "Minimum period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Canal.KubeProxy.IPVS.Scheduler, "kube-proxy-ipvs-scheduler", "", "Scheduler for kube-proxy ipvs (DESTINATION_HASHING, LEAST_CONNECTION, NEVER_QUEUE, ROUND_ROBIN, SHORTEST_EXPECTED_DELAY, SOURCE_HASHING)")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Canal.KubeProxy.IPVS.SyncPeriod, "kube-proxy-ipvs-sync-period", "", "Period that ipvs rules are refreshed in RFC3339 duration format (e.g. 'PT60S')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Canal.KubeProxy.IPVS.TCPFinTimeout, "kube-proxy-ipvs-tcp-fin-timeout", "", "Timeout value used for IPVS TCP sessions after receiving a FIN in RFC3339 duration format (e.g. 'PT60S')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Canal.KubeProxy.IPVS.TCPTimeout, "kube-proxy-ipvs-tcp-timeout", "", "Timeout value used for idle IPVS TCP sessions in RFC3339 duration format (e.g. 'PT60S')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Canal.KubeProxy.IPVS.UDPTimeout, "kube-proxy-ipvs-udp-timeout", "", "Timeout value used for IPVS UDP packets in RFC3339 duration format (e.g. 'PT60S')")
+
+	// Cilium, only available with the CILIUM CNI
 	cmd.Flags().Uint8Var(&ciliumClusterID, "cilium-cluster-id", 0, "Cilium cluster ID")
 	cmd.Flags().BoolVar(&hubbleEnabled, "cilium-hubble-enabled", false, "Enable Hubble observability")
 	cmd.Flags().BoolVar(&hubbleRelayEnabled, "cilium-hubble-relay-enabled", false, "Enable Hubble Relay")
 	cmd.Flags().BoolVar(&hubbleUIEnabled, "cilium-hubble-ui-enabled", false, "Enable Hubble UI")
 	cmd.Flags().BoolVar(&clusterMeshEnabled, "cilium-cluster-mesh-enabled", false, "Enable Cilium ClusterMesh")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.ClusterMesh.APIServer.ServiceType, "cilium-cluster-mesh-apiserver-service-type", "", "ClusterMesh API server service type (LoadBalancer, NodePort)")
-	cmd.Flags().Uint16Var(&cloud.KubeSpec.Customization.Cilium.ClusterMesh.APIServer.NodePort, "cilium-cluster-mesh-apiserver-node-port", 0, "ClusterMesh API server node port")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Cilium.ClusterMesh.APIServer.ServiceType, "cilium-cluster-mesh-apiserver-service-type", "", "ClusterMesh API server service type (LoadBalancer, NodePort)")
+	cmd.Flags().Uint16Var(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Cilium.ClusterMesh.APIServer.NodePort, "cilium-cluster-mesh-apiserver-node-port", 0, "ClusterMesh API server node port")
 
 	// Hubble UI frontend resources
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.FrontendResources.Limits.Cpu, "cilium-hubble-ui-frontend-limits-cpu", "", "Hubble UI frontend CPU limit (e.g. '500m')")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.FrontendResources.Limits.Memory, "cilium-hubble-ui-frontend-limits-memory", "", "Hubble UI frontend memory limit (e.g. '256Mi')")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.FrontendResources.Requests.Cpu, "cilium-hubble-ui-frontend-requests-cpu", "", "Hubble UI frontend CPU request (e.g. '100m')")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.FrontendResources.Requests.Memory, "cilium-hubble-ui-frontend-requests-memory", "", "Hubble UI frontend memory request (e.g. '128Mi')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Cilium.Hubble.UI.FrontendResources.Limits.Cpu, "cilium-hubble-ui-frontend-limits-cpu", "", "Hubble UI frontend CPU limit (e.g. '500m')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Cilium.Hubble.UI.FrontendResources.Limits.Memory, "cilium-hubble-ui-frontend-limits-memory", "", "Hubble UI frontend memory limit (e.g. '256Mi')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Cilium.Hubble.UI.FrontendResources.Requests.Cpu, "cilium-hubble-ui-frontend-requests-cpu", "", "Hubble UI frontend CPU request (e.g. '100m')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Cilium.Hubble.UI.FrontendResources.Requests.Memory, "cilium-hubble-ui-frontend-requests-memory", "", "Hubble UI frontend memory request (e.g. '128Mi')")
 
 	// Hubble UI backend resources
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.BackendResources.Limits.Cpu, "cilium-hubble-ui-backend-limits-cpu", "", "Hubble UI backend CPU limit (e.g. '500m')")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.BackendResources.Limits.Memory, "cilium-hubble-ui-backend-limits-memory", "", "Hubble UI backend memory limit (e.g. '256Mi')")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.BackendResources.Requests.Cpu, "cilium-hubble-ui-backend-requests-cpu", "", "Hubble UI backend CPU request (e.g. '100m')")
-	cmd.Flags().StringVar(&cloud.KubeSpec.Customization.Cilium.Hubble.UI.BackendResources.Requests.Memory, "cilium-hubble-ui-backend-requests-memory", "", "Hubble UI backend memory request (e.g. '128Mi')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Cilium.Hubble.UI.BackendResources.Limits.Cpu, "cilium-hubble-ui-backend-limits-cpu", "", "Hubble UI backend CPU limit (e.g. '500m')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Cilium.Hubble.UI.BackendResources.Limits.Memory, "cilium-hubble-ui-backend-limits-memory", "", "Hubble UI backend memory limit (e.g. '256Mi')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Cilium.Hubble.UI.BackendResources.Requests.Cpu, "cilium-hubble-ui-backend-requests-cpu", "", "Hubble UI backend CPU request (e.g. '100m')")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Cni.Cilium.Hubble.UI.BackendResources.Requests.Memory, "cilium-hubble-ui-backend-requests-memory", "", "Hubble UI backend memory request (e.g. '128Mi')")
 
-	// Handle optional pointer-backed flags: only assign if explicitly set, otherwise nil-out
-	cmd.PreRunE = kubePreRunE
-
-	return
+	// OpenID Connect authentication
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Authentication.Oidc.CaContent, "oidc-ca-content", "", "CA certificate content for the OIDC provider")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Authentication.Oidc.ClientId, "oidc-client-id", "", "OIDC client ID")
+	cmd.Flags().StringSliceVar(&cloud.ManagedKubernetesSpec.TargetSpec.Authentication.Oidc.GroupsClaim, "oidc-groups-claim", nil, "OIDC groups claim(s)")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Authentication.Oidc.GroupsPrefix, "oidc-groups-prefix", "", "Prefix prepended to group claims")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Authentication.Oidc.IssuerUrl, "oidc-issuer-url", "", "OIDC issuer URL")
+	cmd.Flags().StringSliceVar(&cloud.ManagedKubernetesSpec.TargetSpec.Authentication.Oidc.RequiredClaim, "oidc-required-claim", nil, "OIDC required claim(s)")
+	cmd.Flags().StringSliceVar(&cloud.ManagedKubernetesSpec.TargetSpec.Authentication.Oidc.SigningAlgs, "oidc-signing-algs", nil, "OIDC signing algorithm(s) (ES256, ES384, ES512, PS256, PS384, PS512, RS256, RS384, RS512)")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Authentication.Oidc.UsernameClaim, "oidc-username-claim", "", "OIDC username claim")
+	cmd.Flags().StringVar(&cloud.ManagedKubernetesSpec.TargetSpec.Authentication.Oidc.UsernamePrefix, "oidc-username-prefix", "", "Prefix prepended to username claims")
 }
 
-func getNodepoolEditCmd() *cobra.Command {
+// setPreRunE installs preRunE, keeping the PreRun previously set by addParameterFileFlags:
+// cobra ignores PreRun as soon as PreRunE is defined.
+func setPreRunE(cmd *cobra.Command, preRunE func(*cobra.Command, []string) error) {
+	parameterFilePreRun := cmd.PreRun
+	cmd.PreRunE = func(c *cobra.Command, args []string) error {
+		if parameterFilePreRun != nil {
+			parameterFilePreRun(c, args)
+		}
+		return preRunE(c, args)
+	}
+}
+
+// managedKubernetesPreRunE builds the parts of the cluster specification that don't map
+// directly onto a flag: optional booleans must stay absent when not given, and the
+// IP allowlist and the admission plugins are flat flags feeding nested structures.
+func managedKubernetesPreRunE(cmd *cobra.Command, _ []string) error {
+	spec := &cloud.ManagedKubernetesSpec.TargetSpec
+
+	spec.AutoUpgrade.Patch.Enabled = flagValueIfSet(cmd, "auto-upgrade-patch-enabled", &autoUpgradePatchEnabled)
+	spec.Cni.Cilium.ClusterID = flagValueIfSet(cmd, "cilium-cluster-id", &ciliumClusterID)
+	spec.Cni.Cilium.ClusterMesh.Enabled = flagValueIfSet(cmd, "cilium-cluster-mesh-enabled", &clusterMeshEnabled)
+	spec.Cni.Cilium.Hubble.Enabled = flagValueIfSet(cmd, "cilium-hubble-enabled", &hubbleEnabled)
+	spec.Cni.Cilium.Hubble.Relay.Enabled = flagValueIfSet(cmd, "cilium-hubble-relay-enabled", &hubbleRelayEnabled)
+	spec.Cni.Cilium.Hubble.UI.Enabled = flagValueIfSet(cmd, "cilium-hubble-ui-enabled", &hubbleUIEnabled)
+
+	var rules []cloud.ManagedKubernetesAuthorizedIpRule
+	for _, cidr := range apiServerAuthorizedIPs {
+		rules = append(rules, cloud.ManagedKubernetesAuthorizedIpRule{Cidr: cidr})
+	}
+	spec.ApiServer.Access.AuthorizedIps.Rules = rules
+
+	// Stays nil when empty: a non-nil map would make the omitzero apiServer object non-zero.
+	var plugins map[string]cloud.ManagedKubernetesAdmissionPlugin
+	if len(admissionPluginsEnabled)+len(admissionPluginsDisabled) > 0 {
+		plugins = make(map[string]cloud.ManagedKubernetesAdmissionPlugin, len(admissionPluginsEnabled)+len(admissionPluginsDisabled))
+		for _, plugin := range admissionPluginsEnabled {
+			plugins[plugin] = cloud.ManagedKubernetesAdmissionPlugin{Enabled: true}
+		}
+		for _, plugin := range admissionPluginsDisabled {
+			if _, ok := plugins[plugin]; ok {
+				return fmt.Errorf("admission plugin %q is both enabled and disabled", plugin)
+			}
+			plugins[plugin] = cloud.ManagedKubernetesAdmissionPlugin{Enabled: false}
+		}
+	}
+	spec.ApiServer.AdmissionPlugins = plugins
+
+	// The OIDC payload is only accepted along with its authentication variant.
+	spec.Authentication.Type = ""
+	cmd.Flags().Visit(func(f *pflag.Flag) {
+		if strings.HasPrefix(f.Name, "oidc-") {
+			spec.Authentication.Type = "OIDC"
+		}
+	})
+
+	return nil
+}
+
+// flagValueIfSet returns value only when the flag was explicitly given, so that an
+// optional field stays out of the request body otherwise.
+func flagValueIfSet[T any](cmd *cobra.Command, name string, value *T) *T {
+	if !cmd.Flags().Changed(name) {
+		return nil
+	}
+	return value
+}
+
+func getManagedKubernetesNodepoolEditCmd() *cobra.Command {
 	nodepoolEditCmd := &cobra.Command{
 		Use:               "edit <cluster_id> <nodepool_id>",
 		Short:             "Edit the given Kubernetes node pool",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.EditKubeNodepool,
+		Long:              "Edit the given Kubernetes node pool. Only the node count, the autoscaler and the node template can be changed: the name, flavor, availability zone, billing type, anti-affinity and floating IP settings are immutable.",
+		ValidArgsFunction: completion.CloudResourceWithChild(cloud.ManagedKubernetesV2EndpointFormat, cloud.ManagedKubernetesNodepoolsEndpointFormat),
+		Run:               cloud.EditManagedKubernetesNodepool,
 		Args:              cobra.ExactArgs(2),
 	}
 
-	nodepoolEditCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.Autoscale, "autoscale", false, "Enable autoscaling for the node pool")
-	nodepoolEditCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.Autoscaling.ScaleDownUnneededTimeSeconds, "scale-down-unneeded-time-seconds", 0, "How long a node should be unneeded before it is eligible for scale down (seconds)")
-	nodepoolEditCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.Autoscaling.ScaleDownUnreadyTimeSeconds, "scale-down-unready-time-seconds", 0, "How long an unready node should be unneeded before it is eligible for scale down (seconds)")
-	nodepoolEditCmd.Flags().Float64Var(&cloud.KubeNodepoolSpec.Autoscaling.ScaleDownUtilizationThreshold, "scale-down-utilization-threshold", 0, "Sum of CPU or memory of all pods running on the node divided by node's corresponding allocatable resource, below which a node can be considered for scale down")
-	nodepoolEditCmd.Flags().IntVar(&desiredNodes, "desired-nodes", 0, "Desired number of nodes")
-	nodepoolEditCmd.Flags().IntVar(&maxNodes, "max-nodes", 0, "Higher limit you accept for the desiredNodes value (100 by default)")
-	nodepoolEditCmd.Flags().IntVar(&minNodes, "min-nodes", 0, "Lower limit you accept for the desiredNodes value (0 by default)")
-	nodepoolEditCmd.Flags().StringSliceVar(&cloud.KubeNodepoolSpec.NodesToRemove, "nodes-to-remove", nil, "List of node IDs to remove from the node pool")
-	nodepoolEditCmd.Flags().StringToStringVar(&cloud.KubeNodepoolSpec.Template.Metadata.Annotations, "template-annotations", nil, "Annotations to apply to each node")
-	nodepoolEditCmd.Flags().StringSliceVar(&cloud.KubeNodepoolSpec.Template.Metadata.Finalizers, "template-finalizers", nil, "Finalizers to apply to each node")
-	nodepoolEditCmd.Flags().StringToStringVar(&cloud.KubeNodepoolSpec.Template.Metadata.Labels, "template-labels", nil, "Labels to apply to each node")
-	nodepoolEditCmd.Flags().StringSliceVar(&cloud.KubeNodepoolSpec.Template.Spec.CommandLineTaints, "template-taints", nil, "Taints to apply to each node in key=value:effect format")
-	nodepoolEditCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.Template.Spec.Unschedulable, "template-unschedulable", false, "Set the nodes as unschedulable")
-	nodepoolEditCmd.Flags().BoolVar(&attachFloatingIpsEnabled, "attach-floating-ips", false, "Enable FloatingIP creation, if true, a floating IP will be created and attached to each node")
-
-	// Handle optional pointer-backed flags: only assign if explicitly set, otherwise nil-out
-	nodepoolEditCmd.PreRunE = kubeNodePoolPreRunE
-
+	setManagedKubernetesNodepoolMutableFlags(nodepoolEditCmd)
+	nodepoolEditCmd.PreRunE = managedKubernetesNodepoolPreRunE
 	addInteractiveEditorFlag(nodepoolEditCmd)
 
 	return nodepoolEditCmd
 }
 
-func getKubeNodePoolCreateCmd() *cobra.Command {
+func getManagedKubernetesNodepoolCreateCmd() *cobra.Command {
 	nodepoolCreateCmd := &cobra.Command{
 		Use:   "create <cluster_id>",
 		Short: "Create a new Kubernetes node pool",
@@ -560,7 +596,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --flavor-name b3-16 --desired-nodes 3 --name newnodepool
+	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --flavor b3-16 --desired-nodes 3 --name newnodepool
 
 2. Using a configuration file:
 
@@ -581,7 +617,7 @@ There are three ways to define the creation parameters:
 
 	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --from-file ./params.json --name NameOverriden
 
-  It is also possible to use the interactive flavor selector to define the flavor-name parameter, like the following:
+  It is also possible to use the interactive flavor selector to define the flavor parameter, like the following:
 
 	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --init-file ./params.json --flavor-selector
 
@@ -594,46 +630,40 @@ There are three ways to define the creation parameters:
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --editor --flavor-name b3-16
+	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --editor --flavor b3-16
 
-  You can also use the interactive flavor selector to define the flavor-name parameter, like the following:
+  You can also use the interactive flavor selector to define the flavor parameter, like the following:
 
 	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --editor --flavor-selector
 `,
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.CreateKubeNodepool,
+		ValidArgsFunction: completion.CloudResources(cloud.ManagedKubernetesV2EndpointFormat),
+		Run:               cloud.CreateManagedKubernetesNodepool,
 		Args:              cobra.ExactArgs(1),
 	}
 
-	// All flags for node pool creation
-	nodepoolCreateCmd.Flags().StringVar(&cloud.KubeNodepoolSpec.Name, "name", "", "Name of the node pool")
-	nodepoolCreateCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.AntiAffinity, "anti-affinity", false, "Enable anti-affinity for the node pool")
-	nodepoolCreateCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.Autoscale, "autoscale", false, "Enable autoscaling for the node pool")
-	nodepoolCreateCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.Autoscaling.ScaleDownUnneededTimeSeconds, "scale-down-unneeded-time-seconds", 0, "How long a node should be unneeded before it is eligible for scale down (seconds)")
-	nodepoolCreateCmd.Flags().IntVar(&cloud.KubeNodepoolSpec.Autoscaling.ScaleDownUnreadyTimeSeconds, "scale-down-unready-time-seconds", 0, "How long an unready node should be unneeded before it is eligible for scale down (seconds)")
-	nodepoolCreateCmd.Flags().Float64Var(&cloud.KubeNodepoolSpec.Autoscaling.ScaleDownUtilizationThreshold, "scale-down-utilization-threshold", 0, "Sum of CPU or memory of all pods running on the node divided by node's corresponding allocatable resource, below which a node can be considered for scale down")
-	nodepoolCreateCmd.Flags().StringArrayVar(&cloud.KubeNodepoolSpec.AvailabilityZones, "availability-zones", nil, "Availability zones for the node pool")
-	nodepoolCreateCmd.Flags().IntVar(&desiredNodes, "desired-nodes", 0, "Desired number of nodes")
-	nodepoolCreateCmd.Flags().IntVar(&maxNodes, "max-nodes", 0, "Higher limit you accept for the desiredNodes value (100 by default)")
-	nodepoolCreateCmd.Flags().IntVar(&minNodes, "min-nodes", 0, "Lower limit you accept for the desiredNodes value (0 by default)")
-	nodepoolCreateCmd.Flags().StringVar(&cloud.KubeNodepoolSpec.FlavorName, "flavor-name", "", "Flavor name for the nodes (b2-7, b2-15, etc.)")
-	nodepoolCreateCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.MonthlyBilled, "monthly-billed", false, "Enable monthly billing for the node pool")
-	nodepoolCreateCmd.Flags().BoolVar(&attachFloatingIpsEnabled, "attach-floating-ips", false, "Enable FloatingIP creation, if true, a floating IP will be created and attached to each node")
+	// Immutable parameters, only settable at creation time
+	spec := &cloud.ManagedKubernetesNodepoolSpec.TargetSpec
+	nodepoolCreateCmd.Flags().StringVar(&spec.Name, "name", "", "Name of the node pool")
+	nodepoolCreateCmd.Flags().StringVar(&spec.NodeConfig.Flavor, "flavor", "", "Flavor of the nodes, e.g. b3-8, b3-16 (required)")
+	nodepoolCreateCmd.Flags().BoolVar(&attachFloatingIpEnabled, "attach-floating-ip", false, "Attach a floating IP to each node")
+	nodepoolCreateCmd.Flags().StringVar(&spec.AvailabilityZone, "availability-zone", "", "Availability zone the nodes are placed in, only available in 3-AZ regions")
+	nodepoolCreateCmd.Flags().StringVar(&spec.BillingType, "billing-type", "", "Billing period of the nodes (HOURLY, MONTHLY)")
+	nodepoolCreateCmd.Flags().BoolVar(&antiAffinityEnabled, "anti-affinity-enabled", false, "Spread the nodes across distinct hypervisors, capping the node pool size to 5")
 
-	// Template.Metadata
-	nodepoolCreateCmd.Flags().StringToStringVar(&cloud.KubeNodepoolSpec.Template.Metadata.Annotations, "template-annotations", nil, "Annotations to apply to each node")
-	nodepoolCreateCmd.Flags().StringSliceVar(&cloud.KubeNodepoolSpec.Template.Metadata.Finalizers, "template-finalizers", nil, "Finalizers to apply to each node")
-	nodepoolCreateCmd.Flags().StringToStringVar(&cloud.KubeNodepoolSpec.Template.Metadata.Labels, "template-labels", nil, "Labels to apply to each node")
-
-	// Template.Spec
-	nodepoolCreateCmd.Flags().StringSliceVar(&cloud.KubeNodepoolSpec.Template.Spec.CommandLineTaints, "template-taints", nil, "Taints to apply to each node in key=value:effect format")
-	nodepoolCreateCmd.Flags().BoolVar(&cloud.KubeNodepoolSpec.Template.Spec.Unschedulable, "template-unschedulable", false, "Set the nodes as unschedulable")
-
-	// Handle optional pointer-backed flags: only assign if explicitly set, otherwise nil-out
-	nodepoolCreateCmd.PreRunE = kubeNodePoolPreRunE
+	setManagedKubernetesNodepoolMutableFlags(nodepoolCreateCmd)
 
 	// Common flags for other means to define parameters
-	addParameterFileFlags(nodepoolCreateCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/nodepool", "post", cloud.CloudKubeNodePoolCreationExample, cloud.GetKubeFlavorInteractiveSelector)
+	addParameterFileFlags(nodepoolCreateCmd, false, assets.CloudV2OpenapiSchema, cloud.ManagedKubernetesV2NodepoolsSchemaPath, "post", "", cloud.GetManagedKubernetesFlavorInteractiveSelector)
+
+	setPreRunE(nodepoolCreateCmd, func(cmd *cobra.Command, args []string) error {
+		// Required only with flags alone: a file, the editor, a pipe or the selector can provide it.
+		if flags.ParametersFile == "" && !flags.ParametersViaEditor && !utils.IsInputFromPipe() &&
+			!cmd.Flags().Changed("flavor") && !cmd.Flags().Changed("flavor-selector") {
+			return errors.New(`required flag(s) "flavor" not set`)
+		}
+		return managedKubernetesNodepoolPreRunE(cmd, args)
+	})
+
 	addInteractiveEditorFlag(nodepoolCreateCmd)
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
 		nodepoolCreateCmd.Flags().BoolVar(&cloud.InstanceFlavorViaInteractiveSelector, "flavor-selector", false, "Use the interactive flavor selector")
@@ -643,136 +673,52 @@ There are three ways to define the creation parameters:
 	return nodepoolCreateCmd
 }
 
-func getKubeOIDCCreateCmd() *cobra.Command {
-	createCmd := &cobra.Command{
-		Use:   "create <cluster_id>",
-		Short: "Create a new OIDC integration for the given Kubernetes cluster",
-		Long: `Use this command to create a new OIDC integration for the given Kubernetes cluster.
-There are three ways to define the parameters:
+// setManagedKubernetesNodepoolMutableFlags registers the flags mapping onto the mutable part of the
+// node pool specification, shared by the create and edit commands.
+func setManagedKubernetesNodepoolMutableFlags(cmd *cobra.Command) {
+	spec := &cloud.ManagedKubernetesNodepoolSpec.TargetSpec
+	cmd.Flags().IntVar(&desiredNodes, "desired-nodes", 0, "Desired number of nodes")
 
-1. Using only CLI flags:
+	// Autoscaler
+	cmd.Flags().BoolVar(&autoscalerEnabled, "autoscaler-enabled", false, "Enable node autoscaling")
+	cmd.Flags().IntVar(&autoscalerMinNodes, "autoscaler-min-nodes", 0, "Minimum number of nodes the autoscaler maintains")
+	cmd.Flags().IntVar(&autoscalerMaxNodes, "autoscaler-max-nodes", 0, "Maximum number of nodes the autoscaler provisions")
+	cmd.Flags().IntVar(&spec.Autoscaler.ScaleDown.UnneededTimeSeconds, "autoscaler-scale-down-unneeded-time-seconds", 0, "Time in seconds a node must stay below the utilization threshold before it is removed")
+	cmd.Flags().IntVar(&spec.Autoscaler.ScaleDown.UnreadyTimeSeconds, "autoscaler-scale-down-unready-time-seconds", 0, "Time in seconds an unready node is kept before it is removed")
+	cmd.Flags().Float64Var(&spec.Autoscaler.ScaleDown.UtilizationThreshold, "autoscaler-scale-down-utilization-threshold", 0, "Node utilization ratio (between 0 and 1) below which a node becomes a scale-down candidate")
 
-	ovhcloud cloud managed-kubernetes oidc create <cluster_id> --issuer-url <url>
-
-2. Using a configuration file:
-
-  First you can generate an example of parameters file using the following command:
-
-	ovhcloud cloud managed-kubernetes oidc create <cluster_id> --init-file ./params.json
-
-  You will be able to choose from several examples of parameters. Once an example has been selected, the content is written in the given file.
-  After editing the file to set the correct creation parameters, run:
-
-	ovhcloud cloud managed-kubernetes oidc create <cluster_id> --from-file ./params.json
-
-  Note that you can also pipe the content of the parameters file, like the following:
-
-	cat ./params.json | ovhcloud cloud managed-kubernetes oidc create <cluster_id>
-
-  In both cases, you can override the parameters in the given file using command line flags, for example:
-
-	ovhcloud cloud managed-kubernetes oidc create <cluster_id> --from-file ./params.json --client-id <client_id>
-
-3. Using your default text editor:
-
-	ovhcloud cloud managed-kubernetes oidc create <cluster_id> --editor
-
-  You will be able to choose from several examples of parameters. Once an example has been selected, the CLI will open your
-  default text editor to update the parameters. When saving the file, the creation will start.
-
-  Note that it is also possible to override values in the presented examples using command line flags like the following:
-
-	ovhcloud cloud managed-kubernetes oidc create <cluster_id> --editor --client-id <client_id>
-`,
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/kube"),
-		Run:               cloud.CreateKubeOIDCIntegration,
-		Args:              cobra.ExactArgs(1),
-	}
-
-	// All flags for OIDC integration creation
-	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.CaContent, "ca-content", "", "CA certificate content for the OIDC provider")
-	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.ClientId, "client-id", "", "OIDC client ID")
-	createCmd.Flags().StringSliceVar(&cloud.KubeOIDCConfig.GroupsClaim, "groups-claim", nil, "OIDC groups claim(s)")
-	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.GroupsPrefix, "groups-prefix", "", "Prefix prepended to group claims")
-	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.IssuerUrl, "issuer-url", "", "OIDC issuer URL")
-	createCmd.Flags().StringSliceVar(&cloud.KubeOIDCConfig.RequiredClaim, "required-claim", nil, "OIDC required claim(s)")
-	createCmd.Flags().StringSliceVar(&cloud.KubeOIDCConfig.SigningAlgorithms, "signing-algorithms", nil, "OIDC signing algorithm(s) (ES256, ES384, ES512, PS256, PS384, PS512, RS256, RS384, RS512)")
-	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.UsernameClaim, "username-claim", "", "OIDC username claim")
-	createCmd.Flags().StringVar(&cloud.KubeOIDCConfig.UsernamePrefix, "username-prefix", "", "Prefix prepended to username claims")
-
-	// Common flags for other means to define parameters
-	addParameterFileFlags(createCmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/kube/{kubeId}/openIdConnect", "post", cloud.CloudKubeOIDCCreationExample, nil)
-	addInteractiveEditorFlag(createCmd)
-	markFlagsMutuallyExclusive(createCmd, "from-file", "editor")
-
-	return createCmd
+	// Node template
+	cmd.Flags().StringToStringVar(&spec.Template.Metadata.Annotations, "template-annotations", nil, "Annotations to apply to each node")
+	cmd.Flags().StringSliceVar(&spec.Template.Metadata.Finalizers, "template-finalizers", nil, "Finalizers to apply to each node")
+	cmd.Flags().StringToStringVar(&spec.Template.Metadata.Labels, "template-labels", nil, "Labels to apply to each node")
+	cmd.Flags().StringSliceVar(&templateTaints, "template-taints", nil, "Taints to apply to each node in key[=value]:effect format (effect: NoExecute, NoSchedule, PreferNoSchedule)")
+	cmd.Flags().BoolVar(&templateUnschedulable, "template-unschedulable", false, "Mark the nodes as unschedulable")
 }
 
-// kubePreRunE handles optional flags for kube create/customization/reset commands.
-// If options are not specificaly passed, set them to nil.
-func kubePreRunE(cmd *cobra.Command, _ []string) error {
-	if cmd.Flags().Changed("cilium-cluster-id") {
-		cloud.KubeSpec.Customization.Cilium.ClusterID = &ciliumClusterID
-	} else {
-		cloud.KubeSpec.Customization.Cilium.ClusterID = nil
+// managedKubernetesNodepoolPreRunE builds the parts of the node pool specification that don't map
+// directly onto a flag: optional values must stay absent when not given, and taints need parsing.
+func managedKubernetesNodepoolPreRunE(cmd *cobra.Command, _ []string) error {
+	spec := &cloud.ManagedKubernetesNodepoolSpec.TargetSpec
+
+	spec.DesiredNodes = flagValueIfSet(cmd, "desired-nodes", &desiredNodes)
+	spec.Autoscaler.Enabled = flagValueIfSet(cmd, "autoscaler-enabled", &autoscalerEnabled)
+	spec.Autoscaler.MinNodes = flagValueIfSet(cmd, "autoscaler-min-nodes", &autoscalerMinNodes)
+	spec.Autoscaler.MaxNodes = flagValueIfSet(cmd, "autoscaler-max-nodes", &autoscalerMaxNodes)
+	spec.AntiAffinity.Enabled = flagValueIfSet(cmd, "anti-affinity-enabled", &antiAffinityEnabled)
+	spec.NodeConfig.AttachFloatingIp.Enabled = flagValueIfSet(cmd, "attach-floating-ip", &attachFloatingIpEnabled)
+	spec.Template.Spec.Unschedulable = flagValueIfSet(cmd, "template-unschedulable", &templateUnschedulable)
+
+	var taints []cloud.ManagedKubernetesTaint
+	for _, taint := range templateTaints {
+		// The value is optional, as with kubectl taint.
+		keyValue, effect, ok := strings.Cut(taint, ":")
+		key, value, _ := strings.Cut(keyValue, "=")
+		if !ok || key == "" || effect == "" {
+			return fmt.Errorf("invalid taint format: %q, expected format is key[=value]:effect", taint)
+		}
+		taints = append(taints, cloud.ManagedKubernetesTaint{Key: key, Value: value, Effect: effect})
 	}
-
-	if cmd.Flags().Changed("cilium-cluster-mesh-enabled") {
-		cloud.KubeSpec.Customization.Cilium.ClusterMesh.Enabled = &clusterMeshEnabled
-	} else {
-		cloud.KubeSpec.Customization.Cilium.ClusterMesh.Enabled = nil
-	}
-
-	if cmd.Flags().Changed("cilium-hubble-enabled") {
-		cloud.KubeSpec.Customization.Cilium.Hubble.Enabled = &hubbleEnabled
-	} else {
-		cloud.KubeSpec.Customization.Cilium.Hubble.Enabled = nil
-	}
-
-	if cmd.Flags().Changed("cilium-hubble-relay-enabled") {
-		cloud.KubeSpec.Customization.Cilium.Hubble.Relay.Enabled = &hubbleRelayEnabled
-	} else {
-		cloud.KubeSpec.Customization.Cilium.Hubble.Relay.Enabled = nil
-	}
-
-	if cmd.Flags().Changed("cilium-hubble-ui-enabled") {
-		cloud.KubeSpec.Customization.Cilium.Hubble.UI.Enabled = &hubbleUIEnabled
-	} else {
-		cloud.KubeSpec.Customization.Cilium.Hubble.UI.Enabled = nil
-	}
-
-	return nil
-}
-
-// kubeNodePoolPreRunE handles optional flags for nodepool create/edit commands.
-// If options are not specificaly passed, set them to nil.
-func kubeNodePoolPreRunE(cmd *cobra.Command, _ []string) error {
-	if cmd.Flags().Changed("desired-nodes") {
-		cloud.KubeNodepoolSpec.DesiredNodes = &desiredNodes
-		fmt.Println(*cloud.KubeNodepoolSpec.DesiredNodes)
-	} else {
-		fmt.Println("not changed")
-		cloud.KubeNodepoolSpec.DesiredNodes = nil
-	}
-
-	if cmd.Flags().Changed("min-nodes") {
-		cloud.KubeNodepoolSpec.MinNodes = &minNodes
-	} else {
-		cloud.KubeNodepoolSpec.MinNodes = nil
-	}
-
-	if cmd.Flags().Changed("max-nodes") {
-		cloud.KubeNodepoolSpec.MaxNodes = &maxNodes
-	} else {
-		cloud.KubeNodepoolSpec.MaxNodes = nil
-	}
-
-	if cmd.Flags().Changed("attach-floating-ips") {
-		cloud.KubeNodepoolSpec.AttachFloatingIps.Enabled = &attachFloatingIpsEnabled
-	} else {
-
-		cloud.KubeNodepoolSpec.AttachFloatingIps.Enabled = nil
-	}
+	spec.Template.Spec.Taints = taints
 
 	return nil
 }

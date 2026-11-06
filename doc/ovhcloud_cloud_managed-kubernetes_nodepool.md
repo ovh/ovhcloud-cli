@@ -34,6 +34,8 @@ Manage Kubernetes node pools
 * [ovhcloud cloud managed-kubernetes nodepool create](ovhcloud_cloud_managed-kubernetes_nodepool_create.md)	 - Create a new Kubernetes node pool
 * [ovhcloud cloud managed-kubernetes nodepool delete](ovhcloud_cloud_managed-kubernetes_nodepool_delete.md)	 - Delete the given Kubernetes node pool
 * [ovhcloud cloud managed-kubernetes nodepool edit](ovhcloud_cloud_managed-kubernetes_nodepool_edit.md)	 - Edit the given Kubernetes node pool
+* [ovhcloud cloud managed-kubernetes nodepool event](ovhcloud_cloud_managed-kubernetes_nodepool_event.md)	 - Inspect the events of a Kubernetes node pool
 * [ovhcloud cloud managed-kubernetes nodepool get](ovhcloud_cloud_managed-kubernetes_nodepool_get.md)	 - Get the given Kubernetes node pool
 * [ovhcloud cloud managed-kubernetes nodepool list](ovhcloud_cloud_managed-kubernetes_nodepool_list.md)	 - List node pools in the given Kubernetes cluster
+* [ovhcloud cloud managed-kubernetes nodepool task](ovhcloud_cloud_managed-kubernetes_nodepool_task.md)	 - Inspect the asynchronous tasks of a Kubernetes node pool
 

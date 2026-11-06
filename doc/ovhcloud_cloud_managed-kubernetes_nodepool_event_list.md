@@ -1,24 +1,23 @@
-## ovhcloud cloud managed-kubernetes oidc edit
+## ovhcloud cloud managed-kubernetes nodepool event list
 
-Edit the OIDC configuration for the given Kubernetes cluster
+List the events of the given Kubernetes node pool
 
 ```
-ovhcloud cloud managed-kubernetes oidc edit <cluster_id> [flags]
+ovhcloud cloud managed-kubernetes nodepool event list <cluster_id> <nodepool_id> [flags]
 ```
 
 ### Options
 
 ```
-      --ca-content string            CA certificate content for the OIDC provider
-      --client-id string             OIDC client ID
-      --groups-claim strings         OIDC groups claim(s)
-      --groups-prefix string         Prefix prepended to group claims
-  -h, --help                         help for edit
-      --issuer-url string            OIDC issuer URL
-      --required-claim strings       OIDC required claim(s)
-      --signing-algorithms strings   OIDC signing algorithm(s) (ES256, ES384, ES512, PS256, PS384, PS512, RS256, RS384, RS512)
-      --username-claim string        OIDC username claim
-      --username-prefix string       Prefix prepended to username claims
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
+      --task-id string       List only the events of the given task
 ```
 
 ### Options inherited from parent commands
@@ -43,5 +42,5 @@ ovhcloud cloud managed-kubernetes oidc edit <cluster_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes oidc](ovhcloud_cloud_managed-kubernetes_oidc.md)	 - Manage OpenID Connect (OIDC) integration for Kubernetes clusters
+* [ovhcloud cloud managed-kubernetes nodepool event](ovhcloud_cloud_managed-kubernetes_nodepool_event.md)	 - Inspect the events of a Kubernetes node pool
 
