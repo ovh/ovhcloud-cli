@@ -77,6 +77,10 @@ func (c *APIClient) Put(path string, reqBody, resType interface{}) error {
 	return withDetailsMessage(c.Client.Put(c.fixPath(path), reqBody, resType))
 }
 
+func (c *APIClient) Patch(path string, reqBody, resType interface{}) error {
+	return withDetailsMessage(c.CallAPI(http.MethodPatch, c.fixPath(path), reqBody, resType, true))
+}
+
 func (c *APIClient) Delete(path string, resType interface{}) error {
 	return withDetailsMessage(c.Client.Delete(c.fixPath(path), resType))
 }

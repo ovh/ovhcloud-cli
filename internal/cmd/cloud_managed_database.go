@@ -330,7 +330,8 @@ Network update:
 
 	ovhcloud cloud managed-database edit <service_id> --public-network
 
-  Note: --public-network is mutually exclusive with --network-id and --subnet-id.
+  Note: --public-network is mutually exclusive with --network-id and --subnet-id, and these flags
+  cannot be combined with other flags.
   Changing the network triggers a service rebuild. The service will be temporarily unavailable
   during the transition.
 `,
@@ -340,21 +341,21 @@ Network update:
 	}
 
 	// Database details
-	managedDatabaseEditCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseEditSpec.Backups.Regions, "backups-regions", nil, "Regions on which the backups are stored")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.Backups.Time, "backups-time", "", "Time on which backups start every day")
-	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseEditSpec.DeletionProtection, "deletion-protection", false, "Enable deletion protection")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.Description, "description", "", "Description of the cluster")
-	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseEditSpec.EnablePrometheus, "enable-prometheus", false, "Enable Prometheus")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.NodesPattern.Flavor, "flavor", "", "The VM flavor used for this cluster")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.Plan, "plan", "", "Plan of the cluster")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.Version, "version", "", "Version of the engine deployed on the cluster")
+	managedDatabaseEditCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseSpec.TargetSpec.Backup.Regions, "backups-regions", nil, "Regions on which the backups are stored (e.g. eu-west-sbg)")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Backup.Time, "backups-time", "", "Time on which backups start every day (HH:MM, UTC)")
+	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseSpec.TargetSpec.DeletionProtected, "deletion-protection", false, "Enable deletion protection")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Description, "description", "", "Description of the cluster")
+	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseSpec.TargetSpec.PrometheusEnabled, "enable-prometheus", false, "Enable Prometheus")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Flavor, "flavor", "", "The VM flavor used for this cluster")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.MaintenanceWindow.StartTimeUtc, "maintenance-time", "", "Time on which maintenances can start every day (HH:MM, UTC)")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Plan, "plan", "", "Plan of the cluster")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.TargetSpec.Version, "version", "", "Version of the engine deployed on the cluster")
 
 	// Network configuration
-	managedDatabaseEditCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseEditSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.CLINetworkID, "network-id", "", "Private network ID")
-	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseEditSpec.CLISubnetID, "subnet-id", "", "Private subnet ID")
-	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseEditSpec.CLIPublicNetwork, "public-network", false, "Switch the service to public network")
+	managedDatabaseEditCmd.Flags().StringSliceVar(&cloud.ManagedDatabaseSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.CLINetworkID, "network-id", "", "Private network ID")
+	managedDatabaseEditCmd.Flags().StringVar(&cloud.ManagedDatabaseSpec.CLISubnetID, "subnet-id", "", "Private subnet ID")
+	managedDatabaseEditCmd.Flags().BoolVar(&cloud.ManagedDatabaseSpec.CLIPublicNetwork, "public-network", false, "Switch the service to public network")
 	managedDatabaseEditCmd.MarkFlagsMutuallyExclusive("public-network", "network-id")
 	managedDatabaseEditCmd.MarkFlagsMutuallyExclusive("public-network", "subnet-id")
 

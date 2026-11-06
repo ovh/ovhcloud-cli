@@ -99,53 +99,11 @@ func (ms *MockSuite) TestManagedAnalyticsCreateInvalidEngineCmd(assert, require 
 }
 
 func (ms *MockSuite) TestManagedAnalyticsEditCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/service/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{
-				"id": "fakeAnalyticsID",
-				"engine": "kafka"
-		}`),
-	)
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/kafka/fakeAnalyticsID",
-		httpmock.NewStringResponder(200, `{
-			"id": "fakeAnalyticsID",
-			"engine": "kafka",
-			"category": "analysis",
-			"plan": "essential",
-			"disk": {"size": 80},
-			"storage": {"size": {"unit": "GB", "value": 80}},
-			"ipRestrictions": [],
-			"status": "READY",
-			"nodes": [{"id": "nodeID", "flavor": "db1-4", "region": "DE", "status": "READY"}],
-			"description": "Default description",
-			"version": "3",
-			"networkType": "public",
-			"flavor": "db1-4",
-			"maintenanceTime": "13:16:00",
-			"enablePrometheus": false,
-			"deletionProtection": false
-		}`),
-	)
-
-	httpmock.RegisterMatcherResponder(http.MethodPut,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/database/kafka/fakeAnalyticsID",
-		tdhttpmock.JSONBody(td.JSON(`
-			{
-				"deletionProtection": false,
-				"description": "Default description",
-				"disk": {"size": 80},
-				"enablePrometheus": false,
-				"flavor": "db1-4",
-				"ipRestrictions": [],
-				"maintenanceTime": "13:16:00",
-				"plan": "discovery",
-				"storage": {"size": {"unit": "GB", "value": 80}},
-				"version": "4"
-			}`),
-		),
-		httpmock.NewStringResponder(200, `{"id": "fakeAnalyticsID"}`),
+	registerManagedAnalyticsProbe("kafka")
+	httpmock.RegisterMatcherResponder(http.MethodPatch,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/managedAnalytics/kafka/fakeAnalyticsID",
+		tdhttpmock.JSONBody(td.JSON(`{"targetSpec": {"plan": "discovery", "version": "4"}}`)),
+		httpmock.NewStringResponder(200, fullAnalyticsServiceResponse),
 	)
 
 	out, err := cmd.Execute("cloud", "managed-analytics", "edit", "fakeAnalyticsID", "--cloud-project", "fakeProjectID", "--version", "4", "--plan", "discovery", "-o", "yaml")

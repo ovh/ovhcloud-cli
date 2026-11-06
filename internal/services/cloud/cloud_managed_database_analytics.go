@@ -28,7 +28,7 @@ const (
 
 type (
 	// databaseAnalyticsTargetSpec is the targetSpec of a managed database or
-	// analytics service creation.
+	// analytics service creation, and of its update (PATCH).
 	databaseAnalyticsTargetSpec struct {
 		Backup struct {
 			Regions []string `json:"regions,omitempty"`
