@@ -31,7 +31,7 @@ func withMockedAPI(t *testing.T) {
 	origClient, origProfile := httpLib.Client, flags.Profile
 	client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", "consumer_key")
 	td.Require(t).CmpNoError(err)
-	httpLib.Client = client
+	httpLib.Client = httpLib.NewAPIClient(client)
 
 	// go-ovh computes its clock delta before the first signed call; without
 	// this the request never leaves and the test measures nothing.
@@ -169,7 +169,7 @@ func TestCacheKeyFor_IsScopedToTheCredentials(t *testing.T) {
 	newKey := func(consumerKey string) string {
 		client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", consumerKey)
 		td.Require(t).CmpNoError(err)
-		httpLib.Client = client
+		httpLib.Client = httpLib.NewAPIClient(client)
 		return cacheKeyFor("/v1/dedicated/server")
 	}
 
@@ -186,7 +186,7 @@ func TestCacheKeyFor_IsScopedToTheRegion(t *testing.T) {
 	newKey := func(endpoint string) string {
 		client, err := ovh.NewClient(endpoint, "app_key", "app_secret", "consumer_key")
 		td.Require(t).CmpNoError(err)
-		httpLib.Client = client
+		httpLib.Client = httpLib.NewAPIClient(client)
 		return cacheKeyFor("/v1/dedicated/server")
 	}
 
