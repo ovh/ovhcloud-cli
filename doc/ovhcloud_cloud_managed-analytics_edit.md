@@ -28,8 +28,8 @@ ovhcloud cloud managed-analytics edit <service_id> [flags]
 ### Options
 
 ```
-      --backups-regions strings   Regions on which the backups are stored
-      --backups-time string       Time on which backups start every day
+      --backups-regions strings   Regions on which the backups are stored (e.g. eu-west-sbg)
+      --backups-time string       Time on which backups start every day (HH:MM, UTC)
       --deletion-protection       Enable deletion protection
       --description string        Description of the cluster
       --editor                    Use a text editor to define parameters
@@ -37,7 +37,7 @@ ovhcloud cloud managed-analytics edit <service_id> [flags]
       --flavor string             The VM flavor used for this cluster
   -h, --help                      help for edit
       --ip-restrictions strings   IP blocks authorized to access the cluster (CIDR format)
-      --maintenance-time string   Time on which maintenances can start every day
+      --maintenance-time string   Time on which maintenances can start every day (HH:MM, UTC)
       --plan string               Plan of the cluster
       --version string            Version of the engine deployed on the cluster
 ```

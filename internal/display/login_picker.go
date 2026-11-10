@@ -124,9 +124,9 @@ func RunLoginPicker(question string, choices []string) string {
 	m := &model{
 		list: l,
 		authURLs: map[string]string{
-			"EU": "https://www.ovh.com/auth/api/createToken?POST=*&GET=*&PUT=*&DELETE=*",
-			"CA": "https://ca.ovh.com/auth/api/createToken?POST=*&GET=*&PUT=*&DELETE=*",
-			"US": "https://us.ovhcloud.com/auth/api/createToken?POST=*&GET=*&PUT=*&DELETE=*",
+			"EU": "https://www.ovh.com/auth/api/createToken?POST=*&GET=*&PUT=*&DELETE=*&PATCH=*",
+			"CA": "https://ca.ovh.com/auth/api/createToken?POST=*&GET=*&PUT=*&DELETE=*&PATCH=*",
+			"US": "https://us.ovhcloud.com/auth/api/createToken?POST=*&GET=*&PUT=*&DELETE=*&PATCH=*",
 		},
 	}
 

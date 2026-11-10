@@ -18,6 +18,7 @@ import (
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -61,28 +62,6 @@ var (
 		CLIDiskSize       int      `json:"-"`
 		CLIIPRestrictions []string `json:"-"`
 		CLINodesList      []string `json:"-"`
-	}
-
-	// ManagedDatabaseEditSpec holds the parameters of the edit command, which
-	// still uses API v1.
-	ManagedDatabaseEditSpec struct {
-		Backups struct {
-			Regions []string `json:"regions,omitempty"`
-			Time    string   `json:"time,omitempty"`
-		} `json:"backups,omitzero"`
-		DeletionProtection bool                           `json:"deletionProtection,omitempty"`
-		Description        string                         `json:"description,omitempty"`
-		EnablePrometheus   bool                           `json:"enablePrometheus,omitempty"`
-		IPRestrictions     []managedDatabaseIPRestriction `json:"ipRestrictions,omitempty"`
-		MaintenanceTime    string                         `json:"maintenanceTime,omitempty"`
-		NodesPattern       struct {
-			Flavor string `json:"flavor,omitempty"`
-		} `json:"nodesPattern,omitzero"`
-		Plan    string `json:"plan,omitempty"`
-		Version string `json:"version,omitempty"`
-
-		// Extra fields for CLI only
-		CLIIPRestrictions []string `json:"-"`
 		CLINetworkID      string   `json:"-"`
 		CLISubnetID       string   `json:"-"`
 		CLIPublicNetwork  bool     `json:"-"`
@@ -100,11 +79,6 @@ var (
 )
 
 type (
-	managedDatabaseIPRestriction struct {
-		Description string `json:"description,omitempty"`
-		IP          string `json:"ip,omitempty"`
-	}
-
 	ManagedDatabaseUser struct {
 		Name string `json:"name"`
 
@@ -208,44 +182,61 @@ func EditManagedDatabase(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch database service to retrieve the engine
-	var databaseService map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &databaseService); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch database service: %s", err)
+	engine, err := getManagedDatabaseEngine(projectID, args[0], ManagedDatabaseValidEngines)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedDatabaseValidEngines, databaseService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", databaseService["engine"].(string), strings.Join(ManagedDatabaseValidEngines, ", "))
+	if ManagedDatabaseSpec.CLIPublicNetwork || ManagedDatabaseSpec.CLINetworkID != "" {
+		editManagedDatabaseNetwork(cmd, projectID, engine, args[0])
 		return
 	}
 
-	// Parse IP restrictions
-	for _, restriction := range ManagedDatabaseEditSpec.CLIIPRestrictions {
-		ManagedDatabaseEditSpec.IPRestrictions = append(ManagedDatabaseEditSpec.IPRestrictions, managedDatabaseIPRestriction{IP: restriction})
+	spec := ManagedDatabaseSpec
+	spec.TargetSpec.Network.AuthorizedIps = newAuthorizedIps(spec.CLIIPRestrictions)
+
+	if err := common.PatchResource(
+		fmt.Sprintf("/publicCloud/project/{projectId}/managedDatabase/%s/{serviceId}", engine),
+		databaseAnalyticsEndpoint(projectID, managedDatabaseCategory, engine, args[0]),
+		spec,
+		assets.CloudV2OpenapiSchema,
+	); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+}
+
+// editManagedDatabaseNetwork moves a service to another network through API
+// v1: the v2 update cannot change the network of a service.
+func editManagedDatabaseNetwork(cmd *cobra.Command, projectID, engine, serviceID string) {
+	var otherFlags []string
+	cmd.LocalNonPersistentFlags().VisitAll(func(f *pflag.Flag) {
+		if f.Changed && !slices.Contains([]string{"network-id", "subnet-id", "public-network"}, f.Name) {
+			otherFlags = append(otherFlags, "--"+f.Name)
+		}
+	})
+	if len(otherFlags) > 0 {
+		display.OutputError(&flags.OutputFormatConfig, "--network-id, --subnet-id and --public-network cannot be combined with %s", strings.Join(otherFlags, ", "))
+		return
 	}
 
-	// Build extra network fields that bypass the OpenAPI filter
-	var networkFields map[string]any
-	if ManagedDatabaseEditSpec.CLIPublicNetwork {
+	networkFields := map[string]any{
+		"networkId": nil,
+		"subnetId":  nil,
+	}
+	if !ManagedDatabaseSpec.CLIPublicNetwork {
 		networkFields = map[string]any{
-			"networkId": nil,
-			"subnetId":  nil,
-		}
-	} else if ManagedDatabaseEditSpec.CLINetworkID != "" {
-		networkFields = map[string]any{
-			"networkId": ManagedDatabaseEditSpec.CLINetworkID,
-			"subnetId":  ManagedDatabaseEditSpec.CLISubnetID,
+			"networkId": ManagedDatabaseSpec.CLINetworkID,
+			"subnetId":  ManagedDatabaseSpec.CLISubnetID,
 		}
 	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(databaseService["engine"].(string)), url.PathEscape(args[0]))
 
 	if err := common.EditResource(
 		cmd,
-		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}", url.PathEscape(databaseService["engine"].(string))),
-		endpoint,
-		ManagedDatabaseEditSpec,
+		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}", engine),
+		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(engine), url.PathEscape(serviceID)),
+		struct{}{},
 		assets.CloudOpenapiSchema,
 		networkFields,
 	); err != nil {

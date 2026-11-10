@@ -427,18 +427,18 @@ There are two ways to define the edition parameters:
 	}
 
 	// Analytics details
-	managedAnalyticsEditCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsEditSpec.Backups.Regions, "backups-regions", nil, "Regions on which the backups are stored")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.Backups.Time, "backups-time", "", "Time on which backups start every day")
-	managedAnalyticsEditCmd.Flags().BoolVar(&cloud.ManagedAnalyticsEditSpec.DeletionProtection, "deletion-protection", false, "Enable deletion protection")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.Description, "description", "", "Description of the cluster")
-	managedAnalyticsEditCmd.Flags().BoolVar(&cloud.ManagedAnalyticsEditSpec.EnablePrometheus, "enable-prometheus", false, "Enable Prometheus")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.NodesPattern.Flavor, "flavor", "", "The VM flavor used for this cluster")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.MaintenanceTime, "maintenance-time", "", "Time on which maintenances can start every day")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.Plan, "plan", "", "Plan of the cluster")
-	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsEditSpec.Version, "version", "", "Version of the engine deployed on the cluster")
+	managedAnalyticsEditCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Backup.Regions, "backups-regions", nil, "Regions on which the backups are stored (e.g. eu-west-sbg)")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Backup.Time, "backups-time", "", "Time on which backups start every day (HH:MM, UTC)")
+	managedAnalyticsEditCmd.Flags().BoolVar(&cloud.ManagedAnalyticsSpec.TargetSpec.DeletionProtected, "deletion-protection", false, "Enable deletion protection")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Description, "description", "", "Description of the cluster")
+	managedAnalyticsEditCmd.Flags().BoolVar(&cloud.ManagedAnalyticsSpec.TargetSpec.PrometheusEnabled, "enable-prometheus", false, "Enable Prometheus")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Flavor, "flavor", "", "The VM flavor used for this cluster")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.MaintenanceWindow.StartTimeUtc, "maintenance-time", "", "Time on which maintenances can start every day (HH:MM, UTC)")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Plan, "plan", "", "Plan of the cluster")
+	managedAnalyticsEditCmd.Flags().StringVar(&cloud.ManagedAnalyticsSpec.TargetSpec.Version, "version", "", "Version of the engine deployed on the cluster")
 
 	// Network configuration
-	managedAnalyticsEditCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsEditSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
+	managedAnalyticsEditCmd.Flags().StringSliceVar(&cloud.ManagedAnalyticsSpec.CLIIPRestrictions, "ip-restrictions", nil, "IP blocks authorized to access the cluster (CIDR format)")
 
 	// Common flags for other mean to define parameters
 	addInteractiveEditorFlag(managedAnalyticsEditCmd)

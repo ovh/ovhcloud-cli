@@ -97,6 +97,8 @@ func getRequestBodyFromSpec(spec []byte, path, method string) (*openapi3.MediaTy
 		op = pathItem.Put
 	case "post":
 		op = pathItem.Post
+	case "patch":
+		op = pathItem.Patch
 	default:
 		return nil, fmt.Errorf("invalid write method %q", method)
 	}

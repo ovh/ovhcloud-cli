@@ -78,28 +78,6 @@ var (
 		CLINodesList      []string `json:"-"`
 	}
 
-	// ManagedAnalyticsEditSpec holds the parameters of the edit command, which
-	// still uses API v1.
-	ManagedAnalyticsEditSpec struct {
-		Backups struct {
-			Regions []string `json:"regions,omitempty"`
-			Time    string   `json:"time,omitempty"`
-		} `json:"backups,omitzero"`
-		DeletionProtection bool                            `json:"deletionProtection,omitempty"`
-		Description        string                          `json:"description,omitempty"`
-		EnablePrometheus   bool                            `json:"enablePrometheus,omitempty"`
-		IPRestrictions     []managedAnalyticsIPRestriction `json:"ipRestrictions,omitempty"`
-		MaintenanceTime    string                          `json:"maintenanceTime,omitempty"`
-		NodesPattern       struct {
-			Flavor string `json:"flavor,omitempty"`
-		} `json:"nodesPattern,omitzero"`
-		Plan    string `json:"plan,omitempty"`
-		Version string `json:"version,omitempty"`
-
-		// Extra fields for CLI only
-		CLIIPRestrictions []string `json:"-"`
-	}
-
 	ManagedAnalyticsDatabaseSpec struct {
 		Name string `json:"name"`
 	}
@@ -128,11 +106,6 @@ var (
 )
 
 type (
-	managedAnalyticsIPRestriction struct {
-		Description string `json:"description,omitempty"`
-		IP          string `json:"ip,omitempty"`
-	}
-
 	ManagedAnalyticsUser struct {
 		Name string `json:"name"`
 
@@ -247,30 +220,20 @@ func EditManagedAnalytics(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch analytics service to retrieve the engine
-	var analyticsService map[string]any
-	if err := httpLib.Client.Get(fmt.Sprintf("/v1/cloud/project/%s/database/service/%s", projectID, url.PathEscape(args[0])), &analyticsService); err != nil {
+	engine, _, err := getDatabaseAnalyticsService(projectID, managedAnalyticsCategory, args[0], ManagedAnalyticsValidEngines)
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to fetch managed analytics service: %s", err)
 		return
 	}
 
-	if !slices.Contains(ManagedAnalyticsValidEngines, analyticsService["engine"].(string)) {
-		display.OutputError(&flags.OutputFormatConfig, "invalid engine %s, valid values: %s", analyticsService["engine"].(string), strings.Join(ManagedAnalyticsValidEngines, ", "))
-		return
-	}
+	spec := ManagedAnalyticsSpec
+	spec.TargetSpec.Network.AuthorizedIps = newAuthorizedIps(spec.CLIIPRestrictions)
 
-	// Parse IP restrictions
-	for _, restriction := range ManagedAnalyticsEditSpec.CLIIPRestrictions {
-		ManagedAnalyticsEditSpec.IPRestrictions = append(ManagedAnalyticsEditSpec.IPRestrictions, managedAnalyticsIPRestriction{IP: restriction})
-	}
-
-	// Edit resource
-	if err := common.EditResource(
-		cmd,
-		fmt.Sprintf("/cloud/project/{serviceName}/database/%s/{clusterId}", url.PathEscape(analyticsService["engine"].(string))),
-		fmt.Sprintf("/v1/cloud/project/%s/database/%s/%s", projectID, url.PathEscape(analyticsService["engine"].(string)), url.PathEscape(args[0])),
-		ManagedAnalyticsEditSpec,
-		assets.CloudOpenapiSchema,
+	if err := common.PatchResource(
+		fmt.Sprintf("/publicCloud/project/{projectId}/managedAnalytics/%s/{serviceId}", engine),
+		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0]),
+		spec,
+		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
