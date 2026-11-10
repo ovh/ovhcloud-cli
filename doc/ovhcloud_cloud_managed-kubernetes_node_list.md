@@ -1,22 +1,24 @@
 ## ovhcloud cloud managed-kubernetes node list
 
-List nodes in the given Kubernetes cluster
+List nodes in the given Kubernetes node pool
 
 ```
-ovhcloud cloud managed-kubernetes node list <cluster_id> [flags]
+ovhcloud cloud managed-kubernetes node list <cluster_id> <nodepool_id> [flags]
 ```
 
 ### Options
 
 ```
-      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
-                             Examples:
-                               --filter 'state=="running"'
-                               --filter 'name=~"^my.*"'
-                               --filter 'nested.property.subproperty>10'
-                               --filter 'startDate>="2023-12-01"'
-                               --filter 'name=~"something" && nbField>10'
-  -h, --help                 help for list
+      --filter stringArray       Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                                 Examples:
+                                   --filter 'state=="running"'
+                                   --filter 'name=~"^my.*"'
+                                   --filter 'nested.property.subproperty>10'
+                                   --filter 'startDate>="2023-12-01"'
+                                   --filter 'name=~"something" && nbField>10'
+  -h, --help                     help for list
+      --include-deleted          Include deleted nodes still kept in retention
+      --resource-status string   List only the nodes in this lifecycle status (CREATING, DELETED, DELETING, ERROR, OUT_OF_SYNC, READY, UNKNOWN, UPDATING). DELETED requires --include-deleted
 ```
 
 ### Options inherited from parent commands
@@ -41,5 +43,5 @@ ovhcloud cloud managed-kubernetes node list <cluster_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes node](ovhcloud_cloud_managed-kubernetes_node.md)	 - Manage Kubernetes nodes
+* [ovhcloud cloud managed-kubernetes node](ovhcloud_cloud_managed-kubernetes_node.md)	 - Inspect Kubernetes nodes
 

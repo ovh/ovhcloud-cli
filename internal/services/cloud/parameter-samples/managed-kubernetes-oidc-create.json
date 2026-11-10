@@ -1,7 +1,0 @@
-{
-  "clientId": "NewClient",
-  "issuerUrl": "https://example.com",
-  "signingAlgorithms": [
-    "ES256"
-  ]
-}

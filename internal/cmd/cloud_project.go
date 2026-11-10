@@ -105,7 +105,7 @@ func init() {
 	})
 
 	initCloudAICommand(cloudCmd)
-	initKubeCommand(cloudCmd)
+	initManagedKubernetesCommand(cloudCmd)
 	initContainerRegistryCommand(cloudCmd)
 	initManagedDatabaseCommand(cloudCmd)
 	initManagedAnalyticsCommand(cloudCmd)

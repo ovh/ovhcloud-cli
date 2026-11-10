@@ -36,8 +36,20 @@ schemas:
 	curl -s "https://eu.api.ovh.com/v1/$(UNIVERSE).json?format=openapi3" | jq 'del(.paths[] | .[]["x-code-samples"])' > "$$tmp" && \
 	mv "$$tmp" internal/assets/api-schemas/$(UNIVERSE).json
 
+# Keeps public routes only; "long" isn't a valid OpenAPI type and breaks the request validator.
+SCHEMAS_V2_FILTER = .paths |= with_entries( \
+		.value |= with_entries(select(.value | type != "object" or ((.["x-badges"] // []) | any(.label == "Internal use only") | not))) \
+		| select(.value | any(type == "object"))) \
+	| del(.paths[][] | objects | .["x-code-samples"]) \
+	| walk(if type == "object" and .type == "long" then .type = "integer" | .format = "int64" else . end)
+
+schemas-v2:
+	@tmp=$$(mktemp internal/assets/api-schemas/cloud_v2.json.XXXXXX) && \
+	curl -sf "https://eu.api.ovh.com/v2/publicCloud.json?format=openapi3" | jq '$(SCHEMAS_V2_FILTER)' > "$$tmp" && \
+	mv "$$tmp" internal/assets/api-schemas/cloud_v2.json || { rm -f "$$tmp"; exit 1; }
+
 setup:
 	curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/latest/download/prek-installer.sh | sh
 	prek install
 
-.PHONY: all wasm doc schemas setup
+.PHONY: all wasm doc schemas schemas-v2 setup

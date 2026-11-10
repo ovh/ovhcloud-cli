@@ -1,15 +1,15 @@
-## ovhcloud cloud managed-kubernetes oidc get
+## ovhcloud cloud managed-kubernetes usage etcd
 
-Get the OIDC configuration for the given Kubernetes cluster
+Get the etcd storage usage of the given Kubernetes cluster
 
 ```
-ovhcloud cloud managed-kubernetes oidc get <cluster_id> [flags]
+ovhcloud cloud managed-kubernetes usage etcd <cluster_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for get
+  -h, --help   help for etcd
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +34,5 @@ ovhcloud cloud managed-kubernetes oidc get <cluster_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes oidc](ovhcloud_cloud_managed-kubernetes_oidc.md)	 - Manage OpenID Connect (OIDC) integration for Kubernetes clusters
+* [ovhcloud cloud managed-kubernetes usage](ovhcloud_cloud_managed-kubernetes_usage.md)	 - Inspect the resource usage of a Kubernetes cluster
 

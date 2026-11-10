@@ -1,6 +1,6 @@
 ## ovhcloud cloud managed-kubernetes node
 
-Manage Kubernetes nodes
+Inspect Kubernetes nodes
 
 ### Options
 
@@ -31,7 +31,6 @@ Manage Kubernetes nodes
 ### SEE ALSO
 
 * [ovhcloud cloud managed-kubernetes](ovhcloud_cloud_managed-kubernetes.md)	 - Manage Kubernetes clusters in the given cloud project
-* [ovhcloud cloud managed-kubernetes node delete](ovhcloud_cloud_managed-kubernetes_node_delete.md)	 - Delete the given Kubernetes node
 * [ovhcloud cloud managed-kubernetes node get](ovhcloud_cloud_managed-kubernetes_node_get.md)	 - Get the given Kubernetes node
-* [ovhcloud cloud managed-kubernetes node list](ovhcloud_cloud_managed-kubernetes_node_list.md)	 - List nodes in the given Kubernetes cluster
+* [ovhcloud cloud managed-kubernetes node list](ovhcloud_cloud_managed-kubernetes_node_list.md)	 - List nodes in the given Kubernetes node pool
 

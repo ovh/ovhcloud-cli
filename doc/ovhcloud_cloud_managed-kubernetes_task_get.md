@@ -1,17 +1,15 @@
-## ovhcloud cloud managed-kubernetes ip-restrictions edit
+## ovhcloud cloud managed-kubernetes task get
 
-Edit IP restrictions for the given Kubernetes cluster
+Get the given Kubernetes cluster task
 
 ```
-ovhcloud cloud managed-kubernetes ip-restrictions edit <cluster_id> [flags]
+ovhcloud cloud managed-kubernetes task get <cluster_id> <task_id> [flags]
 ```
 
 ### Options
 
 ```
-      --editor        Use a text editor to define parameters
-  -h, --help          help for edit
-      --ips strings   List of IPs to restrict access to the Kubernetes cluster
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -36,5 +34,5 @@ ovhcloud cloud managed-kubernetes ip-restrictions edit <cluster_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes ip-restrictions](ovhcloud_cloud_managed-kubernetes_ip-restrictions.md)	 - Manage IP restrictions for Kubernetes clusters
+* [ovhcloud cloud managed-kubernetes task](ovhcloud_cloud_managed-kubernetes_task.md)	 - Inspect the asynchronous tasks of a Kubernetes cluster
 

@@ -3,7 +3,7 @@
 Get the given Kubernetes node
 
 ```
-ovhcloud cloud managed-kubernetes node get <cluster_id> <node_id> [flags]
+ovhcloud cloud managed-kubernetes node get <cluster_id> <nodepool_id> <node_id> [flags]
 ```
 
 ### Options
@@ -34,5 +34,5 @@ ovhcloud cloud managed-kubernetes node get <cluster_id> <node_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes node](ovhcloud_cloud_managed-kubernetes_node.md)	 - Manage Kubernetes nodes
+* [ovhcloud cloud managed-kubernetes node](ovhcloud_cloud_managed-kubernetes_node.md)	 - Inspect Kubernetes nodes
 

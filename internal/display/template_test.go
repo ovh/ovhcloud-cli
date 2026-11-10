@@ -5,6 +5,7 @@
 package display
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/maxatome/go-testdeep/td"
@@ -59,4 +60,16 @@ func TestFormatBytes_LargeBytes(t *testing.T) {
 	// Test for bytes larger than the largest unit
 	got := formatByteSize(1e25, 2, 1000)
 	td.Cmp(t, got, "10.00 YB")
+}
+
+func TestPercent(t *testing.T) {
+	percent := funcMap["percent"].(func(any, any, int) (string, error))
+
+	got, err := percent(3974103.0, json.Number("8589934592"), 2)
+	td.CmpNoError(t, err)
+	td.Cmp(t, got, "0.05%")
+
+	got, err = percent(1, 4, 0)
+	td.CmpNoError(t, err)
+	td.Cmp(t, got, "25%")
 }
