@@ -40,7 +40,7 @@ func EditOvhCloudConnect(cmd *cobra.Command, args []string) {
 		cmd,
 		"/ovhCloudConnect/{serviceName}",
 		fmt.Sprintf("/v1/ovhCloudConnect/%s", url.PathEscape(args[0])),
-		OvhCloudConnectSpec,
+		&OvhCloudConnectSpec,
 		assets.OvhcloudconnectOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

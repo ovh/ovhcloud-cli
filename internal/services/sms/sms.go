@@ -58,7 +58,7 @@ func EditSms(cmd *cobra.Command, args []string) {
 		cmd,
 		"/sms/{serviceName}",
 		fmt.Sprintf("/v1/sms/%s", url.PathEscape(args[0])),
-		SmsSpec,
+		&SmsSpec,
 		assets.SmsOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
