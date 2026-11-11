@@ -9,8 +9,9 @@ ovhcloud baremetal reboot-rescue <service_name> [flags]
 ### Options
 
 ```
-  -h, --help   help for reboot-rescue
-      --wait   Wait for reboot to be done before exiting
+  -h, --help     help for reboot-rescue
+      --reveal   Print the secret values fetched after --wait instead of masking them
+      --wait     Wait for reboot to be done before exiting
 ```
 
 ### Options inherited from parent commands
