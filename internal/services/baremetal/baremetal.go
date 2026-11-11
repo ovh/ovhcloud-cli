@@ -24,6 +24,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
+	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -496,6 +497,11 @@ func ResetBaremetalOLAAggregation(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ All interfaces reset to default configuration")
 }
 
+// reinstallWizard is runReinstallWizard behind a variable, so that a test can
+// stand in for the interactive wizard and check what the command does with
+// its answers.
+var reinstallWizard = runReinstallWizard
+
 func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	// No server ID given, print usage and exit
 	if len(args) == 0 {
@@ -505,7 +511,7 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 	}
 
 	if ReinstallWizard {
-		body, launch, savedPath, err := runReinstallWizard(args[0])
+		body, launch, savedPath, err := reinstallWizard(args[0])
 		if err != nil {
 			display.OutputError(&flags.OutputFormatConfig, "OS reinstallation wizard failed: %s", err)
 			return
@@ -524,6 +530,17 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 
 		endpoint := fmt.Sprintf("/v1/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
 
+		// The wizard posts its body itself, outside CreateResource, so it does
+		// not get CreateResource's --dry-run stop for free. Without this, the
+		// wizard's own "yes" was enough to wipe the server of an operator who
+		// had asked for a preview.
+		if flags.DryRun {
+			if err := common.OutputDryRun(endpoint, body); err != nil {
+				display.OutputError(&flags.OutputFormatConfig, "OS reinstallation on server %s failed: %s", args[0], err)
+			}
+			return
+		}
+
 		var task map[string]any
 		if err := httpLib.Client.Post(endpoint, body, &task); err != nil {
 			display.OutputError(&flags.OutputFormatConfig, "OS reinstallation on server %s failed: %s", args[0], err)
@@ -533,6 +550,20 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		finishReinstall(cmd, args[0], task)
 
 		return
+	}
+
+	// Reinstalling wipes every disk of the server. Nothing else in this CLI
+	// destroys customer data, so this is the one place that asks before acting.
+	if !flags.AssumeYes && !flags.DryRun {
+		warning := fmt.Sprintf("Reinstalling %s wipes every disk of the server. This cannot be undone.", args[0])
+		if OperatingSystem != "" {
+			warning += fmt.Sprintf("\n   Operating system to install: %s", OperatingSystem)
+		}
+
+		if !utils.ConfirmByName(args[0], warning) {
+			display.OutputError(&flags.OutputFormatConfig, "reinstallation of %s cancelled", args[0])
+			return
+		}
 	}
 
 	endpoint := fmt.Sprintf("/v1/dedicated/server/%s/reinstall", url.PathEscape(args[0]))
@@ -552,6 +583,11 @@ func ReinstallBaremetal(cmd *cobra.Command, args []string) {
 		[]string{"operatingSystem"})
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "OS reinstallation on server %s failed: %s", args[0], err)
+		return
+	}
+
+	// Nothing was sent in dry-run mode, so there is no task to follow.
+	if flags.DryRun {
 		return
 	}
 
