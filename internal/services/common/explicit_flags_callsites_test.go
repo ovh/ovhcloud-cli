@@ -70,10 +70,12 @@ func TestEditResourceCallSitesPassAPointer(t *testing.T) {
 				}
 			case *ast.CompositeLit:
 				// A body built by hand as a map: every key is present, so
-				// omitempty cannot drop anything. A struct literal is another
-				// matter — no flag points into a value built on the spot, so
-				// the mechanism would silently do nothing.
-				if _, isMap := argument.Type.(*ast.MapType); !isMap {
+				// omitempty cannot drop anything. An empty struct carries no
+				// field at all, so there is nothing to drop either: the body
+				// then comes from the extra fields. Any other struct literal
+				// is another matter — no flag points into a value built on the
+				// spot, so the mechanism would silently do nothing.
+				if _, isMap := argument.Type.(*ast.MapType); !isMap && !isEmptyStructType(argument.Type) {
 					t.Errorf("%s: a struct literal cannot be matched to any flag, pass a pointer to the parameters struct", position)
 				}
 			case *ast.Ident:
@@ -107,4 +109,11 @@ func isEditResourceCall(fun ast.Expr) bool {
 		return callee.Name == "EditResource"
 	}
 	return false
+}
+
+// isEmptyStructType matches struct{}, the type of a literal that holds no
+// field and therefore no flag value to lose.
+func isEmptyStructType(expr ast.Expr) bool {
+	structType, ok := expr.(*ast.StructType)
+	return ok && (structType.Fields == nil || len(structType.Fields.List) == 0)
 }
