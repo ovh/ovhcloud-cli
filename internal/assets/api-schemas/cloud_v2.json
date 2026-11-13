@@ -2482,6 +2482,15 @@
             "description": "Size of the backup in GB",
             "readOnly": true
           },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.blockStorage.BackupStatusEnum"
+              }
+            ],
+            "description": "Backup status on the infrastructure",
+            "readOnly": true
+          },
           "volumeId": {
             "type": "string",
             "description": "Identifier of the source volume",
@@ -2489,6 +2498,21 @@
             "readOnly": true
           }
         }
+      },
+      "publicCloud.blockStorage.BackupStatusEnum": {
+        "type": "string",
+        "description": "Possible statuses for a block storage backup",
+        "enum": [
+          "AVAILABLE",
+          "CREATING",
+          "DELETED",
+          "DELETING",
+          "ERROR",
+          "ERROR_DELETING",
+          "ERROR_RESTORING",
+          "RESTORING",
+          "UNMANAGING"
+        ]
       },
       "publicCloud.blockStorage.BackupTargetSpec": {
         "type": "object",
@@ -22599,6 +22623,15 @@
             "type": "integer",
             "description": "Current size of the file storage in GB",
             "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.file.FileStorageStatusEnum"
+              }
+            ],
+            "description": "File storage status as reported by the infrastructure",
+            "readOnly": true
           }
         }
       },
@@ -23126,6 +23159,47 @@
             "nullable": true
           }
         }
+      },
+      "publicCloud.storage.file.FileStorageStatusEnum": {
+        "type": "string",
+        "description": "Possible statuses for a file storage, as reported by the infrastructure",
+        "enum": [
+          "AVAILABLE",
+          "AWAITING_TRANSFER",
+          "BACKUP_CREATING",
+          "BACKUP_RESTORING",
+          "BACKUP_RESTORING_ERROR",
+          "CREATING",
+          "CREATING_FROM_SNAPSHOT",
+          "DEFERRED_DELETING",
+          "DELETED",
+          "DELETING",
+          "ENSURING",
+          "ERROR",
+          "ERROR_DEFERRED_DELETING",
+          "ERROR_DELETING",
+          "EXTENDING",
+          "EXTENDING_ERROR",
+          "INACTIVE",
+          "MANAGE_ERROR",
+          "MANAGE_ERROR_UNMANAGE_STARTING",
+          "MANAGE_STARTING",
+          "MIGRATING",
+          "MIGRATING_TO",
+          "REPLICATION_CHANGE",
+          "RESTORING",
+          "REVERTING",
+          "REVERTING_ERROR",
+          "REVERTING_TO_SNAPSHOT",
+          "SERVER_MIGRATING",
+          "SERVER_MIGRATING_TO",
+          "SHRINKING",
+          "SHRINKING_ERROR",
+          "SHRINKING_POSSIBLE_DATA_LOSS_ERROR",
+          "UNMANAGED",
+          "UNMANAGE_ERROR",
+          "UNMANAGE_STARTING"
+        ]
       },
       "publicCloud.storage.file.FileStorageTargetSpec": {
         "type": "object",
