@@ -13,7 +13,7 @@ ovhcloud cloud loadbalancer edit <loadbalancer_id> [flags]
       --editor               Use a text editor to define parameters
   -h, --help                 help for edit
       --name string          Name of the loadbalancer
-      --size string          Size of the loadbalancer (e.g. small, medium, large) or flavor UUID
+      --size string          Size of the loadbalancer (SMALL, MEDIUM, LARGE, XL). A different size resizes the loadbalancer in place and can briefly interrupt traffic
 ```
 
 ### Options inherited from parent commands

@@ -25,7 +25,7 @@ There are three ways to define the parameters:
 
 3. Using only CLI flags:
 
-	ovhcloud cloud loadbalancer create <region> --name my-lb --size small
+	ovhcloud cloud loadbalancer create <region> --name my-lb --size SMALL --subnet-id <subnet_id>
 
 
 ```
@@ -35,16 +35,16 @@ ovhcloud cloud loadbalancer create <region> [flags]
 ### Options
 
 ```
+      --description string   Description of the loadbalancer
       --editor               Use a text editor to define parameters
-      --floating-ip string   Floating IP ID to associate to the loadbalancer
       --from-file string     File containing parameters
-      --gateway string       Gateway ID to associate to the loadbalancer
   -h, --help                 help for create
       --init-file string     Create a file with example parameters
       --name string          Name of the loadbalancer
-      --network-id string    Network ID
+      --network-id string    Network ID (optional, defaults to the network of the subnet)
+      --network-ip string    IP of the loadbalancer VIP: an address inside the subnet CIDR pins the fixed address, an address outside it designates an existing floating IP to associate (requires the loadbalancer/usePublicIP IAM action)
       --replace              Replace parameters file if it already exists
-      --size string          Size of the loadbalancer (e.g. small, medium, large) or flavor UUID
+      --size string          Size of the loadbalancer (SMALL, MEDIUM, LARGE, XL)
       --subnet-id string     Subnet ID
 ```
 
