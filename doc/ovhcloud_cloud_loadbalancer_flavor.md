@@ -31,6 +31,6 @@ List available loadbalancer flavors in the given cloud project
 ### SEE ALSO
 
 * [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
-* [ovhcloud cloud loadbalancer flavor get](ovhcloud_cloud_loadbalancer_flavor_get.md)	 - Get details of a specific loadbalancer flavor
-* [ovhcloud cloud loadbalancer flavor list](ovhcloud_cloud_loadbalancer_flavor_list.md)	 - List available loadbalancer flavors in the given cloud project
+* [ovhcloud cloud loadbalancer flavor get](ovhcloud_cloud_loadbalancer_flavor_get.md)	 - Get details of a specific loadbalancer flavor, optionally restricted to one region
+* [ovhcloud cloud loadbalancer flavor list](ovhcloud_cloud_loadbalancer_flavor_list.md)	 - List available loadbalancer flavors in the given cloud project, optionally restricted to one region
 

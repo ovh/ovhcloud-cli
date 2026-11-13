@@ -315,10 +315,22 @@ func ListLoadbalancerFlavors(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/flavor", projectID, url.PathEscape(args[0]))
-	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "region"}, flags.GenericFilters)
+	// API v2 lists the flavors of every region, with an optional region filter
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/reference/loadbalancer/flavor", projectID)
+	if len(args) > 0 && args[0] != "" {
+		endpoint += "?region=" + url.QueryEscape(args[0])
+	}
+
+	common.ManageListRequestNoExpand(endpoint, loadbalancerFlavorColumns, flags.GenericFilters)
 }
 
+// loadbalancerFlavorColumns are the columns displayed for the loadbalancer flavors.
+var loadbalancerFlavorColumns = []string{"name", "location.region region", "location.regionActivated regionActivated", "bandwidth", "connectionsPerSecond", "requestsPerSecond"}
+
+// GetLoadbalancerFlavor displays the loadbalancer flavor with the given name, as
+// a table. API v2 has no route to get a single flavor, so the list is fetched,
+// restricted to the given region if any, and filtered on the name. Without a
+// region, a flavor sold in several regions is displayed once per region.
 func GetLoadbalancerFlavor(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -326,14 +338,42 @@ func GetLoadbalancerFlavor(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/flavor/%s",
-		projectID, url.PathEscape(args[0]), url.PathEscape(args[1]))
+	// Arguments: [region] <flavor_name>
+	region, name := "", args[0]
+	if len(args) == 2 {
+		region, name = args[0], args[1]
+	}
 
-	var flavor map[string]any
-	if err := httpLib.Client.Get(endpoint, &flavor); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch loadbalancer flavor: %s", err)
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/reference/loadbalancer/flavor", projectID)
+	if region != "" {
+		endpoint += "?region=" + url.QueryEscape(region)
+	}
+
+	body, err := httpLib.FetchArray(endpoint, "")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch loadbalancer flavors: %s", err)
 		return
 	}
 
-	display.OutputObject(flavor, args[1], "", &flags.OutputFormatConfig)
+	var matches []map[string]any
+	for _, item := range body {
+		flavor, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		if flavorName, _ := flavor["name"].(string); strings.EqualFold(flavorName, name) {
+			matches = append(matches, flavor)
+		}
+	}
+
+	if len(matches) == 0 {
+		if region != "" {
+			display.OutputError(&flags.OutputFormatConfig, "loadbalancer flavor %q not found in region %s", name, region)
+		} else {
+			display.OutputError(&flags.OutputFormatConfig, "loadbalancer flavor %q not found", name)
+		}
+		return
+	}
+
+	display.RenderTable(matches, loadbalancerFlavorColumns, &flags.OutputFormatConfig)
 }
