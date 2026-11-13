@@ -69,6 +69,20 @@ func IpGetReverse(_ *cobra.Command, args []string) {
 
 func IpDeleteReverse(_ *cobra.Command, args []string) {
 	url := fmt.Sprintf("/v1/ip/%s/reverse/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+
+	// A reverse is typed back in one line, but mail servers that check it may
+	// start refusing mail from the address as soon as it is gone.
+	if !common.ConfirmAction(common.Disruptive, args[1], fmt.Sprintf(
+		"Deleting the reverse DNS of %s takes effect immediately: mail servers that check it may start refusing mail from this address.",
+		args[1])) {
+		display.OutputError(&flags.OutputFormatConfig, "deletion of the reverse of %s cancelled", args[1])
+		return
+	}
+
+	if common.ReportDryRun(common.Call{Method: "DELETE", Endpoint: url}) {
+		return
+	}
+
 	if err := httpLib.Client.Delete(url, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return

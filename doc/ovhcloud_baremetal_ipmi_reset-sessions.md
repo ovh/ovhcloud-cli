@@ -9,7 +9,9 @@ ovhcloud baremetal ipmi reset-sessions <service_name> [flags]
 ### Options
 
 ```
-  -h, --help   help for reset-sessions
+      --dry-run   Print the call that would be made without making it
+  -h, --help      help for reset-sessions
+  -y, --yes       Skip the confirmation prompt (required for unattended runs)
 ```
 
 ### Options inherited from parent commands
