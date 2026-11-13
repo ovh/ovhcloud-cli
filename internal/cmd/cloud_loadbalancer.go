@@ -92,10 +92,10 @@ func initCloudLoadbalancerCommand(cloudCmd *cobra.Command) {
 	loadbalancerCmd.AddCommand(flavorCmd)
 
 	flavorCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:   "list <region (GRA9, BHS5, ...)>",
-		Short: "List available loadbalancer flavors in the given cloud project",
+		Use:   "list [region (GRA9, BHS5, ...)]",
+		Short: "List available loadbalancer flavors in the given cloud project, optionally restricted to one region",
 		Run:   cloud.ListLoadbalancerFlavors,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 	}))
 
 	flavorCmd.AddCommand(&cobra.Command{

@@ -506,17 +506,21 @@ func (ms *MockSuite) TestCloudReferenceImagesListInvalidOSTypeCmd(assert, requir
 }
 
 func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorsListCmdJSON(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA9/loadbalancing/flavor",
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/reference/loadbalancer/flavor?region=GRA9",
 		httpmock.NewStringResponder(200, `[
 			{
-				"id": "lb-flavor-id-1",
-				"name": "small",
-				"region": "GRA9"
+				"name": "SMALL",
+				"bandwidth": 200,
+				"connectionsPerSecond": 1000,
+				"requestsPerSecond": 2000,
+				"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
 			},
 			{
-				"id": "lb-flavor-id-2",
-				"name": "medium",
-				"region": "GRA9"
+				"name": "MEDIUM",
+				"bandwidth": 400,
+				"connectionsPerSecond": 2000,
+				"requestsPerSecond": 4000,
+				"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
 			}
 		]`).Once())
 
@@ -525,15 +529,47 @@ func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorsListCmdJSON(assert, re
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
-			"id": "lb-flavor-id-1",
-			"name": "small",
-			"region": "GRA9"
+			"name": "SMALL",
+			"bandwidth": 200,
+			"connectionsPerSecond": 1000,
+			"requestsPerSecond": 2000,
+			"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
 		},
 		{
-			"id": "lb-flavor-id-2",
-			"name": "medium",
-			"region": "GRA9"
+			"name": "MEDIUM",
+			"bandwidth": 400,
+			"connectionsPerSecond": 2000,
+			"requestsPerSecond": 4000,
+			"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
 		}
+	]`))
+}
+
+func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorsListAllRegionsCmdJSON(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/reference/loadbalancer/flavor",
+		httpmock.NewStringResponder(200, `[
+			{
+				"name": "SMALL",
+				"bandwidth": 200,
+				"connectionsPerSecond": 1000,
+				"requestsPerSecond": 2000,
+				"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
+			},
+			{
+				"name": "SMALL",
+				"bandwidth": 200,
+				"connectionsPerSecond": 1000,
+				"requestsPerSecond": 2000,
+				"location": {"region": "BHS5", "regionActivated": false, "availabilityZones": []}
+			}
+		]`).Once())
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "flavor", "list", "-o", "json", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[
+		{"name": "SMALL", "bandwidth": 200, "connectionsPerSecond": 1000, "requestsPerSecond": 2000, "location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}},
+		{"name": "SMALL", "bandwidth": 200, "connectionsPerSecond": 1000, "requestsPerSecond": 2000, "location": {"region": "BHS5", "regionActivated": false, "availabilityZones": []}}
 	]`))
 }
 

@@ -315,8 +315,15 @@ func ListLoadbalancerFlavors(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/flavor", projectID, url.PathEscape(args[0]))
-	common.ManageListRequestNoExpand(endpoint, []string{"id", "name", "region"}, flags.GenericFilters)
+	// API v2 lists the flavors of every region, with an optional region filter
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/reference/loadbalancer/flavor", projectID)
+	if len(args) > 0 && args[0] != "" {
+		endpoint += "?region=" + url.QueryEscape(args[0])
+	}
+
+	common.ManageListRequestNoExpand(endpoint,
+		[]string{"name", "location.region region", "location.regionActivated regionActivated", "bandwidth", "connectionsPerSecond", "requestsPerSecond"},
+		flags.GenericFilters)
 }
 
 func GetLoadbalancerFlavor(_ *cobra.Command, args []string) {
