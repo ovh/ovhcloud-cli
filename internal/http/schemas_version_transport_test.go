@@ -20,7 +20,17 @@ func (t *recordingTransport) RoundTrip(req *http.Request) (*http.Response, error
 	return &http.Response{StatusCode: http.StatusOK}, nil
 }
 
-func TestSchemasVersionTransport_V2Path(t *testing.T) {
+func TestSchemasVersionTransport_V2PublicCloudPath(t *testing.T) {
+	recorder := &recordingTransport{}
+	transport := newSchemasVersionTransport(recorder)
+
+	req, _ := http.NewRequest(http.MethodGet, "https://eu.api.ovh.com/v2/publicCloud/project/abc/loadbalancer", nil)
+	_, err := transport.RoundTrip(req)
+	td.Require(t).CmpNoError(err)
+	td.Cmp(t, recorder.req.Header.Get(schemasVersionHeader), schemasVersion)
+}
+
+func TestSchemasVersionTransport_V2OtherProductPath(t *testing.T) {
 	recorder := &recordingTransport{}
 	transport := newSchemasVersionTransport(recorder)
 
@@ -54,7 +64,7 @@ func TestSchemasVersionTransport_DoesNotMutateOriginal(t *testing.T) {
 	recorder := &recordingTransport{}
 	transport := newSchemasVersionTransport(recorder)
 
-	req, _ := http.NewRequest(http.MethodGet, "https://eu.api.ovh.com/v2/vrackServices/resource/abc", nil)
+	req, _ := http.NewRequest(http.MethodGet, "https://eu.api.ovh.com/v2/publicCloud/project/abc/loadbalancer", nil)
 	_, err := transport.RoundTrip(req)
 	td.Require(t).CmpNoError(err)
 	// The original request must not have been mutated.

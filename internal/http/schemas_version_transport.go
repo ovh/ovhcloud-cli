@@ -16,7 +16,7 @@ const schemasVersionHeader = "X-Schemas-Version"
 // schemasVersion is the schema version requested by this client.
 // Bump this value when a new schema version is released and the CLI
 // has been updated to match.
-const schemasVersion = "0.0"
+const schemasVersion = "1.0"
 
 // schemasVersionTransport is an http.RoundTripper middleware that injects the
 // X-Schemas-Version header on every request whose path starts with "/v2/".
@@ -26,8 +26,11 @@ type schemasVersionTransport struct {
 	next http.RoundTripper
 }
 
+// schemasVersionPathPrefix is the path prefix of the requests receiving the header.
+const schemasVersionPathPrefix = "/v2/"
+
 func (t *schemasVersionTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if strings.HasPrefix(req.URL.Path, "/v2/") {
+	if strings.HasPrefix(req.URL.Path, schemasVersionPathPrefix) {
 		// Clone the request so we don't mutate the caller's original.
 		req = req.Clone(req.Context())
 		req.Header.Set(schemasVersionHeader, schemasVersion)
