@@ -596,13 +596,34 @@ func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorGetCmd(assert, require 
 	out, err := cmd.Execute("cloud", "loadbalancer", "flavor", "get", "GRA9", "small", "-o", "json", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{
+	assert.Cmp(json.RawMessage(out), td.JSON(`[{
 		"name": "SMALL",
 		"bandwidth": 200,
 		"connectionsPerSecond": 1000,
 		"requestsPerSecond": 2000,
 		"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
-	}`))
+	}]`))
+}
+
+func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorGetTableCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/reference/loadbalancer/flavor?region=GRA9",
+		httpmock.NewStringResponder(200, `[
+			{
+				"name": "SMALL",
+				"bandwidth": 200,
+				"connectionsPerSecond": 1000,
+				"requestsPerSecond": 2000,
+				"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
+			}
+		]`).Once())
+
+	// A single result is displayed as a table, not as JSON
+	out, err := cmd.Execute("cloud", "loadbalancer", "flavor", "get", "GRA9", "SMALL", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("SMALL"))
+	assert.Cmp(out, td.Contains("connectionsPerSecond"))
+	assert.Cmp(out, td.Not(td.Contains(`"name"`)))
 }
 
 func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorGetAllRegionsCmd(assert, require *td.T) {

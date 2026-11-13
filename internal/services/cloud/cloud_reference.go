@@ -327,10 +327,10 @@ func ListLoadbalancerFlavors(cmd *cobra.Command, args []string) {
 // loadbalancerFlavorColumns are the columns displayed for the loadbalancer flavors.
 var loadbalancerFlavorColumns = []string{"name", "location.region region", "location.regionActivated regionActivated", "bandwidth", "connectionsPerSecond", "requestsPerSecond"}
 
-// GetLoadbalancerFlavor displays the loadbalancer flavor with the given name.
-// API v2 has no route to get a single flavor, so the list is fetched, restricted
-// to the given region if any, and filtered on the name. Without a region, a flavor
-// sold in several regions is displayed once per region.
+// GetLoadbalancerFlavor displays the loadbalancer flavor with the given name, as
+// a table. API v2 has no route to get a single flavor, so the list is fetched,
+// restricted to the given region if any, and filtered on the name. Without a
+// region, a flavor sold in several regions is displayed once per region.
 func GetLoadbalancerFlavor(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -366,16 +366,14 @@ func GetLoadbalancerFlavor(_ *cobra.Command, args []string) {
 		}
 	}
 
-	switch len(matches) {
-	case 0:
+	if len(matches) == 0 {
 		if region != "" {
 			display.OutputError(&flags.OutputFormatConfig, "loadbalancer flavor %q not found in region %s", name, region)
 		} else {
 			display.OutputError(&flags.OutputFormatConfig, "loadbalancer flavor %q not found", name)
 		}
-	case 1:
-		display.OutputObject(matches[0], name, "", &flags.OutputFormatConfig)
-	default:
-		display.RenderTable(matches, loadbalancerFlavorColumns, &flags.OutputFormatConfig)
+		return
 	}
+
+	display.RenderTable(matches, loadbalancerFlavorColumns, &flags.OutputFormatConfig)
 }
