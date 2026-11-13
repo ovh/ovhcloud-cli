@@ -1,9 +1,9 @@
 ## ovhcloud cloud loadbalancer flavor list
 
-List available loadbalancer flavors in the given cloud project
+List available loadbalancer flavors in the given cloud project, optionally restricted to one region
 
 ```
-ovhcloud cloud loadbalancer flavor list <region (GRA9, BHS5, ...)> [flags]
+ovhcloud cloud loadbalancer flavor list [region (GRA9, BHS5, ...)] [flags]
 ```
 
 ### Options
