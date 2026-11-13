@@ -574,21 +574,89 @@ func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorsListAllRegionsCmdJSON(
 }
 
 func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorGetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA9/loadbalancing/flavor/lb-flavor-id-1",
-		httpmock.NewStringResponder(200, `{
-			"id": "lb-flavor-id-1",
-			"name": "small",
-			"region": "GRA9"
-		}`).Once())
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/reference/loadbalancer/flavor?region=GRA9",
+		httpmock.NewStringResponder(200, `[
+			{
+				"name": "SMALL",
+				"bandwidth": 200,
+				"connectionsPerSecond": 1000,
+				"requestsPerSecond": 2000,
+				"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
+			},
+			{
+				"name": "MEDIUM",
+				"bandwidth": 400,
+				"connectionsPerSecond": 2000,
+				"requestsPerSecond": 4000,
+				"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
+			}
+		]`).Once())
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "flavor", "get", "GRA9", "lb-flavor-id-1", "-o", "json", "--cloud-project", "fakeProjectID")
+	// The name is matched whatever its case
+	out, err := cmd.Execute("cloud", "loadbalancer", "flavor", "get", "GRA9", "small", "-o", "json", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
-		"id": "lb-flavor-id-1",
-		"name": "small",
-		"region": "GRA9"
+		"name": "SMALL",
+		"bandwidth": 200,
+		"connectionsPerSecond": 1000,
+		"requestsPerSecond": 2000,
+		"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
 	}`))
+}
+
+func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorGetAllRegionsCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/reference/loadbalancer/flavor",
+		httpmock.NewStringResponder(200, `[
+			{
+				"name": "SMALL",
+				"bandwidth": 200,
+				"connectionsPerSecond": 1000,
+				"requestsPerSecond": 2000,
+				"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
+			},
+			{
+				"name": "SMALL",
+				"bandwidth": 200,
+				"connectionsPerSecond": 1000,
+				"requestsPerSecond": 2000,
+				"location": {"region": "BHS5", "regionActivated": false, "availabilityZones": []}
+			},
+			{
+				"name": "MEDIUM",
+				"bandwidth": 400,
+				"connectionsPerSecond": 2000,
+				"requestsPerSecond": 4000,
+				"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
+			}
+		]`).Once())
+
+	// A flavor sold in several regions is listed once per region
+	out, err := cmd.Execute("cloud", "loadbalancer", "flavor", "get", "SMALL", "-o", "json", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[
+		{"name": "SMALL", "bandwidth": 200, "connectionsPerSecond": 1000, "requestsPerSecond": 2000, "location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}},
+		{"name": "SMALL", "bandwidth": 200, "connectionsPerSecond": 1000, "requestsPerSecond": 2000, "location": {"region": "BHS5", "regionActivated": false, "availabilityZones": []}}
+	]`))
+}
+
+func (ms *MockSuite) TestCloudReferenceLoadbalancerFlavorGetNotFoundCmd(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/reference/loadbalancer/flavor?region=GRA9",
+		httpmock.NewStringResponder(200, `[
+			{
+				"name": "SMALL",
+				"bandwidth": 200,
+				"connectionsPerSecond": 1000,
+				"requestsPerSecond": 2000,
+				"location": {"region": "GRA9", "regionActivated": true, "availabilityZones": []}
+			}
+		]`).Once())
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "flavor", "get", "GRA9", "XL", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`loadbalancer flavor "XL" not found in region GRA9`))
 }
 
 func (ms *MockSuite) TestCloudReferenceManagedAnalyticsPlansListCmd(assert, require *td.T) {

@@ -1,9 +1,14 @@
 ## ovhcloud cloud loadbalancer flavor get
 
-Get details of a specific loadbalancer flavor
+Get details of a specific loadbalancer flavor, optionally restricted to one region
+
+### Synopsis
+
+Get details of a specific loadbalancer flavor, using its name (SMALL, MEDIUM, ...).
+Without a region, a flavor sold in several regions is listed once per region.
 
 ```
-ovhcloud cloud loadbalancer flavor get <region> <flavor_id> [flags]
+ovhcloud cloud loadbalancer flavor get [region] <flavor_name> [flags]
 ```
 
 ### Options
