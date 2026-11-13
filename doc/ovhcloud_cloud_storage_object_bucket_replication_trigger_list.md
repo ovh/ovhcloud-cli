@@ -1,24 +1,22 @@
-## ovhcloud cloud storage object bucket generate-presigned-url
+## ovhcloud cloud storage object bucket replication trigger list
 
-Generate a presigned URL to upload or download an object in the given storage container
+List the replication jobs of the given bucket
 
 ```
-ovhcloud cloud storage object bucket generate-presigned-url <container_name> [flags]
+ovhcloud cloud storage object bucket replication trigger list <bucket_id> [flags]
 ```
 
 ### Options
 
 ```
-      --editor                 Use a text editor to define parameters
-      --expire int             Expiration time in seconds for the presigned URL (default 60)
-      --from-file string       File containing parameters
-  -h, --help                   help for generate-presigned-url
-      --init-file string       Create a file with example parameters
-      --method string          HTTP method for the presigned URL (GET, PUT, DELETE) (default "GET")
-      --object string          Name of the object to upload or download
-      --replace                Replace parameters file if it already exists
-      --storage-class string   Storage class for the object (HIGH_PERF, STANDARD, STANDARD_IA)
-      --version-id string      Version ID of the object (if applicable)
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -43,5 +41,5 @@ ovhcloud cloud storage object bucket generate-presigned-url <container_name> [fl
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket](ovhcloud_cloud_storage_object_bucket.md)	 - Manage object storage buckets in the given cloud project
+* [ovhcloud cloud storage object bucket replication trigger](ovhcloud_cloud_storage_object_bucket_replication_trigger.md)	 - Manage the jobs that replicate the objects already in a bucket
 

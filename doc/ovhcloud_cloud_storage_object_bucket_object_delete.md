@@ -1,9 +1,9 @@
 ## ovhcloud cloud storage object bucket object delete
 
-Delete the given object from the storage container
+Delete the given object from the bucket
 
 ```
-ovhcloud cloud storage object bucket object delete <container_name> <object_name> [flags]
+ovhcloud cloud storage object bucket object delete <bucket_id> <object_key> [flags]
 ```
 
 ### Options
@@ -34,5 +34,5 @@ ovhcloud cloud storage object bucket object delete <container_name> <object_name
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket object](ovhcloud_cloud_storage_object_bucket_object.md)	 - Manage objects in the given storage container
+* [ovhcloud cloud storage object bucket object](ovhcloud_cloud_storage_object_bucket_object.md)	 - Manage objects in the given bucket
 

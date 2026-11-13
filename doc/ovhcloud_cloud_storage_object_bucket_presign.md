@@ -1,11 +1,19 @@
-## ovhcloud cloud storage object bucket replication-job
+## ovhcloud cloud storage object bucket presign
 
-Manage replication jobs for S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+Generate a presigned URL to download, upload or delete an object of the given bucket
+
+```
+ovhcloud cloud storage object bucket presign <bucket_id> <object_key> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for replication-job
+      --expires-in int         Validity of the URL in seconds (default 3600)
+  -h, --help                   help for presign
+      --method string          HTTP method allowed by the URL (DELETE, GET, PUT) (default "GET")
+      --storage-class string   Storage class of the uploaded object, for PUT (DEEP_ARCHIVE, GLACIER_IR, HIGH_PERF, STANDARD, STANDARD_IA)
+      --version-id string      Version ID of the object
 ```
 
 ### Options inherited from parent commands
@@ -31,5 +39,4 @@ Manage replication jobs for S3™* compatible storage containers (* S3 is a trad
 ### SEE ALSO
 
 * [ovhcloud cloud storage object bucket](ovhcloud_cloud_storage_object_bucket.md)	 - Manage object storage buckets in the given cloud project
-* [ovhcloud cloud storage object bucket replication-job create](ovhcloud_cloud_storage_object_bucket_replication-job_create.md)	 - Create a replication job on the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 

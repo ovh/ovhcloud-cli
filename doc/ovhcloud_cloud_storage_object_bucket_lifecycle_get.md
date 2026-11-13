@@ -1,9 +1,9 @@
 ## ovhcloud cloud storage object bucket lifecycle get
 
-Get the lifecycle configuration of the given storage container
+Get the lifecycle rules of the given bucket
 
 ```
-ovhcloud cloud storage object bucket lifecycle get <container_name> [flags]
+ovhcloud cloud storage object bucket lifecycle get <bucket_id> [flags]
 ```
 
 ### Options
@@ -34,5 +34,5 @@ ovhcloud cloud storage object bucket lifecycle get <container_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket lifecycle](ovhcloud_cloud_storage_object_bucket_lifecycle.md)	 - Manage S3™* compatible storage container lifecycle configuration (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+* [ovhcloud cloud storage object bucket lifecycle](ovhcloud_cloud_storage_object_bucket_lifecycle.md)	 - Manage the lifecycle rules of S3™* compatible buckets (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 

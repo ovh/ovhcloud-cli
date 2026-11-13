@@ -1,0 +1,37 @@
+## ovhcloud cloud storage object bucket replication trigger
+
+Manage the jobs that replicate the objects already in a bucket
+
+### Options
+
+```
+  -h, --help   help for trigger
+```
+
+### Options inherited from parent commands
+
+```
+      --cloud-project string   Cloud project ID
+  -d, --debug                  Activate debug mode (will log all HTTP requests details)
+  -e, --ignore-errors          Ignore errors in API calls when it is not fatal to the execution
+  -o, --output string          Output format: json, yaml, interactive, or a custom format expression (using https://github.com/PaesslerAG/gval syntax)
+                               Examples:
+                                 --output json
+                                 --output yaml
+                                 --output interactive
+                                 --output 'id' (to extract a single field)
+                                 --output 'nested.field.subfield' (to extract a nested field)
+                                 --output '[id, "name"]' (to extract multiple fields as an array)
+                                 --output '{"newKey": oldKey, "otherKey": nested.field}' (to extract and rename fields in an object)
+                                 --output 'name+","+type' (to extract and concatenate fields in a string)
+                                 --output '(nbFieldA + nbFieldB) * 10' (to compute values from numeric fields)
+      --profile string         Use a specific profile from the configuration file
+```
+
+### SEE ALSO
+
+* [ovhcloud cloud storage object bucket replication](ovhcloud_cloud_storage_object_bucket_replication.md)	 - Manage the replication rules of S3™* compatible buckets (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+* [ovhcloud cloud storage object bucket replication trigger create](ovhcloud_cloud_storage_object_bucket_replication_trigger_create.md)	 - Start a job replicating the existing objects of the given bucket, following its replication rules
+* [ovhcloud cloud storage object bucket replication trigger get](ovhcloud_cloud_storage_object_bucket_replication_trigger_get.md)	 - Get a specific replication job of the given bucket
+* [ovhcloud cloud storage object bucket replication trigger list](ovhcloud_cloud_storage_object_bucket_replication_trigger_list.md)	 - List the replication jobs of the given bucket
+

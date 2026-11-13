@@ -1,0 +1,16 @@
+🚀 Replication job {{.ServiceName}}
+=======
+
+## General information
+
+**Status**:        {{index .Result "status"}}
+{{with index .Result "createdAt"}}**Creation time**: {{.}}
+{{end}}
+## Objects
+
+**Total**:     {{with index .Result "total"}}{{.}}{{else}}0{{end}}
+**Completed**: {{with index .Result "completed"}}{{.}}{{else}}0{{end}}
+**Failed**:    {{with index .Result "failed"}}{{.}}{{else}}0{{end}}
+**Stuck**:     {{with index .Result "stuck"}}{{.}}{{else}}0{{end}}
+
+💡 Use option -o json or -o yaml to get the raw output with all information

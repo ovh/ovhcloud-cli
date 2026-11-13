@@ -1,9 +1,9 @@
 ## ovhcloud cloud storage object bucket object edit
 
-Edit the given object in the storage container
+Edit the legal hold and lock of the given object
 
 ```
-ovhcloud cloud storage object bucket object edit <container_name> <object_name> [flags]
+ovhcloud cloud storage object bucket object edit <bucket_id> <object_key> [flags]
 ```
 
 ### Options
@@ -11,8 +11,8 @@ ovhcloud cloud storage object bucket object edit <container_name> <object_name> 
 ```
       --editor                     Use a text editor to define parameters
   -h, --help                       help for edit
-      --legal-hold string          Legal hold status (on, off)
-      --lock-mode string           Lock mode (compliance, governance)
+      --legal-hold string          Legal hold status (OFF, ON)
+      --lock-mode string           Lock mode (COMPLIANCE, GOVERNANCE)
       --lock-retain-until string   Lock retain until date (e.g., 2024-12-31T23:59:59Z)
 ```
 
@@ -38,5 +38,5 @@ ovhcloud cloud storage object bucket object edit <container_name> <object_name> 
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket object](ovhcloud_cloud_storage_object_bucket_object.md)	 - Manage objects in the given storage container
+* [ovhcloud cloud storage object bucket object](ovhcloud_cloud_storage_object_bucket_object.md)	 - Manage objects in the given bucket
 

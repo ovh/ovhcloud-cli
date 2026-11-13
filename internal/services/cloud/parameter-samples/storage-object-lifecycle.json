@@ -2,7 +2,7 @@
   "rules": [
     {
       "id": "expire-old-objects",
-      "status": "enabled",
+      "status": "ENABLED",
       "filter": {
         "prefix": "logs/"
       },
