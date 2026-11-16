@@ -151,6 +151,12 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 				cellValue = strconv.FormatFloat(float64(v), 'f', -1, 32)
 			case float64:
 				cellValue = strconv.FormatFloat(v, 'f', -1, 64)
+			case []any:
+				items := make([]string, len(v))
+				for i, item := range v {
+					items[i] = fmt.Sprintf("%v", item)
+				}
+				cellValue = strings.Join(items, ", ")
 			default:
 				cellValue = fmt.Sprintf("%v", val)
 			}

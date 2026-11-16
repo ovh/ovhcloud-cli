@@ -1,35 +1,112 @@
 🚀 Managed Kubernetes Cluster {{.ServiceName}}
 =======
+{{- $current := .Result.currentState}}
+{{- $target := .Result.targetSpec}}
 
-_{{index .Result "name"}}_
+{{with $current}}_{{.name}}_{{else with $target}}_{{.name}}_{{end}}
 
 ## General information
-
-**Region**:        {{index .Result "region"}}
-**Plan**:          {{index .Result "plan"}}
-**Status**:        {{index .Result "status"}}
-**Creation date**: {{index .Result "createdAt"}}
-**Update date**:   {{index .Result "updatedAt"}}
+{{with $current}}
+**Region**:        {{.region}}
+**Plan**:          {{.plan}}
+{{- end}}
+**Status**:        {{.Result.resourceStatus}}
+**Creation date**: {{.Result.createdAt}}
+**Update date**:   {{.Result.updatedAt}}
 
 ## Cluster state
+{{with $current}}
+**Version**:            {{.version}}
+**Deployed version**:   {{.deployedVersion}}
+{{- end}}
+{{- with $target}}
+{{- with .version}}
+**Desired version**:    {{.}}
+{{- end}}
+{{- end}}
+{{- with $current}}
+{{- with .autoUpgrade}}
+{{- with .patch}}
+**Patch auto-upgrade**: {{.enabled}}
+{{- end}}
+{{- end}}
+{{- with .cni}}
+**CNI**:                {{.type}}
+{{- with .canal}}
+{{- with .kubeProxy}}
+**Kube proxy mode**:    {{.mode}}
+{{- end}}
+{{- end}}
+{{- end}}
+{{- with .authentication}}
+**Authentication**:     {{.type}}
+{{- end}}
+{{- with .apiServer}}
+{{- with .access}}
+{{- with .publicEndpoint}}
 
-**Version**:         {{index .Result "version"}}
-**Up to date**:      {{index .Result "isUpToDate"}}
-**Update policy**:   {{index .Result "updatePolicy"}}
-**Kube proxy mode**: {{index .Result "kubeProxyMode"}}
-**ETCD usage**:      {{if index .Result "etcdUsage"}}{{formatByteSize (index .Result "etcdUsage" "usage") 0 1024}} / {{formatByteSize (index .Result "etcdUsage" "quota") 0 1024}}{{else}}N/A{{end}}
-
-[Management URL]({{index .Result "url"}})
-[Nodes URL]({{index .Result "nodesUrl"}})
+[Control plane URL]({{.url}})
+{{- end}}
+{{- end}}
+{{- end}}
+{{- if or .network .ipAllocationPolicy}}
 
 ## Network
-
-**Private network**:
-- ID: {{index .Result "privateNetworkId"}}{{if index .Result "privateNetworkConfiguration"}}
-- Default vRack gateway: {{index .Result "privateNetworkConfiguration" "defaultVrackGateway"}}
-- Private network routing as default: {{index .Result "privateNetworkConfiguration" "privateNetworkRoutingAsDefault"}}
 {{end}}
-**Nodes subnet**:         {{index .Result "nodesSubnetId"}}
-**Load balancer subnet**: {{index .Result "loadBalancersSubnetId"}}
+{{- with .network}}
+**Type**:                 {{.type}}
+{{- with .vrack}}
+**Private network**:      {{or .privateNetworkId "-"}}
+**Nodes subnet**:         {{or .subnetId "-"}}
+**Load balancer subnet**: {{or .loadBalancerSubnetId "-"}}
+{{- with .defaultEgress}}
+**Default egress**:       {{.type}}{{with .userGateway}} ({{.ip}}){{end}}
+{{- end}}
+{{- end}}
+{{- end}}
+{{- with .ipAllocationPolicy}}
+**Pods CIDR**:            {{.pods}}
+**Services CIDR**:        {{.services}}
+{{- end}}
+{{- with .apiServer}}
+{{- with .access}}
+{{- with .authorizedIps}}
+{{- with .rules}}
+
+## API server authorized IPs
+{{range .}}
+- {{.cidr}}
+{{- end}}
+{{- end}}
+{{- end}}
+{{- end}}
+{{- with .admissionPlugins}}
+
+## Admission plugins
+
+| Plugin | Enabled |
+| --- | --- |
+{{- range $name, $plugin := .}}
+| {{$name}} | {{$plugin.enabled}} |
+{{- end}}
+{{- end}}
+{{- end}}
+{{- with .authentication}}
+{{- with .oidc}}
+
+## OIDC
+
+**Issuer URL**:      {{or .issuerUrl "-"}}
+**Client ID**:       {{or .clientId "-"}}
+**Username claim**:  {{or .usernameClaim "-"}}
+**Username prefix**: {{or .usernamePrefix "-"}}
+**Groups claim**:    {{with .groupsClaim}}{{join .}}{{else}}-{{end}}
+**Groups prefix**:   {{or .groupsPrefix "-"}}
+**Required claims**: {{with .requiredClaim}}{{join .}}{{else}}-{{end}}
+**Signing algs**:    {{with .signingAlgs}}{{join .}}{{else}}-{{end}}
+**CA content**:      {{if .caContent}}set{{else}}-{{end}}
+{{- end}}
+{{- end}}
+{{- end}}
 
 💡 Use option -o json or -o yaml to get the raw output with all information

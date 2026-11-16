@@ -9,7 +9,7 @@ There are three ways to define the creation parameters:
 
 1. Using only CLI flags:
 
-	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --flavor-name b3-16 --desired-nodes 3 --name newnodepool
+	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --flavor b3-16 --desired-nodes 3 --name newnodepool
 
 2. Using a configuration file:
 
@@ -30,7 +30,7 @@ There are three ways to define the creation parameters:
 
 	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --from-file ./params.json --name NameOverriden
 
-  It is also possible to use the interactive flavor selector to define the flavor-name parameter, like the following:
+  It is also possible to use the interactive flavor selector to define the flavor parameter, like the following:
 
 	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --init-file ./params.json --flavor-selector
 
@@ -43,9 +43,9 @@ There are three ways to define the creation parameters:
 
   Note that it is also possible to override values in the presented examples using command line flags like the following:
 
-	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --editor --flavor-name b3-16
+	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --editor --flavor b3-16
 
-  You can also use the interactive flavor selector to define the flavor-name parameter, like the following:
+  You can also use the interactive flavor selector to define the flavor parameter, like the following:
 
 	ovhcloud cloud managed-kubernetes nodepool create <cluster_id> --editor --flavor-selector
 
@@ -57,30 +57,30 @@ ovhcloud cloud managed-kubernetes nodepool create <cluster_id> [flags]
 ### Options
 
 ```
-      --anti-affinity                            Enable anti-affinity for the node pool
-      --attach-floating-ips                      Enable FloatingIP creation, if true, a floating IP will be created and attached to each node
-      --autoscale                                Enable autoscaling for the node pool
-      --availability-zones stringArray           Availability zones for the node pool
-      --desired-nodes int                        Desired number of nodes
-      --editor                                   Use a text editor to define parameters
-      --flavor-name string                       Flavor name for the nodes (b2-7, b2-15, etc.)
-      --flavor-selector                          Use the interactive flavor selector
-      --from-file string                         File containing parameters
-  -h, --help                                     help for create
-      --init-file string                         Create a file with example parameters
-      --max-nodes int                            Higher limit you accept for the desiredNodes value (100 by default)
-      --min-nodes int                            Lower limit you accept for the desiredNodes value (0 by default)
-      --monthly-billed                           Enable monthly billing for the node pool
-      --name string                              Name of the node pool
-      --replace                                  Replace parameters file if it already exists
-      --scale-down-unneeded-time-seconds int     How long a node should be unneeded before it is eligible for scale down (seconds)
-      --scale-down-unready-time-seconds int      How long an unready node should be unneeded before it is eligible for scale down (seconds)
-      --scale-down-utilization-threshold float   Sum of CPU or memory of all pods running on the node divided by node's corresponding allocatable resource, below which a node can be considered for scale down
-      --template-annotations stringToString      Annotations to apply to each node (default [])
-      --template-finalizers strings              Finalizers to apply to each node
-      --template-labels stringToString           Labels to apply to each node (default [])
-      --template-taints strings                  Taints to apply to each node in key=value:effect format
-      --template-unschedulable                   Set the nodes as unschedulable
+      --anti-affinity-enabled                               Spread the nodes across distinct hypervisors, capping the node pool size to 5
+      --attach-floating-ip                                  Attach a floating IP to each node
+      --autoscaler-enabled                                  Enable node autoscaling
+      --autoscaler-max-nodes int                            Maximum number of nodes the autoscaler provisions
+      --autoscaler-min-nodes int                            Minimum number of nodes the autoscaler maintains
+      --autoscaler-scale-down-unneeded-time-seconds int     Time in seconds a node must stay below the utilization threshold before it is removed
+      --autoscaler-scale-down-unready-time-seconds int      Time in seconds an unready node is kept before it is removed
+      --autoscaler-scale-down-utilization-threshold float   Node utilization ratio (between 0 and 1) below which a node becomes a scale-down candidate
+      --availability-zone string                            Availability zone the nodes are placed in, only available in 3-AZ regions
+      --billing-type string                                 Billing period of the nodes (HOURLY, MONTHLY)
+      --desired-nodes int                                   Desired number of nodes
+      --editor                                              Use a text editor to define parameters
+      --flavor string                                       Flavor of the nodes, e.g. b3-8, b3-16 (required)
+      --flavor-selector                                     Use the interactive flavor selector
+      --from-file string                                    File containing parameters
+  -h, --help                                                help for create
+      --init-file string                                    Create a file with example parameters
+      --name string                                         Name of the node pool
+      --replace                                             Replace parameters file if it already exists
+      --template-annotations stringToString                 Annotations to apply to each node (default [])
+      --template-finalizers strings                         Finalizers to apply to each node
+      --template-labels stringToString                      Labels to apply to each node (default [])
+      --template-taints strings                             Taints to apply to each node in key[=value]:effect format (effect: NoExecute, NoSchedule, PreferNoSchedule)
+      --template-unschedulable                              Mark the nodes as unschedulable
 ```
 
 ### Options inherited from parent commands

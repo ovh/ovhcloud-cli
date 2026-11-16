@@ -130,17 +130,7 @@ func ServiceList(endpoint string) func(*cobra.Command, []string, string) ([]stri
 // The project ID is read from the --cloud-project flag; without it, no suggestion
 // is returned.
 func CloudResources(pathTemplate string) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-	return func(cmd *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
-		// Only complete the first positional argument.
-		if len(args) > 0 {
-			return nil, cobra.ShellCompDirectiveNoFileComp
-		}
-		project := resolveCloudProject(cmd)
-		if project == "" {
-			return nil, cobra.ShellCompDirectiveNoFileComp
-		}
-		return fetchSuggestions(fmt.Sprintf(pathTemplate, url.PathEscape(project)), "", "")
-	}
+	return CloudResourceChain(pathTemplate)
 }
 
 // CloudResourceWithChild returns a completion function for a command taking two
@@ -149,19 +139,31 @@ func CloudResources(pathTemplate string) func(*cobra.Command, []string, string) 
 // second from childTemplate (two %s: project id and the parent id given as the
 // first argument). The project id is read from the --cloud-project flag.
 func CloudResourceWithChild(parentTemplate, childTemplate string) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	return CloudResourceChain(parentTemplate, childTemplate)
+}
+
+// CloudResourceChain returns a completion function for a command taking a chain of
+// nested positional arguments (e.g. cluster, then node pool, then node). The nth
+// template completes the nth argument and takes the project id followed by the n-1
+// ids already given. The project id is read from the --cloud-project flag; without
+// it, no suggestion is returned.
+func CloudResourceChain(templates ...string) func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
+		if len(args) >= len(templates) {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+
 		project := resolveCloudProject(cmd)
 		if project == "" {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		switch len(args) {
-		case 0:
-			return fetchSuggestions(fmt.Sprintf(parentTemplate, url.PathEscape(project)), "", "")
-		case 1:
-			return fetchSuggestions(fmt.Sprintf(childTemplate, url.PathEscape(project), url.PathEscape(args[0])), "", "")
-		default:
-			return nil, cobra.ShellCompDirectiveNoFileComp
+
+		pathArgs := []any{url.PathEscape(project)}
+		for _, arg := range args {
+			pathArgs = append(pathArgs, url.PathEscape(arg))
 		}
+
+		return fetchSuggestions(fmt.Sprintf(templates[len(args)], pathArgs...), "", "")
 	}
 }
 

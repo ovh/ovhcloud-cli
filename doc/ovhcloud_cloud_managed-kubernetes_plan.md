@@ -1,15 +1,11 @@
-## ovhcloud cloud managed-kubernetes node delete
+## ovhcloud cloud managed-kubernetes plan
 
-Delete the given Kubernetes node
-
-```
-ovhcloud cloud managed-kubernetes node delete <cluster_id> <node_id> [flags]
-```
+Explore the Kubernetes cluster plans
 
 ### Options
 
 ```
-  -h, --help   help for delete
+  -h, --help   help for plan
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +30,6 @@ ovhcloud cloud managed-kubernetes node delete <cluster_id> <node_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes node](ovhcloud_cloud_managed-kubernetes_node.md)	 - Manage Kubernetes nodes
+* [ovhcloud cloud managed-kubernetes](ovhcloud_cloud_managed-kubernetes.md)	 - Manage Kubernetes clusters in the given cloud project
+* [ovhcloud cloud managed-kubernetes plan list](ovhcloud_cloud_managed-kubernetes_plan_list.md)	 - List the plans available for Kubernetes cluster creation
 

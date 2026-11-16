@@ -1,11 +1,22 @@
-## ovhcloud cloud managed-kubernetes ip-restrictions
+## ovhcloud cloud managed-kubernetes region list
 
-Manage IP restrictions for Kubernetes clusters
+List the regions available for Kubernetes cluster creation
+
+```
+ovhcloud cloud managed-kubernetes region list [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for ip-restrictions
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -30,7 +41,5 @@ Manage IP restrictions for Kubernetes clusters
 
 ### SEE ALSO
 
-* [ovhcloud cloud managed-kubernetes](ovhcloud_cloud_managed-kubernetes.md)	 - Manage Kubernetes clusters in the given cloud project
-* [ovhcloud cloud managed-kubernetes ip-restrictions edit](ovhcloud_cloud_managed-kubernetes_ip-restrictions_edit.md)	 - Edit IP restrictions for the given Kubernetes cluster
-* [ovhcloud cloud managed-kubernetes ip-restrictions list](ovhcloud_cloud_managed-kubernetes_ip-restrictions_list.md)	 - List IP restrictions for the given Kubernetes cluster
+* [ovhcloud cloud managed-kubernetes region](ovhcloud_cloud_managed-kubernetes_region.md)	 - Explore the Kubernetes regions
 

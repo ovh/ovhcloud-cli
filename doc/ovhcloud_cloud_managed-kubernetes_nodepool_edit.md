@@ -2,6 +2,10 @@
 
 Edit the given Kubernetes node pool
 
+### Synopsis
+
+Edit the given Kubernetes node pool. Only the node count, the autoscaler and the node template can be changed: the name, flavor, availability zone, billing type, anti-affinity and floating IP settings are immutable.
+
 ```
 ovhcloud cloud managed-kubernetes nodepool edit <cluster_id> <nodepool_id> [flags]
 ```
@@ -9,22 +13,20 @@ ovhcloud cloud managed-kubernetes nodepool edit <cluster_id> <nodepool_id> [flag
 ### Options
 
 ```
-      --attach-floating-ips                      Enable FloatingIP creation, if true, a floating IP will be created and attached to each node
-      --autoscale                                Enable autoscaling for the node pool
-      --desired-nodes int                        Desired number of nodes
-      --editor                                   Use a text editor to define parameters
-  -h, --help                                     help for edit
-      --max-nodes int                            Higher limit you accept for the desiredNodes value (100 by default)
-      --min-nodes int                            Lower limit you accept for the desiredNodes value (0 by default)
-      --nodes-to-remove strings                  List of node IDs to remove from the node pool
-      --scale-down-unneeded-time-seconds int     How long a node should be unneeded before it is eligible for scale down (seconds)
-      --scale-down-unready-time-seconds int      How long an unready node should be unneeded before it is eligible for scale down (seconds)
-      --scale-down-utilization-threshold float   Sum of CPU or memory of all pods running on the node divided by node's corresponding allocatable resource, below which a node can be considered for scale down
-      --template-annotations stringToString      Annotations to apply to each node (default [])
-      --template-finalizers strings              Finalizers to apply to each node
-      --template-labels stringToString           Labels to apply to each node (default [])
-      --template-taints strings                  Taints to apply to each node in key=value:effect format
-      --template-unschedulable                   Set the nodes as unschedulable
+      --autoscaler-enabled                                  Enable node autoscaling
+      --autoscaler-max-nodes int                            Maximum number of nodes the autoscaler provisions
+      --autoscaler-min-nodes int                            Minimum number of nodes the autoscaler maintains
+      --autoscaler-scale-down-unneeded-time-seconds int     Time in seconds a node must stay below the utilization threshold before it is removed
+      --autoscaler-scale-down-unready-time-seconds int      Time in seconds an unready node is kept before it is removed
+      --autoscaler-scale-down-utilization-threshold float   Node utilization ratio (between 0 and 1) below which a node becomes a scale-down candidate
+      --desired-nodes int                                   Desired number of nodes
+      --editor                                              Use a text editor to define parameters
+  -h, --help                                                help for edit
+      --template-annotations stringToString                 Annotations to apply to each node (default [])
+      --template-finalizers strings                         Finalizers to apply to each node
+      --template-labels stringToString                      Labels to apply to each node (default [])
+      --template-taints strings                             Taints to apply to each node in key[=value]:effect format (effect: NoExecute, NoSchedule, PreferNoSchedule)
+      --template-unschedulable                              Mark the nodes as unschedulable
 ```
 
 ### Options inherited from parent commands

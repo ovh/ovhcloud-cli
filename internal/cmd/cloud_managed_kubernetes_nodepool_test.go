@@ -13,646 +13,234 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
 )
 
-// List Nodepool.
-func (ms *MockSuite) TestCloudKubeNodepoolListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12345/nodepool",
-		httpmock.NewStringResponder(200, `[
-		{
-			"id": "rototo",
-			"name": "nodepool-2025-12-04",
-			"flavor": "b3-8",
-			"currentNodes": 2,
-			"status": "READY"
-		},
-		{
-			"id": "rototo2",
-			"name": "nodepool-2025-12-05",
-			"flavor": "b3-8",
-			"currentNodes": 3,
-			"status": "UPSCALING"
-		}
-		]`).Once())
+const managedKubernetesNodepoolV2Endpoint = managedKubernetesV2Endpoint + "/kube-12345/nodepool"
 
-	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "list", "MyMksID-12345", "--cloud-project", "fakeProjectID")
+// managedKubernetesNodepoolV2Object is a node pool as returned by the API v2.
+const managedKubernetesNodepoolV2Object = `{
+	"id": "np-12345",
+	"checksum": "abc123",
+	"resourceStatus": "READY",
+	"createdAt": "2025-12-04T15:29:32Z",
+	"updatedAt": "2025-12-05T15:51:08Z",
+	"currentState": {
+		"name": "nodepool1",
+		"availabilityZone": "eu-west-par-a",
+		"billingType": "HOURLY",
+		"desiredNodes": 3,
+		"nodeConfig": {"flavor": "b3-8", "attachFloatingIp": {"enabled": false}},
+		"antiAffinity": {"enabled": false},
+		"autoscaler": {"enabled": true, "minNodes": 1, "maxNodes": 5, "scaleDown": {"utilizationThreshold": 0.5}},
+		"status": {"currentNodes": 3, "readyNodes": 2, "upToDateNodes": 3},
+		"template": {
+			"metadata": {"labels": {"env": "prod"}},
+			"spec": {"taints": [{"key": "k", "value": "v", "effect": "NoSchedule"}], "unschedulable": false}
+		}
+	},
+	"targetSpec": {
+		"name": "nodepool1",
+		"availabilityZone": "eu-west-par-a",
+		"billingType": "HOURLY",
+		"desiredNodes": 3,
+		"nodeConfig": {"flavor": "b3-8"},
+		"autoscaler": {"enabled": true, "minNodes": 1, "maxNodes": 5},
+		"template": {"metadata": {"labels": {"env": "prod"}}}
+	}
+}`
+
+func (ms *MockSuite) TestManagedKubernetesNodepoolListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, managedKubernetesNodepoolV2Endpoint,
+		httpmock.NewStringResponder(200, `[`+managedKubernetesNodepoolV2Object+`]`).Once())
+
+	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "list", "kube-12345", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
 	assert.String(out, `
-┌─────────┬─────────────────────┬────────┬──────────────┬───────────┐
-│   id    │        name         │ flavor │ currentNodes │  status   │
-├─────────┼─────────────────────┼────────┼──────────────┼───────────┤
-│ rototo  │ nodepool-2025-12-04 │ b3-8   │ 2            │ READY     │
-│ rototo2 │ nodepool-2025-12-05 │ b3-8   │ 3            │ UPSCALING │
-└─────────┴─────────────────────┴────────┴──────────────┴───────────┘
+┌──────────┬───────────┬────────┬───────────────┬───────────────┬──────────────────┬────────┬──────────────────────┐
+│    ID    │   name    │ flavor │ desired nodes │ current nodes │ up-to-date nodes │ status │      created at      │
+├──────────┼───────────┼────────┼───────────────┼───────────────┼──────────────────┼────────┼──────────────────────┤
+│ np-12345 │ nodepool1 │ b3-8   │ 3             │ 3             │ 3                │ READY  │ 2025-12-04T15:29:32Z │
+└──────────┴───────────┴────────┴───────────────┴───────────────┴──────────────────┴────────┴──────────────────────┘
 💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
 }
 
-// Get a Nodepool.
-func (ms *MockSuite) TestCloudKubeNodepoolGetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12345/nodepool/MyNodePool",
-		httpmock.NewStringResponder(200, `
-		{
-			"id": "MyNodePoolId",
-			"projectId": "fakeProjectID",
-			"name": "nodepool1",
-			"flavor": "b3-32",
-			"status": "READY",
-			"sizeStatus": "CAPACITY_OK",
-			"autoscale": false,
-			"monthlyBilled": false,
-			"antiAffinity": false,
-			"desiredNodes": 0,
-			"minNodes": 0,
-			"maxNodes": 100,
-			"currentNodes": 0,
-			"availableNodes": 0,
-			"upToDateNodes": 0,
-			"createdAt": "2025-12-04T15:29:32.487775Z",
-			"updatedAt": "2025-12-05T15:51:08Z",
-			"autoscaling": {
-				"scaleDownUtilizationThreshold": 0.5,
-				"scaleDownUnneededTimeSeconds": 600,
-				"scaleDownUnreadyTimeSeconds": 1200
-			},
-			"template": {
-				"metadata": {
-					"labels": {},
-					"annotations": {},
-					"finalizers": []
-			},
-				"spec": {
-					"unschedulable": false,
-					"taints": []
-			 		}
-			},
-			"attachFloatingIps": {
-				"enabled": false
-			},
-			"availabilityZones": [
-				"myzone"
-			]
-		}`).Once())
+func (ms *MockSuite) TestManagedKubernetesNodepoolGetCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, managedKubernetesNodepoolV2Endpoint+"/np-12345",
+		httpmock.NewStringResponder(200, managedKubernetesNodepoolV2Object).Once())
 
-	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "get", "MyMksID-12345", "MyNodePool", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "get", "kube-12345", "np-12345", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(cleanWhitespacesHelper(out), `
-  # 🚀 Managed Kubernetes Node Pool MyNodePool
-
-  *nodepool1*
-
-  ## General information
-
-  **Status**:             READY
-  **Project ID**:         fakeProjectID
-  **Availability Zones**: myzone
-  **Monthly Billed**:     false
-  **Flavor**:             b3-32
-  **Creation date**:      2025-12-04T15:29:32.487775Z
-  **Update date**:        2025-12-05T15:51:08Z
-
-  **Anti Affinity**:      false
-  **Autoscale**:          false
-
-  **AttachFloatingIP**:   false
-
-  **Autoscaling**:
-  - Scale Down Unneeded Time (s): 600
-  - Scale Down Unready Time (s):  1200
-  - Scale Down Utilization Threshold*: 0.5
-
-  * Sum of CPU or memory of all pods running on the node divided by node's
-  corresponding allocatable resource.
-
-  ## Node pool state
-
-  **Ready nodes**:        0
-  **Current Nodes**:      0
-  **Desired Nodes**:      0
-  **Max Nodes**:          100
-  **Min Nodes**:          0
-  **Size Status**:        CAPACITY_OK
-  **Up To Date Nodes**:   0
-
-  ## Template
-
-  ### Metadata
-
-  **Annotations**:
-  **Finalizers**:
-  **Labels**:
-
-  ### Spec
-
-  **Taints**:
-  **Unschedulable**: false
-
-  💡 Use option -o json or -o yaml to get the raw output with all information
-
-`)
+	assert.Cmp(cleanWhitespacesHelper(out), td.All(
+		td.Contains("nodepool1"),
+		td.Contains("**Flavor**:            b3-8"),
+		td.Contains("**Availability zone**: eu-west-par-a"),
+		td.Contains("**Ready nodes**:      2"),
+		td.Contains("**Max nodes**: 5"),
+		td.Contains("env: prod"),
+		td.Contains("k=v:NoSchedule"),
+	))
 }
 
-// TestCloudKubeNodePoolCreateMissingClusterID tests that creating a nodepool without a cluster_id argument results in an error.
-func (ms *MockSuite) TestCloudKubeNodePoolCreateMissingClusterID(assert, require *td.T) {
-	_, err := cmd.Execute(
-		"cloud", "managed-kubernetes", "nodepool", "create",
-		"--cloud-project", "fakeProjectID",
-	)
-
-	require.CmpError(err)
-}
-
-// TestCloudKubeNodePoolCreateMissingFlavor tests that creating a nodepool without a flavor argument results in an error.
-func (ms *MockSuite) TestCloudKubeNodePoolCreateMissingFlavor(assert, require *td.T) {
-	_, err := cmd.Execute(
-		"cloud", "managed-kubernetes", "nodepool", "create",
-		"--cloud-project", "fakeProjectID",
-		"fakeClusterID",
-		"--desired-nodes=3",
-	)
-
-	require.CmpError(err)
-}
-
-// TestCloudKubeNodePoolCreate tests that creating a nodepool results in a successful creation.
-func (ms *MockSuite) TestCloudKubeNodePoolCreate(assert, require *td.T) {
-	httpmock.RegisterMatcherResponder(
-		http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/fakeClusterID/nodepool",
-		tdhttpmock.JSONBody(td.SuperJSONOf(`{
-			"attachFloatingIps": {
-  				"enabled": true
- 			},
- 			"availabilityZones": [
-  				"eu-west-par-a"
- 			],
- 			"flavorName": "b3-8",
-			"desiredNodes": 3
+func (ms *MockSuite) TestManagedKubernetesNodepoolCreateCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, managedKubernetesNodepoolV2Endpoint,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "mynodepool",
+				"desiredNodes": 3,
+				"availabilityZone": "eu-west-par-a",
+				"billingType": "MONTHLY",
+				"nodeConfig": {"flavor": "b3-8", "attachFloatingIp": {"enabled": true}},
+				"antiAffinity": {"enabled": true},
+				"autoscaler": {"enabled": true, "minNodes": 0, "maxNodes": 5, "scaleDown": {"utilizationThreshold": 0.4}},
+				"template": {
+					"spec": {"taints": [{"key": "k", "value": "v", "effect": "NoSchedule"}], "unschedulable": false}
+				}
+			}
 		}`)),
-		httpmock.NewStringResponder(200, `{
-			"id": "kube-99999",
-			"name": "test-hubble-kube"
-		}`).Once())
+		httpmock.NewStringResponder(200, `{"id": "np-12345"}`).Once())
 
-	out, err := cmd.Execute(
-		"cloud", "managed-kubernetes", "nodepool", "create",
+	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "create", "kube-12345",
 		"--cloud-project", "fakeProjectID",
-		"fakeClusterID",
-		"--desired-nodes=3",
-		"--flavor-name=b3-8",
-		"--availability-zones=eu-west-par-a",
-		"--attach-floating-ips",
-	)
+		"--name", "mynodepool",
+		"--flavor", "b3-8",
+		"--desired-nodes", "3",
+		"--availability-zone", "eu-west-par-a",
+		"--billing-type", "MONTHLY",
+		"--attach-floating-ip",
+		"--anti-affinity-enabled",
+		"--autoscaler-enabled",
+		"--autoscaler-min-nodes", "0",
+		"--autoscaler-max-nodes", "5",
+		"--autoscaler-scale-down-utilization-threshold", "0.4",
+		"--template-taints", "k=v:NoSchedule",
+		"--template-unschedulable=false")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ Node pool created successfully (id: np-12345)`)
+}
+
+// TestManagedKubernetesNodepoolCreateCmdEmpty tests that zero desired nodes is sent rather than omitted.
+func (ms *MockSuite) TestManagedKubernetesNodepoolCreateCmdEmpty(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, managedKubernetesNodepoolV2Endpoint,
+		tdhttpmock.JSONBody(td.JSON(`{"targetSpec": {"desiredNodes": 0, "nodeConfig": {"flavor": "b3-8"}}}`)),
+		httpmock.NewStringResponder(200, `{"id": "np-12345"}`).Once())
+
+	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "create", "kube-12345",
+		"--cloud-project", "fakeProjectID", "--flavor", "b3-8", "--desired-nodes", "0")
 
 	require.CmpNoError(err)
 	assert.Contains(out, "created successfully")
 }
 
-// TestCloudKubeNodePoolCreateEmpty tests that creating an empty nodepool results in a successful creation.
-func (ms *MockSuite) TestCloudKubeNodePoolCreateEmpty(assert, require *td.T) {
-	httpmock.RegisterMatcherResponder(
-		http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/fakeClusterID/nodepool",
-		tdhttpmock.JSONBody(td.SuperJSONOf(`{
- 			"flavorName": "b3-8",
-			"desiredNodes": 0
-		}`)),
-		httpmock.NewStringResponder(200, `{
-			"id": "kube-99999",
-			"name": "test-hubble-kube"
-		}`).Once())
+func (ms *MockSuite) TestManagedKubernetesNodepoolCreateCmdMissingClusterID(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "create", "--cloud-project", "fakeProjectID")
 
-	out, err := cmd.Execute(
-		"cloud", "managed-kubernetes", "nodepool", "create",
-		"--cloud-project", "fakeProjectID",
-		"fakeClusterID",
-		"--desired-nodes=0",
-		"--flavor-name=b3-8",
-	)
+	require.CmpError(err)
+}
 
+func (ms *MockSuite) TestManagedKubernetesNodepoolCreateCmdMissingFlavor(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "create", "kube-12345",
+		"--cloud-project", "fakeProjectID", "--desired-nodes", "3")
+	require.CmpError(err)
+	assert.Contains(err.Error(), `required flag(s) "flavor" not set`)
+}
+
+func (ms *MockSuite) TestManagedKubernetesNodepoolCreateCmdWithoutDesiredNodes(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, managedKubernetesNodepoolV2Endpoint,
+		tdhttpmock.JSONBody(td.JSON(`{"targetSpec": {"nodeConfig": {"flavor": "b3-8"}}}`)),
+		httpmock.NewStringResponder(200, managedKubernetesNodepoolV2Object))
+
+	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "create", "kube-12345",
+		"--cloud-project", "fakeProjectID", "--flavor", "b3-8")
 	require.CmpNoError(err)
 	assert.Contains(out, "created successfully")
 }
 
-// Create a Nodepool with the attachFloatingIps flag.
-// The nodepool spec must be set to true.
-func (ms *MockSuite) TestCloudKubeNodepoolCreateCmdWithAttachFloatingIps(assert, require *td.T) {
-	httpmock.RegisterMatcherResponder(
-		http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12345/nodepool",
-		tdhttpmock.JSONBody(td.JSON(`
-			{
-				"attachFloatingIps": {
-					"enabled": true
-				},
-				"availabilityZones": [
-					"myzone"
-				],
-				"desiredNodes": 11,
-				"flavorName": "b3-8",
-				"name": "mynodepoolname"
-			}`)),
+func (ms *MockSuite) TestManagedKubernetesNodepoolCreateCmdInvalidTaint(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "create", "kube-12345",
+		"--cloud-project", "fakeProjectID", "--flavor", "b3-8", "--desired-nodes", "1", "--template-taints", "novalue")
+
+	require.CmpError(err)
+	assert.Contains(err.Error(), "invalid taint format")
+}
+
+// TestManagedKubernetesNodepoolCreateCmdTaintWithoutValue tests that a taint value is optional, as with kubectl.
+func (ms *MockSuite) TestManagedKubernetesNodepoolCreateCmdTaintWithoutValue(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, managedKubernetesNodepoolV2Endpoint,
+		tdhttpmock.JSONBody(td.JSON(`{"targetSpec": {"desiredNodes": 1, "nodeConfig": {"flavor": "b3-8"},
+			"template": {"spec": {"taints": [{"key": "dedicated", "value": "", "effect": "NoSchedule"}]}}}}`)),
+		httpmock.NewStringResponder(200, `{"id": "np-12345"}`).Once())
+
+	_, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "create", "kube-12345",
+		"--cloud-project", "fakeProjectID", "--flavor", "b3-8", "--desired-nodes", "1", "--template-taints", "dedicated:NoSchedule")
+
+	require.CmpNoError(err)
+}
+
+// TestManagedKubernetesNodepoolEditCmd tests that editing a node pool preserves its checksum
+// (optimistic locking) and only sends the mutable fields.
+func (ms *MockSuite) TestManagedKubernetesNodepoolEditCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, managedKubernetesNodepoolV2Endpoint+"/np-12345",
+		httpmock.NewStringResponder(200, managedKubernetesNodepoolV2Object).Once())
+
+	httpmock.RegisterMatcherResponder(http.MethodPut, managedKubernetesNodepoolV2Endpoint+"/np-12345",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc123",
+			"targetSpec": {
+				"desiredNodes": 4,
+				"autoscaler": {"enabled": false, "minNodes": 1, "maxNodes": 5},
+				"template": {
+					"metadata": {"labels": {"env": "prod", "team": "a"}},
+					"spec": {"unschedulable": true}
+				}
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{}`).Once())
+
+	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "edit", "kube-12345", "np-12345",
+		"--cloud-project", "fakeProjectID",
+		"--desired-nodes", "4",
+		"--autoscaler-enabled=false",
+		"--template-labels", "team=a",
+		"--template-unschedulable")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "updated successfully")
+}
+
+// TestManagedKubernetesNodepoolEditCmdReplacesTaints tests that the given taints replace the
+// current ones, so a taint effect can be changed without duplicating its key.
+func (ms *MockSuite) TestManagedKubernetesNodepoolEditCmdReplacesTaints(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, managedKubernetesNodepoolV2Endpoint+"/np-12345",
 		httpmock.NewStringResponder(200, `{
-			"id": "mynodepoolid",
-			"name": "mynodepoolname"
-		}`).Once())
-
-	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "create", "MyMksID-12345", "--flavor-name", "b3-8", "--name", "mynodepoolname", "--availability-zones", "myzone", "--desired-nodes", "11", "--cloud-project", "fakeProjectID", "--attach-floating-ips")
-
-	require.CmpNoError(err)
-	assert.String(out, `✅ Node pool mynodepoolid created successfully`)
-}
-
-// Create a Nodepool without the attachFloatingIps flag.
-// The nodepool spec must be set to false
-func (ms *MockSuite) TestCloudKubeNodepoolCreateCmdWithoutAttachFloatingIps(assert, require *td.T) {
-	httpmock.RegisterMatcherResponder(
-		http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12346/nodepool",
-		tdhttpmock.JSONBody(td.JSON(`
-			{
-				"availabilityZones": [
-					"myzone2"
-				],
-				"desiredNodes": 12,
-				"flavorName": "b3-16",
-				"name": "mynodepoolname2"
-			}`)),
-		httpmock.NewStringResponder(200, `{
-			"id": "mynodepool2id",
-			"name": "mynodepoolname2"
-		}`).Once())
-
-	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "create", "MyMksID-12346", "--flavor-name", "b3-16", "--name", "mynodepoolname2", "--availability-zones", "myzone2", "--desired-nodes", "12", "--cloud-project", "fakeProjectID")
-
-	require.CmpNoError(err)
-	assert.String(out, `✅ Node pool mynodepool2id created successfully`)
-}
-
-// Create a Nodepool with the attachFloatingIps flag set to false.
-// The nodepool spec must be set to false.
-func (ms *MockSuite) TestCloudKubeNodepoolCreateCmdWithAttachFloatingIpsSetFalse(assert, require *td.T) {
-	httpmock.RegisterMatcherResponder(
-		http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12346/nodepool",
-		tdhttpmock.JSONBody(td.JSON(`
-			{
-				"attachFloatingIps": {
-					"enabled": false
-				},
-				"availabilityZones": [
-					"myzone3"
-				],
-				"desiredNodes": 12,
-				"flavorName": "b3-16",
-				"name": "mynodepoolname3"
-			}`)),
-		httpmock.NewStringResponder(200, `{
-			"id": "mynodepool3id",
-			"name": "mynodepoolname3"
-		}`).Once())
-
-	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "create", "MyMksID-12346", "--flavor-name", "b3-16", "--name", "mynodepoolname3", "--availability-zones", "myzone3", "--desired-nodes", "12", "--cloud-project", "fakeProjectID", "--attach-floating-ips=false")
-
-	require.CmpNoError(err)
-	assert.String(out, `✅ Node pool mynodepool3id created successfully`)
-}
-
-// Update a Nodepool with attachFloatingIps disabled with the flag attachFloatingIps
-// The spec must be updated from false to true.
-func (ms *MockSuite) TestCloudKubeNodepoolEditCmdWithAttachFloatingIpsTrue(assert, require *td.T) {
-	httpmock.RegisterResponder("GET",
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12346/nodepool/MyNodePoolId",
-		httpmock.NewStringResponder(200, `
-		{
-			"id": "MyNodePoolId",
-			"projectId": "fakeProjectID",
-			"name": "nodepool1",
-			"flavor": "b3-32",
-			"status": "READY",
-			"sizeStatus": "CAPACITY_OK",
-			"autoscale": false,
-			"monthlyBilled": false,
-			"antiAffinity": false,
-			"desiredNodes": 0,
-			"minNodes": 0,
-			"maxNodes": 100,
-			"currentNodes": 0,
-			"availableNodes": 0,
-			"upToDateNodes": 0,
-			"createdAt": "2025-12-04T15:29:32.487775Z",
-			"updatedAt": "2025-12-05T15:51:08Z",
-			"autoscaling": {
-				"scaleDownUtilizationThreshold": 0.5,
-				"scaleDownUnneededTimeSeconds": 600,
-				"scaleDownUnreadyTimeSeconds": 1200
-			},
-			"template": {
-				"metadata": {
-					"labels": {},
-					"annotations": {},
-					"finalizers": []
-			},
-				"spec": {
-					"unschedulable": false,
-					"taints": []
-			 		}
-			},
-			"attachFloatingIps": {
-				"enabled": false
-			},
-			"availabilityZones": [
-				"myzone"
-			]
-		}`).Once())
-
-	httpmock.RegisterMatcherResponder(
-		http.MethodPut,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12346/nodepool/MyNodePoolId",
-		tdhttpmock.JSONBody(td.JSON(`
-		{
-			"attachFloatingIps": {
-				"enabled": true
-			},
-			"autoscale": false,
-			"autoscaling": {
-				"scaleDownUnneededTimeSeconds": 600,
-				"scaleDownUnreadyTimeSeconds": 1200,
-				"scaleDownUtilizationThreshold": 0.5
-			},
-			"desiredNodes": 0,
-			"maxNodes": 100,
-			"minNodes": 0,
-			"template": {
-				"metadata": {
-					"annotations": {},
-					"finalizers": [],
-					"labels": {}
-				},
-				"spec": {
-					"taints": [],
-					"unschedulable": false
-				}
+			"id": "np-12345",
+			"checksum": "abc123",
+			"targetSpec": {
+				"desiredNodes": 3,
+				"template": {"spec": {"taints": [{"key": "dedicated", "value": "gpu", "effect": "NoSchedule"}]}}
 			}
-		}`)),
-		httpmock.NewStringResponder(200, `✅ Resource updated successfully`).Once())
-
-	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "edit", "MyMksID-12346", "MyNodePoolId", "--cloud-project", "fakeProjectID", "--attach-floating-ips")
-
-	require.CmpNoError(err)
-	assert.Cmp(cleanWhitespacesHelper(out), `✅ Resource updated successfully`)
-}
-
-// Update a Nodepool with attachFloatingIps enabled specifying the flag attachFloatingIps=false
-// The spec must be updated from true to false.
-func (ms *MockSuite) TestCloudKubeNodepoolEditCmdWithAttachFloatingIpsFalse(assert, require *td.T) {
-	httpmock.RegisterResponder("GET",
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12346/nodepool/MyNodePoolId",
-		httpmock.NewStringResponder(200, `
-		{
-			"id": "MyNodePoolId",
-			"projectId": "fakeProjectID",
-			"name": "nodepool1",
-			"flavor": "b3-32",
-			"status": "READY",
-			"sizeStatus": "CAPACITY_OK",
-			"autoscale": false,
-			"monthlyBilled": false,
-			"antiAffinity": false,
-			"desiredNodes": 0,
-			"minNodes": 0,
-			"maxNodes": 100,
-			"currentNodes": 0,
-			"availableNodes": 0,
-			"upToDateNodes": 0,
-			"createdAt": "2025-12-04T15:29:32.487775Z",
-			"updatedAt": "2025-12-05T15:51:08Z",
-			"autoscaling": {
-				"scaleDownUtilizationThreshold": 0.5,
-				"scaleDownUnneededTimeSeconds": 600,
-				"scaleDownUnreadyTimeSeconds": 1200
-			},
-			"template": {
-				"metadata": {
-					"labels": {},
-					"annotations": {},
-					"finalizers": []
-			},
-				"spec": {
-					"unschedulable": false,
-					"taints": []
-			 		}
-			},
-			"attachFloatingIps": {
-				"enabled": true
-			},
-			"availabilityZones": [
-				"myzone"
-			]
 		}`).Once())
 
-	httpmock.RegisterMatcherResponder(
-		http.MethodPut,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12346/nodepool/MyNodePoolId",
-		tdhttpmock.JSONBody(td.JSON(`
-		{
-			"attachFloatingIps": {
-				"enabled": false
-			},
-			"autoscale": false,
-			"autoscaling": {
-				"scaleDownUnneededTimeSeconds": 600,
-				"scaleDownUnreadyTimeSeconds": 1200,
-				"scaleDownUtilizationThreshold": 0.5
-			},
-			"desiredNodes": 0,
-			"maxNodes": 100,
-			"minNodes": 0,
-			"template": {
-				"metadata": {
-					"annotations": {},
-					"finalizers": [],
-					"labels": {}
-				},
-				"spec": {
-					"taints": [],
-					"unschedulable": false
-				}
-			}
-		}`)),
-		httpmock.NewStringResponder(200, `✅ Resource updated successfully`).Once())
+	httpmock.RegisterMatcherResponder(http.MethodPut, managedKubernetesNodepoolV2Endpoint+"/np-12345",
+		tdhttpmock.JSONBody(td.JSONPointer("/targetSpec/template/spec/taints", []any{
+			map[string]any{"key": "dedicated", "value": "gpu", "effect": "NoExecute"},
+		})),
+		httpmock.NewStringResponder(200, `{}`).Once())
 
-	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "edit", "MyMksID-12346", "MyNodePoolId", "--cloud-project", "fakeProjectID", "--attach-floating-ips=false")
+	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "edit", "kube-12345", "np-12345",
+		"--cloud-project", "fakeProjectID",
+		"--template-taints", "dedicated=gpu:NoExecute")
 
 	require.CmpNoError(err)
-	assert.Cmp(cleanWhitespacesHelper(out), `✅ Resource updated successfully`)
+	assert.Contains(out, "updated successfully")
 }
 
-// Update a Nodepool with attachFloatingIps enabled without specify the flag
-// The spec must not be updated and must be true.
-func (ms *MockSuite) TestCloudKubeNodepoolEditCmdWithoutAttachFloatingIpsTrue(assert, require *td.T) {
-	httpmock.RegisterResponder("GET",
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12346/nodepool/MyNodePoolId",
-		httpmock.NewStringResponder(200, `
-		{
-			"id": "MyNodePoolId",
-			"projectId": "fakeProjectID",
-			"name": "nodepool1",
-			"flavor": "b3-32",
-			"status": "READY",
-			"sizeStatus": "CAPACITY_OK",
-			"autoscale": false,
-			"monthlyBilled": false,
-			"antiAffinity": false,
-			"desiredNodes": 0,
-			"minNodes": 0,
-			"maxNodes": 100,
-			"currentNodes": 0,
-			"availableNodes": 0,
-			"upToDateNodes": 0,
-			"createdAt": "2025-12-04T15:29:32.487775Z",
-			"updatedAt": "2025-12-05T15:51:08Z",
-			"autoscaling": {
-				"scaleDownUtilizationThreshold": 0.5,
-				"scaleDownUnneededTimeSeconds": 600,
-				"scaleDownUnreadyTimeSeconds": 1200
-			},
-			"template": {
-				"metadata": {
-					"labels": {},
-					"annotations": {},
-					"finalizers": []
-			},
-				"spec": {
-					"unschedulable": false,
-					"taints": []
-			 		}
-			},
-			"attachFloatingIps": {
-				"enabled": true
-			},
-			"availabilityZones": [
-				"myzone"
-			]
-		}`).Once())
+func (ms *MockSuite) TestManagedKubernetesNodepoolDeleteCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodDelete, managedKubernetesNodepoolV2Endpoint+"/np-12345",
+		httpmock.NewStringResponder(200, ``).Once())
 
-	httpmock.RegisterMatcherResponder(
-		http.MethodPut,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12346/nodepool/MyNodePoolId",
-		tdhttpmock.JSONBody(td.JSON(`
-		{
-			"attachFloatingIps": {
-				"enabled": true
-			},
-			"autoscale": false,
-			"autoscaling": {
-				"scaleDownUnneededTimeSeconds": 600,
-				"scaleDownUnreadyTimeSeconds": 1200,
-				"scaleDownUtilizationThreshold": 0.5
-			},
-			"desiredNodes": 0,
-			"maxNodes": 100,
-			"minNodes": 0,
-			"template": {
-				"metadata": {
-					"annotations": {},
-					"finalizers": [],
-					"labels": {}
-				},
-				"spec": {
-					"taints": [],
-					"unschedulable": false
-				}
-			}
-		}`)),
-		httpmock.NewStringResponder(200, `✅ Resource updated successfully`).Once())
-
-	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "edit", "MyMksID-12346", "MyNodePoolId", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "delete", "kube-12345", "np-12345", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(cleanWhitespacesHelper(out), `✅ Resource updated successfully`)
-}
-
-// Update Nodepool with attachFloatingIps disabled without specify the flag
-// The spec must not be updated and must be false.
-func (ms *MockSuite) TestCloudKubeNodepoolEditCmdWithoutAttachFloatingIpsFalse(assert, require *td.T) {
-	httpmock.RegisterResponder("GET",
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12346/nodepool/MyNodePoolId",
-		httpmock.NewStringResponder(200, `
-		{
-			"id": "MyNodePoolId",
-			"projectId": "fakeProjectID",
-			"name": "nodepool1",
-			"flavor": "b3-32",
-			"status": "READY",
-			"sizeStatus": "CAPACITY_OK",
-			"autoscale": false,
-			"monthlyBilled": false,
-			"antiAffinity": false,
-			"desiredNodes": 0,
-			"minNodes": 0,
-			"maxNodes": 100,
-			"currentNodes": 0,
-			"availableNodes": 0,
-			"upToDateNodes": 0,
-			"createdAt": "2025-12-04T15:29:32.487775Z",
-			"updatedAt": "2025-12-05T15:51:08Z",
-			"autoscaling": {
-				"scaleDownUtilizationThreshold": 0.5,
-				"scaleDownUnneededTimeSeconds": 600,
-				"scaleDownUnreadyTimeSeconds": 1200
-			},
-			"template": {
-				"metadata": {
-					"labels": {},
-					"annotations": {},
-					"finalizers": []
-			},
-				"spec": {
-					"unschedulable": false,
-					"taints": []
-			 		}
-			},
-			"attachFloatingIps": {
-				"enabled": false
-			},
-			"availabilityZones": [
-				"myzone"
-			]
-		}`).Once())
-
-	httpmock.RegisterMatcherResponder(
-		http.MethodPut,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/kube/MyMksID-12346/nodepool/MyNodePoolId",
-		tdhttpmock.JSONBody(td.JSON(`
-		{
-			"attachFloatingIps": {
-				"enabled": false
-			},
-			"autoscale": false,
-			"autoscaling": {
-				"scaleDownUnneededTimeSeconds": 600,
-				"scaleDownUnreadyTimeSeconds": 1200,
-				"scaleDownUtilizationThreshold": 0.5
-			},
-			"desiredNodes": 0,
-			"maxNodes": 100,
-			"minNodes": 0,
-			"template": {
-				"metadata": {
-					"annotations": {},
-					"finalizers": [],
-					"labels": {}
-				},
-				"spec": {
-					"taints": [],
-					"unschedulable": false
-				}
-			}
-		}`)),
-		httpmock.NewStringResponder(200, `✅ Resource updated successfully`).Once())
-
-	out, err := cmd.Execute("cloud", "managed-kubernetes", "nodepool", "edit", "MyMksID-12346", "MyNodePoolId", "--cloud-project", "fakeProjectID")
-
-	require.CmpNoError(err)
-	assert.Cmp(cleanWhitespacesHelper(out), `✅ Resource updated successfully`)
+	assert.String(out, `✅ Node pool deleted successfully`)
 }

@@ -7,6 +7,7 @@ package display
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -29,10 +30,22 @@ var (
 
 			return strings.Join(strElements, ", ")
 		},
-		"formatByteSize": formatByteSize,
-		"toTitle":        cases.Title(language.English).String,
-		"toUpper":        strings.ToUpper,
-		"toLower":        strings.ToLower,
+		// Accepts float64 and json.Number alike.
+		"formatByteSize": func(bytes any, decimals, format int) (string, error) {
+			f, err := strconv.ParseFloat(fmt.Sprint(bytes), 64)
+			return formatByteSize(f, decimals, format), err
+		},
+		"percent": func(value, total any, decimals int) (string, error) {
+			v, err := strconv.ParseFloat(fmt.Sprint(value), 64)
+			if err != nil {
+				return "", err
+			}
+			t, err := strconv.ParseFloat(fmt.Sprint(total), 64)
+			return fmt.Sprintf("%.*f%%", decimals, v/t*100), err
+		},
+		"toTitle": cases.Title(language.English).String,
+		"toUpper": strings.ToUpper,
+		"toLower": strings.ToLower,
 	}
 
 	// unit holds the units for formatting bytes
