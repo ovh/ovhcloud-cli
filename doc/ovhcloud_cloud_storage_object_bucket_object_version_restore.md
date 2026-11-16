@@ -3,13 +3,13 @@
 Restore a specific version of an object from archival storage
 
 ```
-ovhcloud cloud storage object bucket object version restore <container_name> <object_name> <version_id> [flags]
+ovhcloud cloud storage object bucket object version restore <bucket_id> <object_key> <version_id> [flags]
 ```
 
 ### Options
 
 ```
-      --days int   Number of days the restored object will be available
+      --days int   Number of days the restored copy stays available
   -h, --help       help for restore
 ```
 
@@ -35,5 +35,5 @@ ovhcloud cloud storage object bucket object version restore <container_name> <ob
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given storage container
+* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given bucket
 

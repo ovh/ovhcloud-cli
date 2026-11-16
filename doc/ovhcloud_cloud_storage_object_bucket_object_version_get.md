@@ -1,9 +1,9 @@
 ## ovhcloud cloud storage object bucket object version get
 
-Get a specific version of an object from the given storage container
+Get a specific version of an object of the given bucket
 
 ```
-ovhcloud cloud storage object bucket object version get <container_name> <object_name> <version_id> [flags]
+ovhcloud cloud storage object bucket object version get <bucket_id> <object_key> <version_id> [flags]
 ```
 
 ### Options
@@ -34,5 +34,5 @@ ovhcloud cloud storage object bucket object version get <container_name> <object
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given storage container
+* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given bucket
 

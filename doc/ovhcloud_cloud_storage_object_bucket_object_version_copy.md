@@ -3,16 +3,16 @@
 Copy a specific version of an object to another bucket or key
 
 ```
-ovhcloud cloud storage object bucket object version copy <container_name> <object_name> <version_id> [flags]
+ovhcloud cloud storage object bucket object version copy <bucket_id> <object_key> <version_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                   help for copy
-      --storage-class string   Target storage class (HIGH_PERF, STANDARD, STANDARD_IA)
-      --target-bucket string   Target bucket name
-      --target-key string      Target object key
+      --destination-bucket string   Destination bucket ID (e.g. GRA_my-bucket)
+      --destination-key string      Destination object key
+  -h, --help                        help for copy
+      --storage-class string        Storage class of the copy (DEEP_ARCHIVE, GLACIER_IR, HIGH_PERF, STANDARD, STANDARD_IA)
 ```
 
 ### Options inherited from parent commands
@@ -37,5 +37,5 @@ ovhcloud cloud storage object bucket object version copy <container_name> <objec
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given storage container
+* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given bucket
 

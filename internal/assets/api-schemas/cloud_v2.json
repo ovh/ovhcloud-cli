@@ -24624,6 +24624,38 @@
           }
         }
       },
+      "publicCloud.storage.object.S3ObjectCopy": {
+        "type": "object",
+        "description": "Request body for copying an S3™ compatible object to another location",
+        "properties": {
+          "destinationBucket": {
+            "type": "string",
+            "description": "Destination bucket ID, written like the bucket ID in the path (REGION_NAME, for example GRA_my-bucket)"
+          },
+          "destinationKey": {
+            "type": "string",
+            "description": "Destination object key"
+          },
+          "storageClass": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.storage.object.StorageClassEnum"
+              }
+            ],
+            "description": "Storage class for the copy",
+            "nullable": true
+          },
+          "versionId": {
+            "type": "string",
+            "description": "Version of the source object to copy. When omitted, the current version is copied. Leave it absent on a bucket without versioning.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "destinationBucket",
+          "destinationKey"
+        ]
+      },
       "publicCloud.storage.object.S3ObjectLegalHoldStatusEnum": {
         "type": "string",
         "description": "Object legal hold status",
@@ -24750,6 +24782,24 @@
           "NONE",
           "PENDING",
           "REPLICA"
+        ]
+      },
+      "publicCloud.storage.object.S3ObjectRestore": {
+        "type": "object",
+        "description": "Request body for restoring an archived S3™ compatible object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "description": "Number of days to keep the restored copy"
+          },
+          "versionId": {
+            "type": "string",
+            "description": "Version of the archived object to restore. When omitted, the current version is restored. Leave it absent on a bucket without versioning.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "days"
         ]
       },
       "publicCloud.storage.object.S3ObjectRestoreStatus": {
@@ -98050,6 +98100,122 @@
         ]
       }
     },
+    "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/object/{key}/copy": {
+      "post": {
+        "operationId": "copyBucketObject",
+        "summary": "Copy an object",
+        "description": "Copies the object to another key or bucket, optionally in another storage class. The current version is copied unless a versionId is given in the body.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bucketName",
+            "description": "Bucket name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "description": "Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.storage.object.S3ObjectCopy"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.object.S3Object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::BucketDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::BucketDoesNotExist",
+                      "message": "S3 bucket not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "Object"
+        ],
+        "x-developer-hub-navigation": [
+          [
+            "Public Cloud",
+            "Storage",
+            "Object Storage",
+            "Object Management@@@50"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/object/bucket/object/copy",
+            "required": true
+          }
+        ]
+      }
+    },
     "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/object/{key}/multipartUpload": {
       "get": {
         "summary": "List object multipart uploads",
@@ -98488,6 +98654,151 @@
         "x-iam-actions": [
           {
             "name": "publicCloudProject:apiovh:storage/object/bucket/multipartUpload/get",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/object/{key}/restore": {
+      "post": {
+        "operationId": "restoreBucketObject",
+        "summary": "Restore an archived object",
+        "description": "Makes an archived object readable again for a given number of days. Works whether or not versioning is enabled on the bucket. The current version is restored unless a versionId is given in the body.",
+        "security": [
+          {
+            "oAuth2AuthCode": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bucketName",
+            "description": "Bucket name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "description": "Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/publicCloud.storage.object.S3ObjectRestore"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicCloud.storage.object.S3Object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::NotFound::BucketDoesNotExist": {
+                    "value": {
+                      "class": "Client::NotFound::BucketDoesNotExist",
+                      "message": "S3 bucket not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error 409 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Common error model",
+                  "properties": {
+                    "class": {
+                      "type": "string",
+                      "description": "Class of the error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                },
+                "examples": {
+                  "Client::Conflict::ResourceInInvalidState": {
+                    "value": {
+                      "class": "Client::Conflict::ResourceInInvalidState",
+                      "message": "Resource cannot be modified in its current state"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Storage",
+          "Object"
+        ],
+        "x-developer-hub-navigation": [
+          [
+            "Public Cloud",
+            "Storage",
+            "Object Storage",
+            "Object Management@@@100"
+          ]
+        ],
+        "x-badges": [
+          {
+            "color": "blue",
+            "label": "Alpha version"
+          }
+        ],
+        "x-iam-actions": [
+          {
+            "name": "publicCloudProject:apiovh:storage/object/bucket/object/restore",
             "required": true
           }
         ]

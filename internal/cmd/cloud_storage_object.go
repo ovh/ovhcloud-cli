@@ -138,93 +138,87 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	})
 
 	objectCopyCmd := &cobra.Command{
-		Use:   "copy <container_name> <object_name>",
-		Short: "Copy the given object to another bucket or key",
-		Run:   cloud.CopyStorageS3Object,
-		Args:  cobra.ExactArgs(2),
+		Use:               "copy <bucket_id> <object_key>",
+		Short:             "Copy the given object to another bucket or key",
+		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
+		Run:               cloud.CopyStorageS3Object,
+		Args:              cobra.ExactArgs(2),
 	}
-	objectCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.TargetBucket, "target-bucket", "", "Target bucket name")
-	objectCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.TargetKey, "target-key", "", "Target object key")
-	objectCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.StorageClass, "storage-class", "", "Target storage class (HIGH_PERF, STANDARD, STANDARD_IA)")
-	objectCopyCmd.MarkFlagRequired("target-bucket")
-	objectCopyCmd.MarkFlagRequired("target-key")
+	addStorageS3CopyFlags(objectCopyCmd)
 	objectCmd.AddCommand(objectCopyCmd)
 
 	objectRestoreCmd := &cobra.Command{
-		Use:   "restore <container_name> <object_name>",
-		Short: "Restore the given object from archival storage",
-		Run:   cloud.RestoreStorageS3Object,
-		Args:  cobra.ExactArgs(2),
+		Use:               "restore <bucket_id> <object_key>",
+		Short:             "Restore the given object from archival storage",
+		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
+		Run:               cloud.RestoreStorageS3Object,
+		Args:              cobra.ExactArgs(2),
 	}
-	objectRestoreCmd.Flags().IntVar(&cloud.StorageS3RestoreDays, "days", 0, "Number of days the restored object will be available")
-	objectRestoreCmd.MarkFlagRequired("days")
+	addStorageS3RestoreFlags(objectRestoreCmd)
 	objectCmd.AddCommand(objectRestoreCmd)
 
-	// Object version commands
 	objectVersionCmd := &cobra.Command{
 		Use:   "version",
-		Short: "Manage versions of objects in the given storage container",
+		Short: "Manage versions of objects in the given bucket",
 	}
 	objectCmd.AddCommand(objectVersionCmd)
 
-	objectVersionListCmd := &cobra.Command{
-		Use:     "list <container_name> <object_name>",
-		Aliases: []string{"ls"},
-		Short:   "List versions of a specific object in the given storage container",
-		Run:     cloud.ListStorageS3ObjectVersions,
-		Args:    cobra.ExactArgs(2),
-	}
-	objectVersionListCmd.Flags().StringVar(&cloud.StorageS3VersionListParams.VersionIdMarker, "version-id-marker", "", "Version ID marker for pagination")
-	objectVersionListCmd.Flags().IntVar(&cloud.StorageS3VersionListParams.Limit, "limit", 1000, "Maximum number of versions to return")
-	objectVersionCmd.AddCommand(objectVersionListCmd)
+	objectVersionCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:               "list <bucket_id> <object_key>",
+		Aliases:           []string{"ls"},
+		Short:             "List versions of a specific object in the given bucket",
+		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
+		Run:               cloud.ListStorageS3ObjectVersions,
+		Args:              cobra.ExactArgs(2),
+	}))
 
 	objectVersionCmd.AddCommand(&cobra.Command{
-		Use:   "get <container_name> <object_name> <version_id>",
-		Short: "Get a specific version of an object from the given storage container",
-		Run:   cloud.GetStorageS3ObjectVersion,
-		Args:  cobra.ExactArgs(3),
+		Use:               "get <bucket_id> <object_key> <version_id>",
+		Short:             "Get a specific version of an object of the given bucket",
+		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
+		Run:               cloud.GetStorageS3ObjectVersion,
+		Args:              cobra.ExactArgs(3),
 	})
 
 	objectVersionEditCmd := &cobra.Command{
-		Use:   "edit <container_name> <object_name> <version_id>",
-		Short: "Edit the given version of an object in the storage container",
-		Run:   cloud.EditStorageS3ObjectVersion,
-		Args:  cobra.ExactArgs(3),
+		Use:               "edit <bucket_id> <object_key> <version_id>",
+		Short:             "Edit the legal hold and lock of the given object version",
+		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
+		Run:               cloud.EditStorageS3ObjectVersion,
+		Args:              cobra.ExactArgs(3),
 	}
-	objectVersionEditCmd.Flags().StringVar(&cloud.StorageS3ObjectSpec.LegalHold, "legal-hold", "", "Legal hold status (on, off)")
-	objectVersionEditCmd.Flags().StringVar(&cloud.StorageS3ObjectSpec.Lock.Mode, "lock-mode", "", "Lock mode (compliance, governance)")
+	objectVersionEditCmd.Flags().StringVar(&cloud.StorageS3ObjectSpec.LegalHold, "legal-hold", "", "Legal hold status (OFF, ON)")
+	objectVersionEditCmd.Flags().StringVar(&cloud.StorageS3ObjectSpec.Lock.Mode, "lock-mode", "", "Lock mode (COMPLIANCE, GOVERNANCE)")
 	objectVersionEditCmd.Flags().StringVar(&cloud.StorageS3ObjectSpec.Lock.RetainUntil, "lock-retain-until", "", "Lock retain until date (e.g., 2024-12-31T23:59:59Z)")
 	addInteractiveEditorFlag(objectVersionEditCmd)
 	objectVersionCmd.AddCommand(objectVersionEditCmd)
 
 	objectVersionCmd.AddCommand(&cobra.Command{
-		Use:   "delete <container_name> <object_name> <version_id>",
-		Short: "Delete a specific version of an object from the storage container",
-		Run:   cloud.DeleteStorageS3ObjectVersion,
-		Args:  cobra.ExactArgs(3),
+		Use:               "delete <bucket_id> <object_key> <version_id>",
+		Short:             "Delete a specific version of an object from the given bucket",
+		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
+		Run:               cloud.DeleteStorageS3ObjectVersion,
+		Args:              cobra.ExactArgs(3),
 	})
 
 	objectVersionCopyCmd := &cobra.Command{
-		Use:   "copy <container_name> <object_name> <version_id>",
-		Short: "Copy a specific version of an object to another bucket or key",
-		Run:   cloud.CopyStorageS3ObjectVersion,
-		Args:  cobra.ExactArgs(3),
+		Use:               "copy <bucket_id> <object_key> <version_id>",
+		Short:             "Copy a specific version of an object to another bucket or key",
+		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
+		Run:               cloud.CopyStorageS3ObjectVersion,
+		Args:              cobra.ExactArgs(3),
 	}
-	objectVersionCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.TargetBucket, "target-bucket", "", "Target bucket name")
-	objectVersionCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.TargetKey, "target-key", "", "Target object key")
-	objectVersionCopyCmd.Flags().StringVar(&cloud.StorageS3CopySpec.StorageClass, "storage-class", "", "Target storage class (HIGH_PERF, STANDARD, STANDARD_IA)")
-	objectVersionCopyCmd.MarkFlagRequired("target-bucket")
-	objectVersionCopyCmd.MarkFlagRequired("target-key")
+	addStorageS3CopyFlags(objectVersionCopyCmd)
 	objectVersionCmd.AddCommand(objectVersionCopyCmd)
 
 	objectVersionRestoreCmd := &cobra.Command{
-		Use:   "restore <container_name> <object_name> <version_id>",
-		Short: "Restore a specific version of an object from archival storage",
-		Run:   cloud.RestoreStorageS3ObjectVersion,
-		Args:  cobra.ExactArgs(3),
+		Use:               "restore <bucket_id> <object_key> <version_id>",
+		Short:             "Restore a specific version of an object from archival storage",
+		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
+		Run:               cloud.RestoreStorageS3ObjectVersion,
+		Args:              cobra.ExactArgs(3),
 	}
-	objectVersionRestoreCmd.Flags().IntVar((*int)(&cloud.StorageS3RestoreDays), "days", 0, "Number of days the restored object will be available")
-	objectVersionRestoreCmd.MarkFlagRequired("days")
+	addStorageS3RestoreFlags(objectVersionRestoreCmd)
 	objectVersionCmd.AddCommand(objectVersionRestoreCmd)
 
 	presignCmd := &cobra.Command{
@@ -492,4 +486,17 @@ There are three ways to define the creation parameters:
 	markFlagsMutuallyExclusive(s3CreateCmd, "from-file", "editor")
 
 	return s3CreateCmd
+}
+
+func addStorageS3CopyFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&cloud.StorageS3CopySpec.DestinationBucket, "destination-bucket", "", "Destination bucket ID (e.g. GRA_my-bucket)")
+	cmd.Flags().StringVar(&cloud.StorageS3CopySpec.DestinationKey, "destination-key", "", "Destination object key")
+	cmd.Flags().StringVar(&cloud.StorageS3CopySpec.StorageClass, "storage-class", "", "Storage class of the copy (DEEP_ARCHIVE, GLACIER_IR, HIGH_PERF, STANDARD, STANDARD_IA)")
+	cmd.MarkFlagRequired("destination-bucket")
+	cmd.MarkFlagRequired("destination-key")
+}
+
+func addStorageS3RestoreFlags(cmd *cobra.Command) {
+	cmd.Flags().IntVar(&cloud.StorageS3RestoreSpec.Days, "days", 0, "Number of days the restored copy stays available")
+	cmd.MarkFlagRequired("days")
 }

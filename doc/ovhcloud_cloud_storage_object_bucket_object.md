@@ -37,5 +37,5 @@ Manage objects in the given bucket
 * [ovhcloud cloud storage object bucket object get](ovhcloud_cloud_storage_object_bucket_object_get.md)	 - Get a specific object of the given bucket
 * [ovhcloud cloud storage object bucket object list](ovhcloud_cloud_storage_object_bucket_object_list.md)	 - List objects in the given bucket
 * [ovhcloud cloud storage object bucket object restore](ovhcloud_cloud_storage_object_bucket_object_restore.md)	 - Restore the given object from archival storage
-* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given storage container
+* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given bucket
 

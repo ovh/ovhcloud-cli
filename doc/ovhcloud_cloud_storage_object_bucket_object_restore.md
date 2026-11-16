@@ -3,13 +3,13 @@
 Restore the given object from archival storage
 
 ```
-ovhcloud cloud storage object bucket object restore <container_name> <object_name> [flags]
+ovhcloud cloud storage object bucket object restore <bucket_id> <object_key> [flags]
 ```
 
 ### Options
 
 ```
-      --days int   Number of days the restored object will be available
+      --days int   Number of days the restored copy stays available
   -h, --help       help for restore
 ```
 

@@ -123,6 +123,151 @@ func (ms *MockSuite) TestCloudStorageS3ObjectDeleteCmd(assert, require *td.T) {
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Object dir/file.txt deleted from bucket GRA_my-bucket"}`))
 }
 
+func (ms *MockSuite) TestCloudStorageS3ObjectCopyCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, s3BucketURL+"/object/dir%2Ffile.txt/copy",
+		tdhttpmock.JSONBody(td.JSON(`{"destinationBucket": "SBG_dest-bucket", "destinationKey": "dest/file.txt", "storageClass": "STANDARD_IA"}`)),
+		httpmock.NewStringResponder(200, `{"key": "dest/file.txt", "etag": "abc123"}`))
+
+	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "copy", "GRA_my-bucket", "dir/file.txt",
+		"--cloud-project", "fakeProjectID",
+		"--destination-bucket", "SBG_dest-bucket",
+		"--destination-key", "dest/file.txt",
+		"--storage-class", "STANDARD_IA",
+		"-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Object dir/file.txt copied to dest/file.txt in bucket SBG_dest-bucket",
+		"details": {"key": "dest/file.txt", "etag": "abc123"}
+	}`))
+}
+
+func (ms *MockSuite) TestCloudStorageS3ObjectCopyMissingDestinationCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "copy", "GRA_my-bucket", "file.txt",
+		"--cloud-project", "fakeProjectID",
+		"--destination-key", "copy.txt")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("destination-bucket"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestCloudStorageS3ObjectRestoreCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, s3BucketURL+"/object/dir%2Ffile.txt/restore",
+		tdhttpmock.JSONBody(td.JSON(`{"days": 7}`)),
+		httpmock.NewStringResponder(202, `{"key": "dir/file.txt", "restoreStatus": {"inProgress": true}}`))
+
+	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "restore", "GRA_my-bucket", "dir/file.txt",
+		"--cloud-project", "fakeProjectID",
+		"--days", "7",
+		"-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "⚡️ Restore of object dir/file.txt started for 7 days",
+		"details": {"key": "dir/file.txt", "restoreStatus": {"inProgress": true}}
+	}`))
+}
+
+func (ms *MockSuite) TestCloudStorageS3ObjectVersionListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, s3BucketURL+"/object/dir%2Ffile.txt/version",
+		httpmock.NewStringResponder(200, `[
+			{"key": "dir/file.txt", "versionId": "v2", "size": 20, "storageClass": "STANDARD", "isLatest": true, "lastModifiedAt": "2026-10-21T10:00:00Z"},
+			{"key": "dir/file.txt", "versionId": "v1", "size": 12, "storageClass": "STANDARD", "isLatest": false, "lastModifiedAt": "2026-10-20T10:00:00Z"}
+		]`))
+
+	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "version", "list", "GRA_my-bucket", "dir/file.txt",
+		"--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Re(`v2\s+\S+\s+20\s+\S+\s+STANDARD\s+\S+\s+true`))
+	assert.Cmp(out, td.Re(`v1\s+\S+\s+12\s+\S+\s+STANDARD\s+\S+\s+false`))
+}
+
+func (ms *MockSuite) TestCloudStorageS3ObjectVersionGetCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, s3BucketURL+"/object/dir%2Ffile.txt/version/v1",
+		httpmock.NewStringResponder(200, `{
+			"key": "dir/file.txt",
+			"versionId": "v1",
+			"size": 12,
+			"storageClass": "STANDARD",
+			"lastModifiedAt": "2026-10-20T10:00:00Z",
+			"legalHold": "ON"
+		}`))
+
+	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "version", "get", "GRA_my-bucket", "dir/file.txt", "v1",
+		"--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Re(`Version ID\**:\s+v1`))
+	assert.Cmp(out, td.Re(`Modification date\**:\s+2026-10-20T10:00:00Z`))
+	assert.Cmp(out, td.Re(`Legal hold\**:\s+ON`))
+	assert.Cmp(out, td.Not(td.Contains("<no value>")))
+}
+
+func (ms *MockSuite) TestCloudStorageS3ObjectVersionEditCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, s3BucketURL+"/object/dir%2Ffile.txt/version/v1",
+		httpmock.NewStringResponder(200, `{"key": "dir/file.txt", "versionId": "v1", "legalHold": "OFF"}`))
+
+	httpmock.RegisterMatcherResponder(http.MethodPut, s3BucketURL+"/object/dir%2Ffile.txt/version/v1",
+		tdhttpmock.JSONBody(td.JSON(`{"legalHold": "ON"}`)),
+		httpmock.NewStringResponder(200, `{"key": "dir/file.txt", "versionId": "v1", "legalHold": "ON"}`))
+
+	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "version", "edit", "GRA_my-bucket", "dir/file.txt", "v1",
+		"--cloud-project", "fakeProjectID",
+		"--legal-hold", "ON")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("updated successfully"))
+}
+
+func (ms *MockSuite) TestCloudStorageS3ObjectVersionDeleteCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodDelete, s3BucketURL+"/object/dir%2Ffile.txt/version/v1",
+		httpmock.NewStringResponder(200, `{"key": "dir/file.txt", "versionId": "v1"}`))
+
+	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "version", "delete", "GRA_my-bucket", "dir/file.txt", "v1",
+		"--cloud-project", "fakeProjectID",
+		"-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Object dir/file.txt version v1 deleted from bucket GRA_my-bucket"}`))
+}
+
+func (ms *MockSuite) TestCloudStorageS3ObjectVersionCopyCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, s3BucketURL+"/object/dir%2Ffile.txt/copy",
+		tdhttpmock.JSONBody(td.JSON(`{"destinationBucket": "GRA_my-bucket", "destinationKey": "restored.txt", "versionId": "v1"}`)),
+		httpmock.NewStringResponder(200, `{"key": "restored.txt", "versionId": "v3"}`))
+
+	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "version", "copy", "GRA_my-bucket", "dir/file.txt", "v1",
+		"--cloud-project", "fakeProjectID",
+		"--destination-bucket", "GRA_my-bucket",
+		"--destination-key", "restored.txt",
+		"-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Object dir/file.txt (version v1) copied to restored.txt in bucket GRA_my-bucket",
+		"details": {"key": "restored.txt", "versionId": "v3"}
+	}`))
+}
+
+func (ms *MockSuite) TestCloudStorageS3ObjectVersionRestoreCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, s3BucketURL+"/object/dir%2Ffile.txt/restore",
+		tdhttpmock.JSONBody(td.JSON(`{"days": 14, "versionId": "v1"}`)),
+		httpmock.NewStringResponder(202, `{"key": "dir/file.txt", "versionId": "v1"}`))
+
+	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "version", "restore", "GRA_my-bucket", "dir/file.txt", "v1",
+		"--cloud-project", "fakeProjectID",
+		"--days", "14",
+		"-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "⚡️ Restore of object dir/file.txt (version v1) started for 14 days",
+		"details": {"key": "dir/file.txt", "versionId": "v1"}
+	}`))
+}
+
 func (ms *MockSuite) TestCloudStorageS3BulkDeleteObjectsCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost, s3BucketURL+"/bulkDeleteObjects",
 		tdhttpmock.JSONBody(td.JSON(`{"objects": [{"key": "a.txt"}, {"key": "b.txt", "versionId": "v1"}]}`)),

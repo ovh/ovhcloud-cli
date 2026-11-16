@@ -14,41 +14,6 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
 )
 
-// registerS3ContainerMocks registers the standard HTTP mocks needed to locate a container by name.
-func registerS3ContainerMocks(containerName string) {
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region",
-		httpmock.NewStringResponder(200, `["BHS"]`))
-
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS",
-		httpmock.NewStringResponder(200, `{
-			"name": "BHS",
-			"type": "region",
-			"status": "UP",
-			"services": [
-				{"name": "storage", "status": "UP"},
-				{"name": "storage-s3-high-perf", "status": "UP"},
-				{"name": "storage-s3-standard", "status": "UP"}
-			],
-			"countryCode": "ca",
-			"ipCountries": [],
-			"continentCode": "NA",
-			"availabilityZones": [],
-			"datacenterLocation": "BHS"
-		}`))
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/"+containerName,
-		httpmock.NewStringResponder(200, `{
-			"name": "`+containerName+`",
-			"virtualHost": "https://`+containerName+`.test.ovh.net/",
-			"ownerId": 0,
-			"objectsCount": 0,
-			"objectsSize": 0,
-			"region": "BHS",
-			"createdAt": "2025-02-10T14:24:12Z"
-		}`))
-}
-
 func (ms *MockSuite) TestCloudStorageS3BucketListCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
 		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/storage/object/bucket",
@@ -277,78 +242,6 @@ func (ms *MockSuite) TestCloudStorageS3BucketDeleteCmd(assert, require *td.T) {
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("Bucket GRA_my-bucket is being deleted"))
-}
-
-func (ms *MockSuite) TestCloudStorageS3ObjectCopyCmd(assert, require *td.T) {
-	registerS3ContainerMocks("fakeContainer")
-
-	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/object/myobject.txt/copy",
-		tdhttpmock.JSONBody(td.JSON(`{"targetBucket": "destBucket", "targetKey": "dest/myobject.txt"}`)),
-		httpmock.NewStringResponder(200, `{"etag": "abc123", "versionId": null}`))
-
-	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "copy", "fakeContainer", "myobject.txt",
-		"--cloud-project", "fakeProjectID",
-		"--target-bucket", "destBucket",
-		"--target-key", "dest/myobject.txt",
-		"-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{
-		"message": "✅ Object myobject.txt copied successfully",
-		"details": {"etag": "abc123", "versionId": null}
-	}`))
-}
-
-func (ms *MockSuite) TestCloudStorageS3ObjectRestoreCmd(assert, require *td.T) {
-	registerS3ContainerMocks("fakeContainer")
-
-	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/object/myobject.txt/restore",
-		tdhttpmock.JSONBody(td.JSON(`{"days": 7}`)),
-		httpmock.NewStringResponder(200, ``))
-
-	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "restore", "fakeContainer", "myobject.txt",
-		"--cloud-project", "fakeProjectID",
-		"--days", "7",
-		"-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Object myobject.txt restore initiated successfully"}`))
-}
-
-func (ms *MockSuite) TestCloudStorageS3ObjectVersionCopyCmd(assert, require *td.T) {
-	registerS3ContainerMocks("fakeContainer")
-
-	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/object/myobject.txt/version/v1/copy",
-		tdhttpmock.JSONBody(td.JSON(`{"targetBucket": "destBucket", "targetKey": "dest/myobject.txt"}`)),
-		httpmock.NewStringResponder(200, `{"etag": "abc123", "versionId": "v2"}`))
-
-	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "version", "copy", "fakeContainer", "myobject.txt", "v1",
-		"--cloud-project", "fakeProjectID",
-		"--target-bucket", "destBucket",
-		"--target-key", "dest/myobject.txt",
-		"-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{
-		"message": "✅ Object myobject.txt version v1 copied successfully",
-		"details": {"etag": "abc123", "versionId": "v2"}
-	}`))
-}
-
-func (ms *MockSuite) TestCloudStorageS3ObjectVersionRestoreCmd(assert, require *td.T) {
-	registerS3ContainerMocks("fakeContainer")
-
-	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS/storage/fakeContainer/object/myobject.txt/version/v1/restore",
-		tdhttpmock.JSONBody(td.JSON(`{"days": 14}`)),
-		httpmock.NewStringResponder(200, ``))
-
-	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "object", "version", "restore", "fakeContainer", "myobject.txt", "v1",
-		"--cloud-project", "fakeProjectID",
-		"--days", "14",
-		"-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Object myobject.txt version v1 restore initiated successfully"}`))
 }
 
 func (ms *MockSuite) TestCloudStorageS3QuotaGetCmd(assert, require *td.T) {
