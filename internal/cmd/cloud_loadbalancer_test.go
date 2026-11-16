@@ -59,81 +59,29 @@ func registerLoadbalancingRegionMocks() {
 // ---------------------------------------------------------------------------
 
 func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region",
-		httpmock.NewStringResponder(200, `["GRA11", "SBG5", "BHS5"]`))
-
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11",
-		httpmock.NewStringResponder(200, `{
-			"name": "GRA11",
-			"type": "region",
-			"status": "UP",
-			"services": [
-				{
-					"name": "octavialoadbalancer",
-					"status": "UP"
-				}
-			],
-			"countryCode": "fr",
-			"ipCountries": [],
-			"continentCode": "NA",
-			"availabilityZones": [],
-			"datacenterLocation": "GRA11"
-		}`))
-
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5",
-		httpmock.NewStringResponder(200, `{
-			"name": "SBG5",
-			"type": "region",
-			"status": "UP",
-			"services": [
-				{
-					"name": "octavialoadbalancer",
-					"status": "UP"
-				}
-			],
-			"countryCode": "fr",
-			"ipCountries": [],
-			"continentCode": "NA",
-			"availabilityZones": [],
-			"datacenterLocation": "SBG5"
-		}`))
-
-	httpmock.RegisterResponder(http.MethodGet, "https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/BHS5",
-		httpmock.NewStringResponder(200, `{
-			"name": "BHS5",
-			"type": "region",
-			"status": "UP",
-			"services": [],
-			"countryCode": "ca",
-			"ipCountries": [],
-			"continentCode": "NA",
-			"availabilityZones": [],
-			"datacenterLocation": "BHS5"
-		}`))
-
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/loadbalancer/fakeLB",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer/fakeLB",
 		httpmock.NewStringResponder(200, `{
-			"createdAt": "2024-07-30T08:26:51Z",
-			"flavorId": "f862fa22-6275-4f8f-885e-66a8faf5e44e",
-			"floatingIp": null,
 			"id": "334fc97e-a8db-11f0-944d-0050568ce122",
-			"name": "loadbalancer-sbg5-2024-07-30",
-			"operatingStatus": "online",
-			"provisioningStatus": "active",
-			"region": "SBG5",
+			"createdAt": "2024-07-30T08:26:51Z",
 			"updatedAt": "2025-10-14T08:48:33Z",
-			"vipAddress": "1.2.3.4",
-			"vipNetworkId": "3f29f530-a8db-11f0-9ab2-0050568ce122",
-			"vipSubnetId": "44a869c4-a8db-11f0-899f-0050568ce122"
-		}`))
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/flavor/f862fa22-6275-4f8f-885e-66a8faf5e44e",
-		httpmock.NewStringResponder(200, `{
-			"id": "f862fa22-6275-4f8f-885e-66a8faf5e44e",
-			"name": "medium",
-			"description": "Medium Load Balancer Flavor"
+			"resourceStatus": "READY",
+			"currentState": {
+				"name": "loadbalancer-sbg5-2024-07-30",
+				"description": "my loadbalancer",
+				"location": {"region": "SBG5"},
+				"flavor": {"name": "MEDIUM"},
+				"operatingStatus": "ONLINE",
+				"provisioningStatus": "ACTIVE",
+				"network": {
+					"id": "3f29f530-a8db-11f0-9ab2-0050568ce122",
+					"subnetId": "44a869c4-a8db-11f0-899f-0050568ce122",
+					"addresses": [
+						{"ip": "1.2.3.4", "type": "FIXED"},
+						{"ip": "5.6.7.8", "type": "FLOATING"}
+					]
+				}
+			}
 		}`))
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "get", "fakeLB", "--cloud-project", "fakeProjectID")
@@ -145,21 +93,86 @@ func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
 
   ## General information
 
+  **ID**:                  334fc97e-a8db-11f0-944d-0050568ce122
+  **Status**:              READY
+  **Description**:         my loadbalancer
   **Region**:              SBG5
-  **Operating status**:    online
-  **Provisioning status**: active
-  **Flavor**:              medium (ID: f862fa22-6275-4f8f-885e-66a8faf5e44e)
+  **Operating status**:    ONLINE
+  **Provisioning status**: ACTIVE
+  **Flavor**:              MEDIUM
   **Creation date**:       2024-07-30T08:26:51Z
+  **Update date**:         2025-10-14T08:48:33Z
 
-  ## Technical information
+  ## Network
 
-  **VIP address**:        1.2.3.4
   **VIP network ID**:     3f29f530-a8db-11f0-9ab2-0050568ce122
   **VIP subnet ID**:      44a869c4-a8db-11f0-899f-0050568ce122
+
+   Address                             | Type
+  -------------------------------------|------------------------------------
+   1.2.3.4                             | FIXED
+   5.6.7.8                             | FLOATING
 
   💡 Use option -o json or -o yaml to get the raw output with all information
 
 `)
+}
+
+// currentState is null while the load balancer is being created: the command
+// must not fail, and falls back on targetSpec.
+func (ms *MockSuite) TestCloudLoadbalancerGetCreatingCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer/fakeLB",
+		httpmock.NewStringResponder(200, `{
+			"id": "334fc97e-a8db-11f0-944d-0050568ce122",
+			"createdAt": "2024-07-30T08:26:51Z",
+			"updatedAt": "2024-07-30T08:26:51Z",
+			"resourceStatus": "CREATING",
+			"currentState": null,
+			"targetSpec": {
+				"name": "creating-lb",
+				"description": "being created",
+				"location": {"region": "SBG5"},
+				"flavor": {"name": "SMALL"},
+				"network": {
+					"id": "3f29f530-a8db-11f0-9ab2-0050568ce122",
+					"subnetId": "44a869c4-a8db-11f0-899f-0050568ce122"
+				}
+			}
+		}`))
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "get", "fakeLB", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(cleanWhitespacesHelper(out), td.All(
+		td.Contains("*creating-lb*"),
+		td.Contains("**Status**:              CREATING"),
+		td.Contains("**Description**:         being created"),
+		td.Contains("**Region**:              SBG5"),
+		td.Contains("**Operating status**:    *not yet available*"),
+		td.Contains("**Provisioning status**: *not yet available*"),
+		td.Contains("**Flavor**:              SMALL"),
+		td.Contains("**VIP network ID**:     3f29f530-a8db-11f0-9ab2-0050568ce122"),
+		td.Contains("**VIP subnet ID**:      44a869c4-a8db-11f0-899f-0050568ce122"),
+		td.Contains("*Addresses not yet available*"),
+	))
+}
+
+// Neither currentState nor its nested objects are guaranteed to be present.
+func (ms *MockSuite) TestCloudLoadbalancerGetPartialStateCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer/fakeLB",
+		httpmock.NewStringResponder(200, `{
+			"id": "334fc97e-a8db-11f0-944d-0050568ce122",
+			"resourceStatus": "CREATING",
+			"currentState": {"name": "partial-lb"}
+		}`))
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "get", "fakeLB", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(cleanWhitespacesHelper(out), td.All(
+		td.Contains("*partial-lb*"),
+		td.Contains("*Addresses not yet available*"),
+	))
 }
 
 // ---------------------------------------------------------------------------
@@ -167,29 +180,28 @@ func (ms *MockSuite) TestCloudLoadbalancerGetCmd(assert, require *td.T) {
 // ---------------------------------------------------------------------------
 
 func (ms *MockSuite) TestCloudLoadbalancerListCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
 	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/loadbalancer",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer",
 		httpmock.NewStringResponder(200, `[
 			{
 				"id": "lb-gra-001",
-				"name": "my-lb-gra",
-				"region": "GRA11",
-				"provisioningStatus": "active",
-				"operatingStatus": "online"
-			}
-		]`))
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/loadbalancer",
-		httpmock.NewStringResponder(200, `[
+				"resourceStatus": "READY",
+				"currentState": {
+					"name": "my-lb-gra",
+					"location": {"region": "GRA11"},
+					"provisioningStatus": "ACTIVE",
+					"operatingStatus": "ONLINE"
+				}
+			},
 			{
 				"id": "lb-sbg-001",
-				"name": "my-lb-sbg",
-				"region": "SBG5",
-				"provisioningStatus": "active",
-				"operatingStatus": "online"
+				"resourceStatus": "READY",
+				"currentState": {
+					"name": "my-lb-sbg",
+					"location": {"region": "SBG5"},
+					"provisioningStatus": "ACTIVE",
+					"operatingStatus": "ONLINE"
+				}
 			}
 		]`))
 
@@ -198,17 +210,23 @@ func (ms *MockSuite) TestCloudLoadbalancerListCmd(assert, require *td.T) {
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
 			"id": "lb-gra-001",
-			"name": "my-lb-gra",
-			"region": "GRA11",
-			"provisioningStatus": "active",
-			"operatingStatus": "online"
+			"resourceStatus": "READY",
+			"currentState": {
+				"name": "my-lb-gra",
+				"location": {"region": "GRA11"},
+				"provisioningStatus": "ACTIVE",
+				"operatingStatus": "ONLINE"
+			}
 		},
 		{
 			"id": "lb-sbg-001",
-			"name": "my-lb-sbg",
-			"region": "SBG5",
-			"provisioningStatus": "active",
-			"operatingStatus": "online"
+			"resourceStatus": "READY",
+			"currentState": {
+				"name": "my-lb-sbg",
+				"location": {"region": "SBG5"},
+				"provisioningStatus": "ACTIVE",
+				"operatingStatus": "ONLINE"
+			}
 		}
 	]`))
 }
@@ -218,19 +236,8 @@ func (ms *MockSuite) TestCloudLoadbalancerListCmd(assert, require *td.T) {
 // ---------------------------------------------------------------------------
 
 func (ms *MockSuite) TestCloudLoadbalancerDeleteCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	// locateLoadbalancer: 404 on GRA11, found on SBG5
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/loadbalancer/lb-sbg-001",
-		httpmock.NewStringResponder(404, `{"message":"not found"}`))
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/loadbalancer/lb-sbg-001",
-		httpmock.NewStringResponder(200, `{"id":"lb-sbg-001","name":"my-lb-sbg","region":"SBG5"}`))
-
 	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/loadbalancer/lb-sbg-001",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer/lb-sbg-001",
 		httpmock.NewStringResponder(200, `null`))
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "delete", "lb-sbg-001", "--cloud-project", "fakeProjectID", "-o", "json")
@@ -273,45 +280,24 @@ func (ms *MockSuite) TestCloudLoadbalancerStatsCmd(assert, require *td.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Loadbalancer – create with --size name resolution
+// Loadbalancer – create
 // ---------------------------------------------------------------------------
 
-func (ms *MockSuite) TestCloudLoadbalancerCreateWithSizeCmd(assert, require *td.T) {
-	// Mock flavor list for size resolution
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/flavor",
-		httpmock.NewStringResponder(200, `[
-			{
-				"id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-				"name": "small",
-				"region": "GRA11"
-			},
-			{
-				"id": "ffffffff-bbbb-cccc-dddd-eeeeeeeeeeee",
-				"name": "medium",
-				"region": "GRA11"
-			}
-		]`))
-
+func (ms *MockSuite) TestCloudLoadbalancerCreateCmd(assert, require *td.T) {
 	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/loadbalancer",
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer",
 		tdhttpmock.JSONBody(td.JSON(`{
-			"name": "my-lb",
-			"flavorId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-			"network": {
-				"private": {
-					"network": {
-						"id": "net-001",
-						"subnetId": "sub-001"
-					}
+			"targetSpec": {
+				"name": "my-lb",
+				"flavor": {"name": "SMALL"},
+				"location": {"region": "GRA11"},
+				"network": {
+					"id": "net-001",
+					"subnetId": "sub-001"
 				}
 			}
 		}`)),
-		httpmock.NewStringResponder(200, `{
-			"id": "lb-new-001",
-			"name": "my-lb",
-			"region": "GRA11"
-		}`),
+		httpmock.NewStringResponder(200, `{"id": "lb-new-001"}`),
 	)
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "create", "GRA11",
@@ -324,16 +310,92 @@ func (ms *MockSuite) TestCloudLoadbalancerCreateWithSizeCmd(assert, require *td.
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Loadbalancer created successfully (ID: lb-new-001)",
-		"details": {
-			"id": "lb-new-001",
-			"name": "my-lb",
-			"region": "GRA11"
-		}
+		"details": {"id": "lb-new-001"}
 	}`))
 }
 
+func (ms *MockSuite) TestCloudLoadbalancerCreateWithNetworkIPCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-lb",
+				"description": "with a floating ip",
+				"flavor": {"name": "MEDIUM"},
+				"location": {"region": "GRA11"},
+				"network": {
+					"subnetId": "sub-001",
+					"ip": "203.0.113.10"
+				}
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "lb-new-002"}`),
+	)
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "create", "GRA11",
+		"--cloud-project", "fakeProjectID",
+		"--name", "my-lb",
+		"--description", "with a floating ip",
+		"--size", "MEDIUM",
+		"--subnet-id", "sub-001",
+		"--network-ip", "203.0.113.10",
+		"-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Loadbalancer created successfully (ID: lb-new-002)",
+		"details": {"id": "lb-new-002"}
+	}`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerCreateMissingSubnetCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "loadbalancer", "create", "GRA11",
+		"--cloud-project", "fakeProjectID",
+		"--name", "my-lb",
+		"--size", "SMALL")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`targetSpec.network.subnetId`))
+}
+
 // ---------------------------------------------------------------------------
-// Listener – list
+// Loadbalancer – edit
+// ---------------------------------------------------------------------------
+
+func (ms *MockSuite) TestCloudLoadbalancerEditCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer/lb-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "lb-001",
+			"checksum": "abc",
+			"targetSpec": {
+				"name": "my-lb",
+				"description": "old",
+				"flavor": {"name": "SMALL"},
+				"location": {"region": "GRA11"},
+				"network": {"subnetId": "sub-001"}
+			}
+		}`))
+
+	httpmock.RegisterMatcherResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer/lb-001",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc",
+			"targetSpec": {
+				"name": "my-lb",
+				"description": "new",
+				"flavor": {"name": "LARGE"}
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "lb-001"}`),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "edit", "lb-001",
+		"--cloud-project", "fakeProjectID",
+		"--description", "new",
+		"--size", "large")
+	require.CmpNoError(err)
+}
+
 // ---------------------------------------------------------------------------
 
 func (ms *MockSuite) TestCloudLoadbalancerListenerListCmd(assert, require *td.T) {

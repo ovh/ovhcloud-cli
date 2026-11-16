@@ -14811,7 +14811,7 @@
                 "$ref": "#/components/schemas/publicCloud.loadbalancer.LoadbalancerNetwork"
               }
             ],
-            "description": "VIP network\n\nFrontend network the virtual IP port lives in, with every address the VIP is reachable at reported through its addresses list — the FIXED address of the port, plus a FLOATING entry when a floating IP is associated with it.",
+            "description": "Frontend network the virtual IP port lives in, with every address the VIP is reachable at reported through its addresses list. The FIXED address of the port, plus a FLOATING entry when a floating IP is associated with it.",
             "readOnly": true
           },
           "operatingStatus": {
@@ -14863,7 +14863,7 @@
       },
       "publicCloud.loadbalancer.LoadbalancerNetwork": {
         "type": "object",
-        "description": "Load balancer VIP network (observed)\n\nThe frontend network the load balancer virtual IP port lives in, as reported by the backend, together with every address through which the VIP is reachable. Unlike the desired specification there is no scalar ip: all addresses, pinned or IPAM-assigned fixed address as well as an associated floating IP, are reported through the addresses list, each carrying its own type.",
+        "description": "Load balancer VIP network (observed). The frontend network the load balancer virtual IP port lives in, as reported by the backend, together with every address through which the VIP is reachable. Unlike the desired specification there is no scalar ip: all addresses, pinned or IPAM-assigned fixed address as well as an associated floating IP, are reported through the addresses list, each carrying its own type.",
         "properties": {
           "addresses": {
             "type": "array",
@@ -14875,13 +14875,13 @@
           },
           "id": {
             "type": "string",
-            "description": "Identifier of the private network the VIP port lives in.",
+            "description": "Identifier of the private network the VIP port lives in",
             "format": "uuid",
             "readOnly": true
           },
           "subnetId": {
             "type": "string",
-            "description": "Identifier of the subnet the VIP port draws its fixed address from.",
+            "description": "Identifier of the subnet the VIP port draws its fixed address from",
             "format": "uuid",
             "readOnly": true
           }
@@ -14889,7 +14889,7 @@
       },
       "publicCloud.loadbalancer.LoadbalancerNetworkAddress": {
         "type": "object",
-        "description": "Load balancer VIP network address\n\nA single IP address through which the load balancer virtual IP is reachable, with the type telling how that address reaches the VIP port.",
+        "description": "Load balancer VIP network address. A single IP address through which the load balancer virtual IP is reachable, with the type telling how that address reaches the VIP port.",
         "properties": {
           "ip": {
             "allOf": [
@@ -14897,7 +14897,7 @@
                 "$ref": "#/components/schemas/ip"
               }
             ],
-            "description": "IP address the virtual IP is reachable at.",
+            "description": "IP address the virtual IP is reachable at",
             "readOnly": true
           },
           "type": {
@@ -14906,14 +14906,14 @@
                 "$ref": "#/components/schemas/publicCloud.loadbalancer.LoadbalancerNetworkAddressTypeEnum"
               }
             ],
-            "description": "Address type\n\nHow this address reaches the VIP port: FIXED for the address configured on the port itself, FLOATING for a floating IP NAT'd onto it. See LoadbalancerNetworkAddressTypeEnum.",
+            "description": "Address type. How this address reaches the VIP port: FIXED for the address configured on the port itself, FLOATING for a floating IP NAT'd onto it. See LoadbalancerNetworkAddressTypeEnum.",
             "readOnly": true
           }
         }
       },
       "publicCloud.loadbalancer.LoadbalancerNetworkAddressTypeEnum": {
         "type": "string",
-        "description": "Load balancer VIP network address type\n\nNature of an IP address observed on the load balancer virtual IP port, telling how the address reaches the VIP.\n\nValues\nFIXED — The address configured on the VIP port itself, whether assigned by IPAM or pinned at creation.\nFLOATING — A floating IP associated with the VIP port: the address is not configured on the port, the network translates it to the port fixed address.",
+        "description": "Load balancer VIP network address type. Nature of an IP address observed on the load balancer virtual IP port, telling how the address reaches the VIP. `FIXED`: The address configured on the VIP port itself, whether assigned by IPAM or pinned at creation. `FLOATING`: A floating IP associated with the VIP port: the address is not configured on the port, the network translates it to the port fixed address.",
         "enum": [
           "FIXED",
           "FLOATING"
@@ -14921,11 +14921,11 @@
       },
       "publicCloud.loadbalancer.LoadbalancerNetworkRef": {
         "type": "object",
-        "description": "Load balancer VIP network reference (desired)\n\nUser-controlled declaration of the load balancer frontend network: the private network and subnet the virtual IP (VIP) port is created in, and therefore the network the listeners are reachable from. subnetId is mandatory. id is optional: when omitted, the network of the subnet is used, and when given, the subnet must belong to it.\n\nThe optional IP refines how the VIP is addressed:\n* omitted — the fixed VIP address is assigned by IPAM inside the subnet.\n* an address inside the subnet CIDR — pins the fixed VIP address to that value.\n* an address outside the subnet CIDR — designates an EXISTING floating IP to associate with the VIP port. No address is ever allocated on your behalf.\n\nThe VIP network is set at creation and is IMMUTABLE afterwards: it is not part of the update target spec, and neither the network, the subnet, nor the IP can be changed on a load balancer that already exists.",
+        "description": "Load balancer VIP network reference (desired). User-controlled declaration of the load balancer frontend network: the private network and subnet the virtual IP (VIP) port is created in, and therefore the network the listeners are reachable from. subnetId is mandatory. id is optional: when omitted, the network of the subnet is used, and when given, the subnet must belong to it. The optional IP refines how the VIP is addressed: * omitted. The fixed VIP address is assigned by IPAM inside the subnet. * an address inside the subnet CIDR. Pins the fixed VIP address to that value. * an address outside the subnet CIDR. Designates an EXISTING floating IP to associate with the VIP port. No address is ever allocated on your behalf. The VIP network is set at creation and is IMMUTABLE afterward: it is not part of the update target spec, and neither the network, the subnet, nor the IP can be changed on a load balancer that already exists.",
         "properties": {
           "id": {
             "type": "string",
-            "description": "Network\n\nIdentifier of the private network the VIP port is created in. This is the load balancer frontend network, from which its listeners are reachable. When omitted, the network of subnetId is used. Immutable after creation.",
+            "description": "Identifier of the private network the VIP port is created in. This is the load balancer frontend network, from which its listeners are reachable. When omitted, the network of subnetId is used. Immutable after creation.",
             "nullable": true,
             "format": "uuid"
           },
@@ -14935,12 +14935,12 @@
                 "$ref": "#/components/schemas/ip"
               }
             ],
-            "description": "IP address\n\nAddress of the virtual IP, whose meaning depends on where it falls relative to the subnet CIDR. Inside the subnet CIDR: pins the fixed VIP address instead of letting IPAM assign it; the address must lie in the subnet allocation pool, must not be the subnet gateway address, and must not already be held by another port. Outside the subnet CIDR: designates an EXISTING floating IP of the project to associate with the VIP port — the floating IP is never created for you, must not already be associated with another port, and the subnet must be attached to a router with an external gateway. A public address requires the optional loadbalancer/usePublicIP IAM action. Left unset, the fixed VIP address is assigned by IPAM. Immutable after creation.",
+            "description": "Address of the virtual IP, whose meaning depends on where it falls relative to the subnet CIDR. Inside the subnet CIDR: pins the fixed VIP address instead of letting IPAM assign it. The address must lie in the subnet allocation pool, must not be the subnet gateway address, and must not already be held by another port. Outside the subnet CIDR: designates an EXISTING floating IP of the project to associate with the VIP port. The floating IP is never created for you, must not already be associated with another port, and the subnet must be attached to a router with an external gateway. A public address requires the optional loadbalancer/usePublicIP IAM action. When omitted, the fixed VIP address is assigned by IPAM. Immutable after creation.",
             "nullable": true
           },
           "subnetId": {
             "type": "string",
-            "description": "Subnet\n\nIdentifier of the subnet the VIP port draws its fixed address from. When id is given, the subnet must belong to that network. Immutable after creation.",
+            "description": "Identifier of the subnet the VIP port draws its fixed address from. When id is given, the subnet must belong to that network. Immutable after creation.",
             "format": "uuid"
           }
         },
@@ -14981,6 +14981,15 @@
             "description": "Load balancer description",
             "nullable": true
           },
+          "flavor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/publicCloud.loadbalancer.LoadbalancerFlavorRef"
+              }
+            ],
+            "description": "Octavia flavor reference. Size of the load balancer. When it differs from the current flavor, the load balancer is resized: Octavia fails it over onto amphorae of the new flavor, which can briefly interrupt traffic. When omitted, the current flavor is kept.",
+            "nullable": true
+          },
           "name": {
             "type": "string",
             "description": "Load balancer name"
@@ -14996,7 +15005,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Subnet identifier",
+            "description": "Identifier of the subnet",
             "format": "uuid"
           }
         },
@@ -15039,7 +15048,7 @@
                 "$ref": "#/components/schemas/publicCloud.loadbalancer.LoadbalancerNetworkRef"
               }
             ],
-            "description": "VIP network\n\nFrontend network of the load balancer: the private network and subnet the virtual IP port is created in, and therefore the network its listeners are reachable from. The optional IP either pins the fixed VIP address (address inside the subnet CIDR) or designates an EXISTING floating IP to associate with the VIP port (address outside it); a public address requires the optional loadbalancer/usePublicIP IAM action. Set at creation and immutable afterwards."
+            "description": "Frontend network of the load balancer: the private network and subnet the virtual IP port is created in, and therefore the network its listeners are reachable from. The optional IP either pins the fixed VIP address (address inside the subnet CIDR) or designates an EXISTING floating IP to associate with the VIP port (address outside it). A public address requires the optional loadbalancer/usePublicIP IAM action. Immutable after creation."
           }
         },
         "required": [

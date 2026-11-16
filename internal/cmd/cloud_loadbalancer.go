@@ -38,9 +38,9 @@ func initCloudLoadbalancerCommand(cloudCmd *cobra.Command) {
 		Run:   cloud.EditCloudLoadbalancer,
 		Args:  cobra.ExactArgs(1),
 	}
-	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.Name, "name", "", "Name of the loadbalancer")
-	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.Description, "description", "", "Description of the loadbalancer")
-	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.Size, "size", "", "Size of the loadbalancer (e.g. small, medium, large) or flavor UUID")
+	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.TargetSpec.Name, "name", "", "Name of the loadbalancer")
+	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.TargetSpec.Description, "description", "", "Description of the loadbalancer")
+	editLoadbalancerCmd.Flags().StringVar(&cloud.CloudLoadbalancerUpdateSpec.Size, "size", "", "Size of the loadbalancer (SMALL, MEDIUM, LARGE, XL). A different size resizes the loadbalancer in place and can briefly interrupt traffic")
 	addInteractiveEditorFlag(editLoadbalancerCmd)
 	loadbalancerCmd.AddCommand(editLoadbalancerCmd)
 
@@ -137,20 +137,21 @@ There are three ways to define the parameters:
 
 3. Using only CLI flags:
 
-	ovhcloud cloud loadbalancer create <region> --name my-lb --size small
+	ovhcloud cloud loadbalancer create <region> --name my-lb --size SMALL --subnet-id <subnet_id>
 `,
 		Run:  cloud.CreateCloudLoadbalancer,
 		Args: cobra.ExactArgs(1),
 	}
 
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Name, "name", "", "Name of the loadbalancer")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Size, "size", "", "Size of the loadbalancer (e.g. small, medium, large) or flavor UUID")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Network.Private.Network.Id, "network-id", "", "Network ID")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Network.Private.Network.SubnetId, "subnet-id", "", "Subnet ID")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Network.Private.FloatingIp.Id, "floating-ip", "", "Floating IP ID to associate to the loadbalancer")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Network.Private.Gateway.Id, "gateway", "", "Gateway ID to associate to the loadbalancer")
+	spec := &cloud.CloudLoadbalancerCreateSpec.TargetSpec
+	cmd.Flags().StringVar(&spec.Name, "name", "", "Name of the loadbalancer")
+	cmd.Flags().StringVar(&spec.Description, "description", "", "Description of the loadbalancer")
+	cmd.Flags().StringVar(&cloud.CloudLoadbalancerCreateSpec.Size, "size", "", "Size of the loadbalancer (SMALL, MEDIUM, LARGE, XL)")
+	cmd.Flags().StringVar(&spec.Network.Id, "network-id", "", "Network ID (optional, defaults to the network of the subnet)")
+	cmd.Flags().StringVar(&spec.Network.SubnetId, "subnet-id", "", "Subnet ID")
+	cmd.Flags().StringVar(&spec.Network.Ip, "network-ip", "", "IP of the loadbalancer VIP: an address inside the subnet CIDR pins the fixed address, an address outside it designates an existing floating IP to associate (requires the loadbalancer/usePublicIP IAM action)")
 
-	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/loadbalancer", "post", cloud.LoadbalancerCreationExample, nil)
+	addParameterFileFlags(cmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/loadbalancer", "post", cloud.LoadbalancerCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
 	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 

@@ -1,12 +1,16 @@
 {
-  "flavorId": "00000000-0000-0000-0000-000000000000",
-  "name": "my-loadbalancer",
-  "network": {
-    "private": {
-      "network": {
-        "id": "00000000-0000-0000-0000-000000000000",
-        "subnetId": "00000000-0000-0000-0000-000000000000"
-      }
+  "targetSpec": {
+    "description": "my loadbalancer",
+    "flavor": {
+      "name": "SMALL"
+    },
+    "location": {
+      "region": "GRA11"
+    },
+    "name": "my-loadbalancer",
+    "network": {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "subnetId": "00000000-0000-0000-0000-000000000000"
     }
   }
 }

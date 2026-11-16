@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
@@ -21,7 +20,7 @@ import (
 )
 
 var (
-	cloudprojectLoadbalancerColumnsToDisplay = []string{"id", "name", "region", "provisioningStatus", "operatingStatus"}
+	cloudprojectLoadbalancerColumnsToDisplay = []string{"id", "currentState.name name", "currentState.location.region region", "currentState.provisioningStatus provisioningStatus", "currentState.operatingStatus operatingStatus", "resourceStatus"}
 
 	//go:embed templates/cloud_loadbalancer.tmpl
 	cloudLoadbalancerTemplate string
@@ -39,30 +38,33 @@ var (
 	LoadbalancerCreateFloatingIpExample string
 
 	CloudLoadbalancerUpdateSpec struct {
-		Description string `json:"description,omitempty"`
-		Name        string `json:"name,omitempty"`
-		Size        string `json:"-"`
-		FlavorId    string `json:"flavorId,omitempty"`
+		Size       string `json:"-"`
+		TargetSpec struct {
+			Description string `json:"description,omitempty"`
+			Flavor      struct {
+				Name string `json:"name,omitempty"`
+			} `json:"flavor,omitzero"`
+			Name string `json:"name,omitempty"`
+		} `json:"targetSpec"`
 	}
 
 	CloudLoadbalancerCreateSpec struct {
-		Size     string `json:"-"`
-		FlavorId string `json:"flavorId,omitempty"`
-		Name     string `json:"name,omitempty"`
-		Network  struct {
-			Private struct {
-				FloatingIp struct {
-					Id string `json:"id,omitempty"`
-				} `json:"floatingIp,omitzero"`
-				Gateway struct {
-					Id string `json:"id,omitempty"`
-				} `json:"gateway,omitzero"`
-				Network struct {
-					Id       string `json:"id,omitempty"`
-					SubnetId string `json:"subnetId,omitempty"`
-				} `json:"network,omitzero"`
-			} `json:"private,omitzero"`
-		} `json:"network,omitzero"`
+		Size       string `json:"-"`
+		TargetSpec struct {
+			Description string `json:"description,omitempty"`
+			Flavor      struct {
+				Name string `json:"name,omitempty"`
+			} `json:"flavor,omitzero"`
+			Location struct {
+				Region string `json:"region,omitempty"`
+			} `json:"location,omitzero"`
+			Name    string `json:"name,omitempty"`
+			Network struct {
+				Id       string `json:"id,omitempty"`
+				Ip       string `json:"ip,omitempty"`
+				SubnetId string `json:"subnetId,omitempty"`
+			} `json:"network,omitzero"`
+		} `json:"targetSpec"`
 	}
 
 	CloudLoadbalancerAssociateFloatingIpSpec struct {
@@ -292,42 +294,6 @@ func locateLoadbalancingResource(projectID, resourceType, resourceID string) (st
 	return "", nil, fmt.Errorf("no %s found with id %s", resourceType, resourceID)
 }
 
-// resolveLoadbalancerSize resolves a size name (e.g. "small", "medium") to its
-// flavor UUID for the given region. If the value is already a UUID it is returned as-is.
-func resolveLoadbalancerSize(projectID, region, size string) (string, error) {
-	if size == "" {
-		return "", nil
-	}
-	if _, err := uuid.Parse(size); err == nil {
-		return size, nil
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/flavor",
-		projectID, url.PathEscape(region))
-
-	var flavors []map[string]any
-	if err := httpLib.Client.Get(endpoint, &flavors); err != nil {
-		return "", fmt.Errorf("failed to fetch loadbalancer flavors: %w", err)
-	}
-
-	for _, f := range flavors {
-		if name, ok := f["name"].(string); ok && strings.EqualFold(name, size) {
-			if id, ok := f["id"].(string); ok {
-				return id, nil
-			}
-		}
-	}
-
-	var available []string
-	for _, f := range flavors {
-		if name, ok := f["name"].(string); ok {
-			available = append(available, name)
-		}
-	}
-
-	return "", fmt.Errorf("unknown loadbalancer size %q, available sizes: %s", size, strings.Join(available, ", "))
-}
-
 // listLoadbalancingResources fetches a loadbalancing resource type across all regions in parallel.
 func listLoadbalancingResources(resourceType string, columnsToDisplay []string) {
 	projectID, err := getConfiguredCloudProject()
@@ -368,7 +334,13 @@ func listLoadbalancingResources(resourceType string, columnsToDisplay []string) 
 // ---------------------------------------------------------------------------
 
 func ListCloudLoadbalancers(_ *cobra.Command, _ []string) {
-	listLoadbalancingResources("loadbalancer", cloudprojectLoadbalancerColumnsToDisplay)
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageListRequestNoExpand(fmt.Sprintf("/v2/publicCloud/project/%s/loadbalancer", projectID), cloudprojectLoadbalancerColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCloudLoadbalancer(_ *cobra.Command, args []string) {
@@ -378,25 +350,7 @@ func GetCloudLoadbalancer(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Find and fetch the loadbalancer
-	region, lb, err := locateLoadbalancer(projectID, args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	// Fetch details about the flavor
-	if flavorID, ok := lb["flavorId"].(string); ok && flavorID != "" {
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/flavor/%s",
-			projectID, url.PathEscape(region), url.PathEscape(flavorID))
-
-		var flavor map[string]any
-		if err := httpLib.Client.Get(endpoint, &flavor); err == nil {
-			lb["flavor"] = flavor
-		}
-	}
-
-	display.OutputObject(lb, args[0], cloudLoadbalancerTemplate, &flags.OutputFormatConfig)
+	common.ManageObjectRequest(fmt.Sprintf("/v2/publicCloud/project/%s/loadbalancer", projectID), args[0], cloudLoadbalancerTemplate)
 }
 
 func EditCloudLoadbalancer(cmd *cobra.Command, args []string) {
@@ -406,28 +360,15 @@ func EditCloudLoadbalancer(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancer(projectID, args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	// Resolve --size name to flavor UUID
-	if CloudLoadbalancerUpdateSpec.Size != "" {
-		flavorID, err := resolveLoadbalancerSize(projectID, region, CloudLoadbalancerUpdateSpec.Size)
-		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "%s", err)
-			return
-		}
-		CloudLoadbalancerUpdateSpec.FlavorId = flavorID
-	}
+	// API v2 references flavors by their upper case name
+	CloudLoadbalancerUpdateSpec.TargetSpec.Flavor.Name = strings.ToUpper(CloudLoadbalancerUpdateSpec.Size)
 
 	if err := common.EditResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/loadbalancer/{loadBalancerId}",
-		fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/loadbalancer/%s", projectID, url.PathEscape(region), url.PathEscape(args[0])),
+		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}",
+		fmt.Sprintf("/v2/publicCloud/project/%s/loadbalancer/%s", projectID, url.PathEscape(args[0])),
 		CloudLoadbalancerUpdateSpec,
-		assets.CloudOpenapiSchema,
+		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -441,29 +382,18 @@ func CreateCloudLoadbalancer(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	region := args[0]
-
-	// Resolve --size name to flavor UUID
-	if CloudLoadbalancerCreateSpec.Size != "" {
-		flavorID, err := resolveLoadbalancerSize(projectID, region, CloudLoadbalancerCreateSpec.Size)
-		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "%s", err)
-			return
-		}
-		CloudLoadbalancerCreateSpec.FlavorId = flavorID
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/loadbalancer",
-		projectID, url.PathEscape(region))
+	CloudLoadbalancerCreateSpec.TargetSpec.Location.Region = args[0]
+	// API v2 references flavors by their upper case name
+	CloudLoadbalancerCreateSpec.TargetSpec.Flavor.Name = strings.ToUpper(CloudLoadbalancerCreateSpec.Size)
 
 	result, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/loadbalancer",
-		endpoint,
+		"/publicCloud/project/{projectId}/loadbalancer",
+		fmt.Sprintf("/v2/publicCloud/project/%s/loadbalancer", projectID),
 		LoadbalancerCreationExample,
 		CloudLoadbalancerCreateSpec,
-		assets.CloudOpenapiSchema,
-		[]string{"name", "flavorId", "network"},
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec.name", "targetSpec.flavor.name", "targetSpec.network.subnetId"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create loadbalancer: %s", err)
@@ -480,15 +410,7 @@ func DeleteCloudLoadbalancer(_ *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancer(projectID, args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/loadbalancer/%s",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]))
-
+	endpoint := fmt.Sprintf("/v2/publicCloud/project/%s/loadbalancer/%s", projectID, url.PathEscape(args[0]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete loadbalancer: %s", err)
 		return
