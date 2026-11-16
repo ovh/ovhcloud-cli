@@ -77,7 +77,7 @@ var (
 	}
 
 	// Listener
-	listenerColumnsToDisplay = []string{"id", "name", "protocol", "port", "operatingStatus", "provisioningStatus"}
+	listenerColumnsToDisplay = []string{"id", "currentState.name name", "currentState.protocol protocol", "currentState.protocolPort port", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
 
 	//go:embed templates/cloud_loadbalancer_listener.tmpl
 	cloudLoadbalancerListenerTemplate string
@@ -86,25 +86,31 @@ var (
 	LoadbalancerListenerCreationExample string
 
 	CloudLoadbalancerListenerUpdateSpec struct {
-		AllowedCidrs  []string `json:"allowedCidrs,omitempty"`
-		CertificateId string   `json:"certificateId,omitempty"`
-		DefaultPoolId string   `json:"defaultPoolId,omitempty"`
-		Description   string   `json:"description,omitempty"`
-		Name          string   `json:"name,omitempty"`
+		TargetSpec struct {
+			DefaultPool struct {
+				Id string `json:"id,omitempty"`
+			} `json:"defaultPool,omitzero"`
+			DefaultTlsContainerRef string `json:"defaultTlsContainerRef,omitempty"`
+			Description            string `json:"description,omitempty"`
+			Name                   string `json:"name,omitempty"`
+		} `json:"targetSpec"`
 	}
 
 	CloudLoadbalancerListenerCreateSpec struct {
-		LoadbalancerId string `json:"loadbalancerId,omitempty"`
-		Name           string `json:"name,omitempty"`
-		Port           int    `json:"port,omitempty"`
-		Protocol       string `json:"protocol,omitempty"`
+		TargetSpec struct {
+			DefaultPool struct {
+				Id string `json:"id,omitempty"`
+			} `json:"defaultPool,omitzero"`
+			DefaultTlsContainerRef string `json:"defaultTlsContainerRef,omitempty"`
+			Description            string `json:"description,omitempty"`
+			Name                   string `json:"name,omitempty"`
+			Protocol               string `json:"protocol,omitempty"`
+			ProtocolPort           int    `json:"protocolPort,omitempty"`
+		} `json:"targetSpec"`
 	}
 
-	// CloudLoadbalancerListenerLoadbalancerIDFilter filters listeners by loadbalancer ID
-	CloudLoadbalancerListenerLoadbalancerIDFilter string
-
 	// Pool
-	poolColumnsToDisplay       = []string{"id", "name", "algorithm", "protocol", "operatingStatus", "provisioningStatus"}
+	poolColumnsToDisplay       = []string{"id", "currentState.name name", "currentState.algorithm algorithm", "currentState.protocol protocol", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
 	poolMemberColumnsToDisplay = []string{"id", "name", "address", "protocolPort", "weight", "operatingStatus"}
 
 	//go:embed templates/cloud_loadbalancer_pool.tmpl
@@ -120,16 +126,22 @@ var (
 	LoadbalancerPoolMemberCreationExample string
 
 	CloudLoadbalancerPoolCreateSpec struct {
-		Algorithm      string `json:"algorithm,omitempty"`
-		ListenerId     string `json:"listenerId,omitempty"`
-		LoadbalancerId string `json:"loadbalancerId,omitempty"`
-		Name           string `json:"name,omitempty"`
-		Protocol       string `json:"protocol,omitempty"`
+		TargetSpec struct {
+			Algorithm     string                  `json:"algorithm,omitempty"`
+			Description   string                  `json:"description,omitempty"`
+			HealthMonitor PoolHealthMonitorParams `json:"healthMonitor,omitzero"`
+			Name          string                  `json:"name,omitempty"`
+			Protocol      string                  `json:"protocol,omitempty"`
+		} `json:"targetSpec"`
 	}
 
 	CloudLoadbalancerPoolUpdateSpec struct {
-		Algorithm string `json:"algorithm,omitempty"`
-		Name      string `json:"name,omitempty"`
+		TargetSpec struct {
+			Algorithm     string                  `json:"algorithm,omitempty"`
+			Description   string                  `json:"description,omitempty"`
+			HealthMonitor PoolHealthMonitorParams `json:"healthMonitor,omitzero"`
+			Name          string                  `json:"name,omitempty"`
+		} `json:"targetSpec"`
 	}
 
 	CloudLoadbalancerPoolMemberUpdateSpec struct {
@@ -138,33 +150,6 @@ var (
 	}
 
 	CloudLoadbalancerPoolMemberCreateSpec cloudLoadbalancerPoolMemberCreateSpec
-
-	// Health Monitor
-	healthMonitorColumnsToDisplay = []string{"id", "name", "monitorType", "poolId", "operatingStatus", "provisioningStatus"}
-
-	//go:embed templates/cloud_loadbalancer_health_monitor.tmpl
-	cloudLoadbalancerHealthMonitorTemplate string
-
-	//go:embed parameter-samples/loadbalancer-health-monitor-create.json
-	LoadbalancerHealthMonitorCreationExample string
-
-	CloudLoadbalancerHealthMonitorCreateSpec struct {
-		Delay          int    `json:"delay,omitempty"`
-		MaxRetries     int    `json:"maxRetries,omitempty"`
-		MaxRetriesDown int    `json:"maxRetriesDown,omitempty"`
-		MonitorType    string `json:"monitorType,omitempty"`
-		Name           string `json:"name,omitempty"`
-		PoolId         string `json:"poolId,omitempty"`
-		Timeout        int    `json:"timeout,omitempty"`
-	}
-
-	CloudLoadbalancerHealthMonitorUpdateSpec struct {
-		Delay          int    `json:"delay,omitempty"`
-		MaxRetries     int    `json:"maxRetries,omitempty"`
-		MaxRetriesDown int    `json:"maxRetriesDown,omitempty"`
-		Name           string `json:"name,omitempty"`
-		Timeout        int    `json:"timeout,omitempty"`
-	}
 
 	// L7 Policy & Rule
 	l7PolicyColumnsToDisplay = []string{"id", "name", "action", "listenerId", "position", "operatingStatus"}
@@ -241,6 +226,18 @@ var (
 	}
 )
 
+// PoolHealthMonitorParams is the health monitor nested in a pool target spec.
+type PoolHealthMonitorParams struct {
+	Delay          int    `json:"delay,omitempty"`
+	ExpectedCodes  string `json:"expectedCodes,omitempty"`
+	HttpMethod     string `json:"httpMethod,omitempty"`
+	MaxRetries     int    `json:"maxRetries,omitempty"`
+	MaxRetriesDown int    `json:"maxRetriesDown,omitempty"`
+	Timeout        int    `json:"timeout,omitempty"`
+	Type           string `json:"type,omitempty"`
+	UrlPath        string `json:"urlPath,omitempty"`
+}
+
 type cloudLoadbalancerPoolMemberCreateSpec struct {
 	Address      string `json:"address,omitempty"`
 	Name         string `json:"name,omitempty"`
@@ -274,7 +271,7 @@ func locateLoadbalancer(projectID, loadbalancerID string) (string, map[string]an
 }
 
 // locateLoadbalancingResource searches for a loadbalancing resource by type and ID across all regions.
-// resourceType is e.g. "listener", "pool", "healthMonitor", "l7Policy".
+// resourceType is e.g. "pool", "l7Policy".
 func locateLoadbalancingResource(projectID, resourceType, resourceID string) (string, map[string]any, error) {
 	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "octavialoadbalancer")
 	if err != nil {
@@ -514,16 +511,18 @@ func CreateFloatingIpForLoadbalancer(cmd *cobra.Command, args []string) {
 // Listener
 // ---------------------------------------------------------------------------
 
-func ListCloudLoadbalancerListeners(_ *cobra.Command, _ []string) {
-	if CloudLoadbalancerListenerLoadbalancerIDFilter == "" {
-		listLoadbalancingResources("listener", listenerColumnsToDisplay)
+func loadbalancerListenerPath(projectID, loadbalancerID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/loadbalancer/%s/listener", projectID, url.PathEscape(loadbalancerID))
+}
+
+func ListCloudLoadbalancerListeners(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	listLoadbalancingResources(
-		"listener?loadbalancerId="+url.QueryEscape(CloudLoadbalancerListenerLoadbalancerIDFilter),
-		listenerColumnsToDisplay,
-	)
+	common.ManageListRequestNoExpand(loadbalancerListenerPath(projectID, args[0]), listenerColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCloudLoadbalancerListener(_ *cobra.Command, args []string) {
@@ -533,13 +532,7 @@ func GetCloudLoadbalancerListener(_ *cobra.Command, args []string) {
 		return
 	}
 
-	_, listener, err := locateLoadbalancingResource(projectID, "listener", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	display.OutputObject(listener, args[0], cloudLoadbalancerListenerTemplate, &flags.OutputFormatConfig)
+	common.ManageObjectRequest(loadbalancerListenerPath(projectID, args[0]), args[1], cloudLoadbalancerListenerTemplate)
 }
 
 func CreateCloudLoadbalancerListener(cmd *cobra.Command, args []string) {
@@ -549,18 +542,17 @@ func CreateCloudLoadbalancerListener(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	region := args[0]
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener",
-		projectID, url.PathEscape(region))
+	// API v2 expects upper case enum values
+	CloudLoadbalancerListenerCreateSpec.TargetSpec.Protocol = strings.ToUpper(CloudLoadbalancerListenerCreateSpec.TargetSpec.Protocol)
 
 	result, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/listener",
-		endpoint,
+		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/listener",
+		loadbalancerListenerPath(projectID, args[0]),
 		LoadbalancerListenerCreationExample,
 		CloudLoadbalancerListenerCreateSpec,
-		assets.CloudOpenapiSchema,
-		[]string{"loadbalancerId", "name", "port", "protocol"},
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec.name", "targetSpec.protocol", "targetSpec.protocolPort"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create listener: %s", err)
@@ -577,19 +569,12 @@ func EditCloudLoadbalancerListener(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancingResource(projectID, "listener", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
 	if err := common.EditResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/listener/{listenerId}",
-		fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener/%s",
-			projectID, url.PathEscape(region), url.PathEscape(args[0])),
+		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/listener/{listenerId}",
+		fmt.Sprintf("%s/%s", loadbalancerListenerPath(projectID, args[0]), url.PathEscape(args[1])),
 		CloudLoadbalancerListenerUpdateSpec,
-		assets.CloudOpenapiSchema,
+		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -603,29 +588,31 @@ func DeleteCloudLoadbalancerListener(_ *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancingResource(projectID, "listener", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/listener/%s",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]))
-
+	endpoint := fmt.Sprintf("%s/%s", loadbalancerListenerPath(projectID, args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete listener: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Listener %s deleted successfully", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Listener %s deleted successfully", args[1])
 }
 
 // ---------------------------------------------------------------------------
 // Pool
 // ---------------------------------------------------------------------------
 
-func ListCloudLoadbalancerPools(_ *cobra.Command, _ []string) {
-	listLoadbalancingResources("pool", poolColumnsToDisplay)
+func loadbalancerPoolPath(projectID, loadbalancerID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/loadbalancer/%s/pool", projectID, url.PathEscape(loadbalancerID))
+}
+
+func ListCloudLoadbalancerPools(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageListRequestNoExpand(loadbalancerPoolPath(projectID, args[0]), poolColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCloudLoadbalancerPool(_ *cobra.Command, args []string) {
@@ -635,13 +622,7 @@ func GetCloudLoadbalancerPool(_ *cobra.Command, args []string) {
 		return
 	}
 
-	_, pool, err := locateLoadbalancingResource(projectID, "pool", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	display.OutputObject(pool, args[0], cloudLoadbalancerPoolTemplate, &flags.OutputFormatConfig)
+	common.ManageObjectRequest(loadbalancerPoolPath(projectID, args[0]), args[1], cloudLoadbalancerPoolTemplate)
 }
 
 func CreateCloudLoadbalancerPool(cmd *cobra.Command, args []string) {
@@ -651,18 +632,21 @@ func CreateCloudLoadbalancerPool(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	region := args[0]
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool",
-		projectID, url.PathEscape(region))
+	// API v2 expects upper case enum values
+	spec := &CloudLoadbalancerPoolCreateSpec.TargetSpec
+	spec.Algorithm = strings.ToUpper(spec.Algorithm)
+	spec.Protocol = strings.ToUpper(spec.Protocol)
+	spec.HealthMonitor.Type = strings.ToUpper(spec.HealthMonitor.Type)
+	spec.HealthMonitor.HttpMethod = strings.ToUpper(spec.HealthMonitor.HttpMethod)
 
 	result, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool",
-		endpoint,
+		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/pool",
+		loadbalancerPoolPath(projectID, args[0]),
 		LoadbalancerPoolCreationExample,
 		CloudLoadbalancerPoolCreateSpec,
-		assets.CloudOpenapiSchema,
-		nil,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec.algorithm", "targetSpec.protocol"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create pool: %s", err)
@@ -679,19 +663,18 @@ func EditCloudLoadbalancerPool(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancingResource(projectID, "pool", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
+	// API v2 expects upper case enum values
+	spec := &CloudLoadbalancerPoolUpdateSpec.TargetSpec
+	spec.Algorithm = strings.ToUpper(spec.Algorithm)
+	spec.HealthMonitor.Type = strings.ToUpper(spec.HealthMonitor.Type)
+	spec.HealthMonitor.HttpMethod = strings.ToUpper(spec.HealthMonitor.HttpMethod)
 
 	if err := common.EditResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool/{poolId}",
-		fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s",
-			projectID, url.PathEscape(region), url.PathEscape(args[0])),
+		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/pool/{poolId}",
+		fmt.Sprintf("%s/%s", loadbalancerPoolPath(projectID, args[0]), url.PathEscape(args[1])),
 		CloudLoadbalancerPoolUpdateSpec,
-		assets.CloudOpenapiSchema,
+		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -705,21 +688,13 @@ func DeleteCloudLoadbalancerPool(_ *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancingResource(projectID, "pool", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]))
-
+	endpoint := fmt.Sprintf("%s/%s", loadbalancerPoolPath(projectID, args[0]), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete pool: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Pool %s deleted successfully", args[0])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Pool %s deleted successfully", args[1])
 }
 
 // ---------------------------------------------------------------------------
@@ -872,108 +847,6 @@ func DeleteCloudLoadbalancerPoolMember(_ *cobra.Command, args []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Pool member %s deleted successfully", args[1])
-}
-
-// ---------------------------------------------------------------------------
-// Health Monitor
-// ---------------------------------------------------------------------------
-
-func ListCloudLoadbalancerHealthMonitors(_ *cobra.Command, _ []string) {
-	listLoadbalancingResources("healthMonitor", healthMonitorColumnsToDisplay)
-}
-
-func GetCloudLoadbalancerHealthMonitor(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	_, hm, err := locateLoadbalancingResource(projectID, "healthMonitor", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	display.OutputObject(hm, args[0], cloudLoadbalancerHealthMonitorTemplate, &flags.OutputFormatConfig)
-}
-
-func CreateCloudLoadbalancerHealthMonitor(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	region := args[0]
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor",
-		projectID, url.PathEscape(region))
-
-	result, err := common.CreateResource(
-		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/healthMonitor",
-		endpoint,
-		LoadbalancerHealthMonitorCreationExample,
-		CloudLoadbalancerHealthMonitorCreateSpec,
-		assets.CloudOpenapiSchema,
-		[]string{"delay", "maxRetries", "monitorType", "name", "poolId", "timeout"},
-	)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to create health monitor: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Health monitor created successfully (ID: %s)", result["id"])
-}
-
-func EditCloudLoadbalancerHealthMonitor(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	region, _, err := locateLoadbalancingResource(projectID, "healthMonitor", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	if err := common.EditResource(
-		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/healthMonitor/{healthMonitorId}",
-		fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor/%s",
-			projectID, url.PathEscape(region), url.PathEscape(args[0])),
-		CloudLoadbalancerHealthMonitorUpdateSpec,
-		assets.CloudOpenapiSchema,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-}
-
-func DeleteCloudLoadbalancerHealthMonitor(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	region, _, err := locateLoadbalancingResource(projectID, "healthMonitor", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/healthMonitor/%s",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]))
-
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to delete health monitor: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Health monitor %s deleted successfully", args[0])
 }
 
 // ---------------------------------------------------------------------------

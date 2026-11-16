@@ -31,10 +31,10 @@ Manage pools of loadbalancers
 ### SEE ALSO
 
 * [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
-* [ovhcloud cloud loadbalancer pool create](ovhcloud_cloud_loadbalancer_pool_create.md)	 - Create a pool in the given region
+* [ovhcloud cloud loadbalancer pool create](ovhcloud_cloud_loadbalancer_pool_create.md)	 - Create a pool on a loadbalancer
 * [ovhcloud cloud loadbalancer pool delete](ovhcloud_cloud_loadbalancer_pool_delete.md)	 - Delete a specific pool
 * [ovhcloud cloud loadbalancer pool edit](ovhcloud_cloud_loadbalancer_pool_edit.md)	 - Edit a specific pool
 * [ovhcloud cloud loadbalancer pool get](ovhcloud_cloud_loadbalancer_pool_get.md)	 - Get a specific pool
-* [ovhcloud cloud loadbalancer pool list](ovhcloud_cloud_loadbalancer_pool_list.md)	 - List all pools
+* [ovhcloud cloud loadbalancer pool list](ovhcloud_cloud_loadbalancer_pool_list.md)	 - List the pools of a loadbalancer
 * [ovhcloud cloud loadbalancer pool member](ovhcloud_cloud_loadbalancer_pool_member.md)	 - Manage members of a loadbalancer pool
 

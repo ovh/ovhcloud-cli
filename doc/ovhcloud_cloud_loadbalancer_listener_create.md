@@ -1,23 +1,25 @@
 ## ovhcloud cloud loadbalancer listener create
 
-Create a listener in the given region
+Create a listener on a loadbalancer
 
 ```
-ovhcloud cloud loadbalancer listener create <region> [flags]
+ovhcloud cloud loadbalancer listener create <loadbalancer_id> [flags]
 ```
 
 ### Options
 
 ```
-      --editor                   Use a text editor to define parameters
-      --from-file string         File containing parameters
-  -h, --help                     help for create
-      --init-file string         Create a file with example parameters
-      --loadbalancer-id string   Loadbalancer ID
-      --name string              Name of the listener
-      --port int                 Port to listen on
-      --protocol string          Protocol (http, https, tcp, udp, sctp, prometheus)
-      --replace                  Replace parameters file if it already exists
+      --default-pool-id string             Default pool ID
+      --default-tls-container-ref string   Reference of the default TLS certificate container
+      --description string                 Description of the listener
+      --editor                             Use a text editor to define parameters
+      --from-file string                   File containing parameters
+  -h, --help                               help for create
+      --init-file string                   Create a file with example parameters
+      --name string                        Name of the listener
+      --port int                           Port to listen on
+      --protocol string                    Protocol (HTTP, HTTPS, TERMINATED_HTTPS, TCP, UDP, SCTP)
+      --replace                            Replace parameters file if it already exists
 ```
 
 ### Options inherited from parent commands

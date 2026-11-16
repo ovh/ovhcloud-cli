@@ -75,9 +75,6 @@ func initCloudLoadbalancerCommand(cloudCmd *cobra.Command) {
 	// Pool sub-commands
 	initPoolSubCommands(loadbalancerCmd)
 
-	// Health Monitor sub-commands
-	initHealthMonitorSubCommands(loadbalancerCmd)
-
 	// L7 Policy sub-commands
 	initL7PolicySubCommands(loadbalancerCmd)
 
@@ -202,59 +199,62 @@ func initListenerSubCommands(loadbalancerCmd *cobra.Command) {
 	}
 	loadbalancerCmd.AddCommand(listenerCmd)
 
-	listenerListCmd := &cobra.Command{
-		Use:     "list",
+	listenerCmd.AddCommand(withFilterFlag(&cobra.Command{
+		Use:     "list <loadbalancer_id>",
 		Aliases: []string{"ls"},
-		Short:   "List all listeners",
+		Short:   "List the listeners of a loadbalancer",
 		Run:     cloud.ListCloudLoadbalancerListeners,
-	}
-	listenerListCmd.Flags().StringVar(&cloud.CloudLoadbalancerListenerLoadbalancerIDFilter, "loadbalancer-id", "", "Filter listeners by loadbalancer ID")
-	listenerCmd.AddCommand(withFilterFlag(listenerListCmd))
+		Args:    cobra.ExactArgs(1),
+	}))
 
 	listenerCmd.AddCommand(&cobra.Command{
-		Use:   "get <listener_id>",
+		Use:   "get <loadbalancer_id> <listener_id>",
 		Short: "Get a specific listener",
 		Run:   cloud.GetCloudLoadbalancerListener,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 	})
 
 	listenerCmd.AddCommand(getListenerCreationCmd())
 
 	listenerEditCmd := &cobra.Command{
-		Use:   "edit <listener_id>",
+		Use:   "edit <loadbalancer_id> <listener_id>",
 		Short: "Edit a specific listener",
 		Run:   cloud.EditCloudLoadbalancerListener,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 	}
-	listenerEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerListenerUpdateSpec.Name, "name", "", "Name of the listener")
-	listenerEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerListenerUpdateSpec.Description, "description", "", "Description of the listener")
-	listenerEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerListenerUpdateSpec.DefaultPoolId, "default-pool-id", "", "Default pool ID")
-	listenerEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerListenerUpdateSpec.CertificateId, "certificate-id", "", "Certificate ID")
+	editSpec := &cloud.CloudLoadbalancerListenerUpdateSpec.TargetSpec
+	listenerEditCmd.Flags().StringVar(&editSpec.Name, "name", "", "Name of the listener")
+	listenerEditCmd.Flags().StringVar(&editSpec.Description, "description", "", "Description of the listener")
+	listenerEditCmd.Flags().StringVar(&editSpec.DefaultPool.Id, "default-pool-id", "", "Default pool ID")
+	listenerEditCmd.Flags().StringVar(&editSpec.DefaultTlsContainerRef, "default-tls-container-ref", "", "Reference of the default TLS certificate container")
 	addInteractiveEditorFlag(listenerEditCmd)
 	listenerCmd.AddCommand(listenerEditCmd)
 
 	listenerCmd.AddCommand(&cobra.Command{
-		Use:   "delete <listener_id>",
+		Use:   "delete <loadbalancer_id> <listener_id>",
 		Short: "Delete a specific listener",
 		Run:   cloud.DeleteCloudLoadbalancerListener,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 	})
 }
 
 func getListenerCreationCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create <region>",
-		Short: "Create a listener in the given region",
+		Use:   "create <loadbalancer_id>",
+		Short: "Create a listener on a loadbalancer",
 		Run:   cloud.CreateCloudLoadbalancerListener,
 		Args:  cobra.ExactArgs(1),
 	}
 
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerListenerCreateSpec.LoadbalancerId, "loadbalancer-id", "", "Loadbalancer ID")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerListenerCreateSpec.Name, "name", "", "Name of the listener")
-	cmd.Flags().IntVar(&cloud.CloudLoadbalancerListenerCreateSpec.Port, "port", 0, "Port to listen on")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerListenerCreateSpec.Protocol, "protocol", "", "Protocol (http, https, tcp, udp, sctp, prometheus)")
+	spec := &cloud.CloudLoadbalancerListenerCreateSpec.TargetSpec
+	cmd.Flags().StringVar(&spec.Name, "name", "", "Name of the listener")
+	cmd.Flags().StringVar(&spec.Description, "description", "", "Description of the listener")
+	cmd.Flags().IntVar(&spec.ProtocolPort, "port", 0, "Port to listen on")
+	cmd.Flags().StringVar(&spec.Protocol, "protocol", "", "Protocol (HTTP, HTTPS, TERMINATED_HTTPS, TCP, UDP, SCTP)")
+	cmd.Flags().StringVar(&spec.DefaultPool.Id, "default-pool-id", "", "Default pool ID")
+	cmd.Flags().StringVar(&spec.DefaultTlsContainerRef, "default-tls-container-ref", "", "Reference of the default TLS certificate container")
 
-	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/listener", "post", cloud.LoadbalancerListenerCreationExample, nil)
+	addParameterFileFlags(cmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/listener", "post", cloud.LoadbalancerListenerCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
 	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
@@ -271,37 +271,43 @@ func initPoolSubCommands(loadbalancerCmd *cobra.Command) {
 	loadbalancerCmd.AddCommand(poolCmd)
 
 	poolCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list",
+		Use:     "list <loadbalancer_id>",
 		Aliases: []string{"ls"},
-		Short:   "List all pools",
+		Short:   "List the pools of a loadbalancer",
 		Run:     cloud.ListCloudLoadbalancerPools,
+		Args:    cobra.ExactArgs(1),
 	}))
 
 	poolCmd.AddCommand(&cobra.Command{
-		Use:   "get <pool_id>",
+		Use:   "get <loadbalancer_id> <pool_id>",
 		Short: "Get a specific pool",
 		Run:   cloud.GetCloudLoadbalancerPool,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 	})
 
 	poolCmd.AddCommand(getPoolCreationCmd())
 
 	poolEditCmd := &cobra.Command{
-		Use:   "edit <pool_id>",
+		Use:   "edit <loadbalancer_id> <pool_id>",
 		Short: "Edit a specific pool",
-		Run:   cloud.EditCloudLoadbalancerPool,
-		Args:  cobra.ExactArgs(1),
+		Long: `Edit a specific pool, including the health monitor nested in it.
+To remove the health monitor, use --editor and delete the "healthMonitor" block.`,
+		Run:  cloud.EditCloudLoadbalancerPool,
+		Args: cobra.ExactArgs(2),
 	}
-	poolEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolUpdateSpec.Algorithm, "algorithm", "", "Algorithm (roundRobin, leastConnections, sourceIp)")
-	poolEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolUpdateSpec.Name, "name", "", "Name of the pool")
+	editSpec := &cloud.CloudLoadbalancerPoolUpdateSpec.TargetSpec
+	poolEditCmd.Flags().StringVar(&editSpec.Name, "name", "", "Name of the pool")
+	poolEditCmd.Flags().StringVar(&editSpec.Description, "description", "", "Description of the pool")
+	poolEditCmd.Flags().StringVar(&editSpec.Algorithm, "algorithm", "", "Algorithm (ROUND_ROBIN, LEAST_CONNECTIONS, SOURCE_IP)")
+	addPoolHealthMonitorFlags(poolEditCmd, &editSpec.HealthMonitor)
 	addInteractiveEditorFlag(poolEditCmd)
 	poolCmd.AddCommand(poolEditCmd)
 
 	poolCmd.AddCommand(&cobra.Command{
-		Use:   "delete <pool_id>",
+		Use:   "delete <loadbalancer_id> <pool_id>",
 		Short: "Delete a specific pool",
 		Run:   cloud.DeleteCloudLoadbalancerPool,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 	})
 
 	// Pool Member sub-commands
@@ -310,23 +316,36 @@ func initPoolSubCommands(loadbalancerCmd *cobra.Command) {
 
 func getPoolCreationCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create <region>",
-		Short: "Create a pool in the given region",
+		Use:   "create <loadbalancer_id>",
+		Short: "Create a pool on a loadbalancer",
 		Run:   cloud.CreateCloudLoadbalancerPool,
 		Args:  cobra.ExactArgs(1),
 	}
 
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolCreateSpec.Algorithm, "algorithm", "", "Algorithm (roundRobin, leastConnections, sourceIp)")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolCreateSpec.ListenerId, "listener-id", "", "Listener ID")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolCreateSpec.LoadbalancerId, "loadbalancer-id", "", "Loadbalancer ID")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolCreateSpec.Name, "name", "", "Name of the pool")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolCreateSpec.Protocol, "protocol", "", "Protocol (http, https, tcp, udp, sctp, prometheus)")
+	spec := &cloud.CloudLoadbalancerPoolCreateSpec.TargetSpec
+	cmd.Flags().StringVar(&spec.Name, "name", "", "Name of the pool")
+	cmd.Flags().StringVar(&spec.Description, "description", "", "Description of the pool")
+	cmd.Flags().StringVar(&spec.Algorithm, "algorithm", "", "Algorithm (ROUND_ROBIN, LEAST_CONNECTIONS, SOURCE_IP)")
+	cmd.Flags().StringVar(&spec.Protocol, "protocol", "", "Protocol (HTTP, HTTPS, PROXY, PROXYV2, TCP, UDP, SCTP)")
+	addPoolHealthMonitorFlags(cmd, &spec.HealthMonitor)
 
-	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool", "post", cloud.LoadbalancerPoolCreationExample, nil)
+	addParameterFileFlags(cmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/pool", "post", cloud.LoadbalancerPoolCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
 	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
 	return cmd
+}
+
+// addPoolHealthMonitorFlags registers the flags describing the health monitor nested in a pool.
+func addPoolHealthMonitorFlags(cmd *cobra.Command, hm *cloud.PoolHealthMonitorParams) {
+	cmd.Flags().StringVar(&hm.Type, "health-monitor-type", "", "Type of the health monitor (HTTP, HTTPS, PING, TCP, TLS_HELLO, UDP_CONNECT, SCTP)")
+	cmd.Flags().IntVar(&hm.Delay, "health-monitor-delay", 0, "Duration between sending probes to members, in seconds")
+	cmd.Flags().IntVar(&hm.Timeout, "health-monitor-timeout", 0, "Maximum time in seconds to connect before timeout")
+	cmd.Flags().IntVar(&hm.MaxRetries, "health-monitor-max-retries", 0, "Number of successful checks before changing status to ONLINE")
+	cmd.Flags().IntVar(&hm.MaxRetriesDown, "health-monitor-max-retries-down", 0, "Number of allowed check failures before changing status to ERROR")
+	cmd.Flags().StringVar(&hm.HttpMethod, "health-monitor-http-method", "", "HTTP method used by HTTP and HTTPS health monitors (GET, HEAD, POST, ...)")
+	cmd.Flags().StringVar(&hm.UrlPath, "health-monitor-url-path", "", "URL path requested by HTTP and HTTPS health monitors")
+	cmd.Flags().StringVar(&hm.ExpectedCodes, "health-monitor-expected-codes", "", "Expected HTTP status codes of HTTP and HTTPS health monitors (e.g. 200, 200-204)")
 }
 
 func initPoolMemberSubCommands(poolCmd *cobra.Command) {
@@ -386,76 +405,6 @@ func getPoolMemberCreationCmd() *cobra.Command {
 	cmd.Flags().IntVar(&cloud.CloudLoadbalancerPoolMemberCreateSpec.Weight, "weight", 0, "Weight of the member (1-256)")
 
 	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool/{poolId}/member", "post", cloud.LoadbalancerPoolMemberCreationExample, nil)
-	addInteractiveEditorFlag(cmd)
-	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
-
-	return cmd
-}
-
-// Health Monitor sub-commands
-
-func initHealthMonitorSubCommands(loadbalancerCmd *cobra.Command) {
-	healthMonitorCmd := &cobra.Command{
-		Use:   "health-monitor",
-		Short: "Manage health monitors of loadbalancers",
-	}
-	loadbalancerCmd.AddCommand(healthMonitorCmd)
-
-	healthMonitorCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list",
-		Aliases: []string{"ls"},
-		Short:   "List all health monitors",
-		Run:     cloud.ListCloudLoadbalancerHealthMonitors,
-	}))
-
-	healthMonitorCmd.AddCommand(&cobra.Command{
-		Use:   "get <health_monitor_id>",
-		Short: "Get a specific health monitor",
-		Run:   cloud.GetCloudLoadbalancerHealthMonitor,
-		Args:  cobra.ExactArgs(1),
-	})
-
-	healthMonitorCmd.AddCommand(getHealthMonitorCreationCmd())
-
-	healthMonitorEditCmd := &cobra.Command{
-		Use:   "edit <health_monitor_id>",
-		Short: "Edit a specific health monitor",
-		Run:   cloud.EditCloudLoadbalancerHealthMonitor,
-		Args:  cobra.ExactArgs(1),
-	}
-	healthMonitorEditCmd.Flags().IntVar(&cloud.CloudLoadbalancerHealthMonitorUpdateSpec.Delay, "delay", 0, "Duration between sending probes to members, in seconds")
-	healthMonitorEditCmd.Flags().IntVar(&cloud.CloudLoadbalancerHealthMonitorUpdateSpec.MaxRetries, "max-retries", 0, "Number of successful checks before changing status to ONLINE")
-	healthMonitorEditCmd.Flags().IntVar(&cloud.CloudLoadbalancerHealthMonitorUpdateSpec.MaxRetriesDown, "max-retries-down", 0, "Number of allowed check failures before changing status to ERROR")
-	healthMonitorEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerHealthMonitorUpdateSpec.Name, "name", "", "Name of the health monitor")
-	healthMonitorEditCmd.Flags().IntVar(&cloud.CloudLoadbalancerHealthMonitorUpdateSpec.Timeout, "timeout", 0, "Maximum time in seconds to connect before timeout")
-	addInteractiveEditorFlag(healthMonitorEditCmd)
-	healthMonitorCmd.AddCommand(healthMonitorEditCmd)
-
-	healthMonitorCmd.AddCommand(&cobra.Command{
-		Use:   "delete <health_monitor_id>",
-		Short: "Delete a specific health monitor",
-		Run:   cloud.DeleteCloudLoadbalancerHealthMonitor,
-		Args:  cobra.ExactArgs(1),
-	})
-}
-
-func getHealthMonitorCreationCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "create <region>",
-		Short: "Create a health monitor in the given region",
-		Run:   cloud.CreateCloudLoadbalancerHealthMonitor,
-		Args:  cobra.ExactArgs(1),
-	}
-
-	cmd.Flags().IntVar(&cloud.CloudLoadbalancerHealthMonitorCreateSpec.Delay, "delay", 0, "Duration between sending probes to members, in seconds")
-	cmd.Flags().IntVar(&cloud.CloudLoadbalancerHealthMonitorCreateSpec.MaxRetries, "max-retries", 0, "Number of successful checks before changing status to ONLINE")
-	cmd.Flags().IntVar(&cloud.CloudLoadbalancerHealthMonitorCreateSpec.MaxRetriesDown, "max-retries-down", 0, "Number of allowed check failures before changing status to ERROR")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerHealthMonitorCreateSpec.MonitorType, "monitor-type", "", "Type of the monitor (http, https, ping, tcp, tls-hello, udp-connect, sctp)")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerHealthMonitorCreateSpec.Name, "name", "", "Name of the health monitor")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerHealthMonitorCreateSpec.PoolId, "pool-id", "", "Pool ID")
-	cmd.Flags().IntVar(&cloud.CloudLoadbalancerHealthMonitorCreateSpec.Timeout, "timeout", 0, "Maximum time in seconds to connect before timeout")
-
-	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/healthMonitor", "post", cloud.LoadbalancerHealthMonitorCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
 	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 

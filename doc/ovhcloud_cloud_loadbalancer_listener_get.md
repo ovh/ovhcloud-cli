@@ -3,7 +3,7 @@
 Get a specific listener
 
 ```
-ovhcloud cloud loadbalancer listener get <listener_id> [flags]
+ovhcloud cloud loadbalancer listener get <loadbalancer_id> <listener_id> [flags]
 ```
 
 ### Options
