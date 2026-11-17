@@ -20,8 +20,30 @@ jobs:
         run: go get ./...
       - name: Check documentation is up to date
         run: |
+          # Wipe docgen's own output first, so a page it has STOPPED generating
+          # shows up as deleted. Without this the check is one-directional: it
+          # sees a page appear and never sees one that should have gone. That is
+          # not hypothetical — renaming `cloud storage-file` to
+          # `cloud storage file` left 21 pages of the old naming shipped, and
+          # this gate was green through the rename and every commit since.
+          #
+          # Scoped to ovhcloud*.md because doc/ also holds pages nobody
+          # generates — authentication.md and profiles.md are written by hand.
+          # doc/ovhcloud.md is generated but curated, and `make doc` puts it
+          # back on its last line.
+          rm -f doc/ovhcloud*.md
           make doc
-          git diff --exit-code || (echo "Documentation is out of date. Please run 'make doc' and commit the result." && exit 1)
+          # git diff reports tracked files only. docgen writes one page per
+          # command, so a brand new command produces a brand new file, which is
+          # untracked and therefore invisible here: the gate stayed green while
+          # the page was never committed. git status reports untracked files
+          # too, which is the whole point of the check.
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Working tree is not clean after 'make doc'. Please run 'make doc' and commit the result."
+            git status --porcelain
+            git diff
+            exit 1
+          fi
       - name: Build binary
         run: make
       - name: Build WASM binary
