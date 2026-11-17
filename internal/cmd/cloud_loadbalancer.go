@@ -431,7 +431,7 @@ func initPoolMemberSubCommands(poolCmd *cobra.Command) {
 	editSpec := &cloud.CloudLoadbalancerPoolMemberUpdateSpec.TargetSpec
 	memberEditCmd.Flags().StringVar(&editSpec.Name, "name", "", "Name of the member")
 	memberEditCmd.Flags().IntVar(&editSpec.Weight, "weight", 0, "Weight of the member (1-256)")
-	memberEditCmd.Flags().BoolVar(&editSpec.Backup, "backup", false, "Use the member as a backup, only used when all the other members are down")
+	memberEditCmd.Flags().BoolVar(&editSpec.Backup, "backup", false, "Whether this is a backup member, only used when all the other members are down")
 	addInteractiveEditorFlag(memberEditCmd)
 	memberCmd.AddCommand(memberEditCmd)
 
@@ -447,8 +447,31 @@ func getPoolMemberCreationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <loadbalancer_id> <pool_id>",
 		Short: "Add a member to a pool",
-		Run:   cloud.CreateCloudLoadbalancerPoolMember,
-		Args:  cobra.ExactArgs(2),
+		Long: `Use this command to add a member to a pool.
+There are three ways to define the parameters:
+
+1. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud loadbalancer pool member create <loadbalancer_id> <pool_id> --init-file ./params.json
+
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud loadbalancer pool member create <loadbalancer_id> <pool_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file.
+
+2. Using your default text editor:
+
+	ovhcloud cloud loadbalancer pool member create <loadbalancer_id> <pool_id> --editor
+
+3. Using only CLI flags:
+
+	ovhcloud cloud loadbalancer pool member create <loadbalancer_id> <pool_id> --address 10.0.0.10 --protocol-port 80 --name my-member --subnet-id <subnet_id>
+`,
+		Run:  cloud.CreateCloudLoadbalancerPoolMember,
+		Args: cobra.ExactArgs(2),
 	}
 
 	spec := &cloud.CloudLoadbalancerPoolMemberCreateSpec.TargetSpec
@@ -456,7 +479,7 @@ func getPoolMemberCreationCmd() *cobra.Command {
 	cmd.Flags().IntVar(&spec.ProtocolPort, "protocol-port", 0, "Protocol port number of the member")
 	cmd.Flags().StringVar(&spec.Name, "name", "", "Name of the member")
 	cmd.Flags().IntVar(&spec.Weight, "weight", 0, "Weight of the member (1-256)")
-	cmd.Flags().BoolVar(&spec.Backup, "backup", false, "Use the member as a backup, only used when all the other members are down")
+	cmd.Flags().BoolVar(&spec.Backup, "backup", false, "Whether this is a backup member, only used when all the other members are down")
 	cmd.Flags().StringVar(&spec.Subnet.Id, "subnet-id", "", "ID of the subnet of the member")
 
 	addParameterFileFlags(cmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/pool/{poolId}/member", "post", cloud.LoadbalancerPoolMemberCreationExample, nil)
@@ -524,8 +547,32 @@ func getL7PolicyCreationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <loadbalancer_id> <listener_id>",
 		Short: "Create an L7 policy on a listener",
-		Long: `Create an L7 policy on a listener.
-At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor.`,
+		Long: `Use this command to create an L7 policy on a listener, optionally with a rule.
+There are three ways to define the parameters:
+
+1. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --init-file ./params.json
+
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file.
+
+2. Using your default text editor:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --editor
+
+3. Using only CLI flags:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --action REDIRECT_TO_POOL --redirect-pool-id <pool_id> --name my-policy \
+		--rule-type HOST_NAME --rule-compare-type EQUAL_TO --rule-value example.com
+
+  At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor.
+`,
 		Run:  cloud.CreateCloudLoadbalancerL7Policy,
 		Args: cobra.ExactArgs(2),
 	}

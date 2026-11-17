@@ -4,8 +4,32 @@ Create an L7 policy on a listener
 
 ### Synopsis
 
-Create an L7 policy on a listener.
-At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor.
+Use this command to create an L7 policy on a listener, optionally with a rule.
+There are three ways to define the parameters:
+
+1. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --init-file ./params.json
+
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file.
+
+2. Using your default text editor:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --editor
+
+3. Using only CLI flags:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --action REDIRECT_TO_POOL --redirect-pool-id <pool_id> --name my-policy \
+		--rule-type HOST_NAME --rule-compare-type EQUAL_TO --rule-value example.com
+
+  At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor.
+
 
 ```
 ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> [flags]

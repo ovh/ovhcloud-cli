@@ -816,6 +816,22 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolDeleteCmd(assert, require *td.T) {
 
 const membersURL = poolsURL + "/pool-001/member"
 
+func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListTableCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, membersURL,
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "mem-001",
+				"resourceStatus": "READY",
+				"currentState": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 80, "weight": 1, "operatingStatus": "ONLINE"}
+			}
+		]`))
+
+	// The table must read the v2 currentState, not top-level fields
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "ls", "lb-001", "pool-001", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Re(`mem-001\s+│\s+web-1\s+│\s+10\.0\.0\.10\s+│\s+80\s+│\s+1\s+│\s+ONLINE`))
+}
+
 func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet, membersURL,
 		httpmock.NewStringResponder(200, `[

@@ -2,6 +2,32 @@
 
 Add a member to a pool
 
+### Synopsis
+
+Use this command to add a member to a pool.
+There are three ways to define the parameters:
+
+1. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud loadbalancer pool member create <loadbalancer_id> <pool_id> --init-file ./params.json
+
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud loadbalancer pool member create <loadbalancer_id> <pool_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file.
+
+2. Using your default text editor:
+
+	ovhcloud cloud loadbalancer pool member create <loadbalancer_id> <pool_id> --editor
+
+3. Using only CLI flags:
+
+	ovhcloud cloud loadbalancer pool member create <loadbalancer_id> <pool_id> --address 10.0.0.10 --protocol-port 80 --name my-member --subnet-id <subnet_id>
+
+
 ```
 ovhcloud cloud loadbalancer pool member create <loadbalancer_id> <pool_id> [flags]
 ```
@@ -10,7 +36,7 @@ ovhcloud cloud loadbalancer pool member create <loadbalancer_id> <pool_id> [flag
 
 ```
       --address string      IP address of the member
-      --backup              Use the member as a backup, only used when all the other members are down
+      --backup              Whether this is a backup member, only used when all the other members are down
       --editor              Use a text editor to define parameters
       --from-file string    File containing parameters
   -h, --help                help for create

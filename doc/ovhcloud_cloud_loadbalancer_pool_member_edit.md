@@ -9,7 +9,7 @@ ovhcloud cloud loadbalancer pool member edit <loadbalancer_id> <pool_id> <member
 ### Options
 
 ```
-      --backup        Use the member as a backup, only used when all the other members are down
+      --backup        Whether this is a backup member, only used when all the other members are down
       --editor        Use a text editor to define parameters
   -h, --help          help for edit
       --name string   Name of the member

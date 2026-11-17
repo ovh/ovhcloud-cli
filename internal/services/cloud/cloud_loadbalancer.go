@@ -111,7 +111,7 @@ var (
 
 	// Pool
 	poolColumnsToDisplay       = []string{"id", "currentState.name name", "currentState.algorithm algorithm", "currentState.protocol protocol", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
-	poolMemberColumnsToDisplay = []string{"id", "name", "address", "protocolPort", "weight", "operatingStatus"}
+	poolMemberColumnsToDisplay = []string{"id", "currentState.name name", "currentState.address address", "currentState.protocolPort protocolPort", "currentState.weight weight", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
 
 	//go:embed templates/cloud_loadbalancer_pool.tmpl
 	cloudLoadbalancerPoolTemplate string
