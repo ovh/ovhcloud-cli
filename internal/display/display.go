@@ -417,6 +417,14 @@ func OutputError(outputFormat *OutputFormat, message string, params ...any) {
 	}, outputFormat)
 }
 
+// OutputNotice writes an operational note to stderr: something the command is
+// doing, not something it produced. It never touches stdout, so a redirected
+// result stays parsable, and it does not end the command the way an error or
+// a warning does.
+func OutputNotice(message string, params ...any) {
+	fmt.Fprintf(os.Stderr, message+"\n", params...)
+}
+
 func OutputWarning(outputFormat *OutputFormat, message string, params ...any) {
 	resultString := fmt.Sprintf("🟠 "+message, params...)
 	OutputWithFormat(&OutputMessage{
