@@ -9,10 +9,13 @@ ovhcloud cloud instance autobackup create <instance_id> [flags]
 ### Options
 
 ```
-      --cron string    Unix Cron pattern (e.g. '0 0 * * *')
-  -h, --help           help for create
-      --name string    Workflow name
-      --rotation int   Number of backups to keep
+      --cron string                 Unix Cron pattern (e.g. '0 0 * * *')
+      --distant-image-name string   Name of the backup images copied to the distant region
+      --distant-region string       Region to copy each backup to (cross-region backup)
+  -h, --help                        help for create
+      --image-name string           Name prefix of the backup images (defaults to the workflow name)
+      --name string                 Workflow name
+      --rotation int                Number of backups to keep
 ```
 
 ### Options inherited from parent commands

@@ -49,14 +49,23 @@ var (
 	//go:embed templates/cloud_instance_autobackup.tmpl
 	cloudInstanceAutobackupTemplate string
 
-	autobackupColumnsToDisplay = []string{"id", "name", "instanceId", "cron", "rotation", "nextExecutionTime"}
+	autobackupColumnsToDisplay = []string{
+		"id",
+		"currentState.name name",
+		"currentState.cron cron",
+		"currentState.rotation rotation",
+		"currentState.nextExecutionTime nextExecutionTime",
+		"resourceStatus status",
+	}
 
+	// AutobackupCreateParams holds the autobackup creation parameters given as CLI flags.
 	AutobackupCreateParams struct {
-		InstanceID        string `json:"instanceId"`
-		Name              string `json:"name"`
-		Cron              string `json:"cron"`
-		Rotation          int    `json:"rotation"`
-		MaxExecutionCount *int   `json:"maxExecutionCount,omitempty"`
+		Name             string
+		ImageName        string
+		Cron             string
+		Rotation         int
+		DistantRegion    string
+		DistantImageName string
 	}
 
 	//go:embed templates/cloud_instance_group.tmpl
@@ -1035,17 +1044,34 @@ func GetInstanceApplicationAccess(_ *cobra.Command, args []string) {
 
 // Autobackup
 
-func getInstanceRegion(projectID, instanceID string) (string, error) {
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(instanceID))
-	var instance map[string]any
-	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
-		return "", fmt.Errorf("failed to fetch instance details: %w", err)
+func autobackupV2Endpoint(projectID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/compute/autobackup", projectID)
+}
+
+// autobackupInstanceID returns the ID of the instance an API v2 autobackup
+// belongs to, read from currentState with a fallback on targetSpec.
+func autobackupInstanceID(autobackup map[string]any) string {
+	for _, key := range []string{"currentState", "targetSpec"} {
+		spec, _ := autobackup[key].(map[string]any)
+		instance, _ := spec["instance"].(map[string]any)
+		if id, _ := instance["id"].(string); id != "" {
+			return id
+		}
 	}
-	region, ok := instance["region"].(string)
-	if !ok || region == "" {
-		return "", fmt.Errorf("could not determine instance region")
+	return ""
+}
+
+// getInstanceAutobackup fetches an autobackup and checks it belongs to the given instance.
+func getInstanceAutobackup(projectID, instanceID, autobackupID string) (map[string]any, error) {
+	endpoint := fmt.Sprintf("%s/%s", autobackupV2Endpoint(projectID), url.PathEscape(autobackupID))
+	var autobackup map[string]any
+	if err := httpLib.Client.Get(endpoint, &autobackup); err != nil {
+		return nil, fmt.Errorf("error fetching autobackup %q: %w", autobackupID, err)
 	}
-	return region, nil
+	if owner := autobackupInstanceID(autobackup); owner != instanceID {
+		return nil, fmt.Errorf("autobackup %q does not belong to instance %q", autobackupID, instanceID)
+	}
+	return autobackup, nil
 }
 
 func ListAutobackups(_ *cobra.Command, args []string) {
@@ -1055,25 +1081,17 @@ func ListAutobackups(_ *cobra.Command, args []string) {
 		return
 	}
 
-	region, err := getInstanceRegion(projectID, args[0])
+	backups, err := httpLib.FetchArray(autobackupV2Endpoint(projectID), "")
 	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup", projectID, url.PathEscape(region))
-
-	var backups []map[string]any
-	if err := httpLib.Client.Get(endpoint, &backups); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error listing autobackups: %s", err)
 		return
 	}
 
-	// Filter by instance ID
+	// Keep only the autobackups of the given instance
 	filtered := make([]map[string]any, 0)
 	for _, b := range backups {
-		if id, ok := b["instanceId"].(string); ok && id == args[0] {
-			filtered = append(filtered, b)
+		if backup, ok := b.(map[string]any); ok && autobackupInstanceID(backup) == args[0] {
+			filtered = append(filtered, backup)
 		}
 	}
 
@@ -1093,14 +1111,13 @@ func GetAutobackup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	region, err := getInstanceRegion(projectID, args[0])
+	autobackup, err := getInstanceAutobackup(projectID, args[0], args[1])
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup", projectID, url.PathEscape(region))
-	common.ManageObjectRequest(endpoint, args[1], cloudInstanceAutobackupTemplate)
+	display.OutputObject(autobackup, args[1], cloudInstanceAutobackupTemplate, &flags.OutputFormatConfig)
 }
 
 func CreateAutobackup(_ *cobra.Command, args []string) {
@@ -1110,19 +1127,41 @@ func CreateAutobackup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	region, err := getInstanceRegion(projectID, args[0])
+	params := AutobackupCreateParams
+	if (params.DistantRegion == "") != (params.DistantImageName == "") {
+		display.OutputError(&flags.OutputFormatConfig, "--distant-region and --distant-image-name must be given together")
+		return
+	}
+
+	region, err := getInstanceRegionV2(projectID, args[0])
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	params := AutobackupCreateParams
-	params.InstanceID = args[0]
+	// API v1 named the backup images after the workflow: keep this default.
+	imageName := params.ImageName
+	if imageName == "" {
+		imageName = params.Name
+	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup", projectID, url.PathEscape(region))
+	targetSpec := map[string]any{
+		"name":      params.Name,
+		"imageName": imageName,
+		"cron":      params.Cron,
+		"rotation":  params.Rotation,
+		"instance":  map[string]any{"id": args[0]},
+		"location":  map[string]any{"region": region},
+	}
+	if params.DistantRegion != "" {
+		targetSpec["distant"] = map[string]any{
+			"region":    params.DistantRegion,
+			"imageName": params.DistantImageName,
+		}
+	}
 
 	var response map[string]any
-	if err := httpLib.Client.Post(endpoint, params, &response); err != nil {
+	if err := httpLib.Client.Post(autobackupV2Endpoint(projectID), map[string]any{"targetSpec": targetSpec}, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error creating autobackup for instance %q: %s", args[0], err)
 		return
 	}
@@ -1137,14 +1176,13 @@ func DeleteAutobackup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	region, err := getInstanceRegion(projectID, args[0])
-	if err != nil {
+	// Make sure the autobackup belongs to the given instance before deleting it
+	if _, err := getInstanceAutobackup(projectID, args[0], args[1]); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/workflow/backup/%s", projectID, url.PathEscape(region), url.PathEscape(args[1]))
-
+	endpoint := fmt.Sprintf("%s/%s", autobackupV2Endpoint(projectID), url.PathEscape(args[1]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting autobackup %q: %s", args[1], err)
 		return
