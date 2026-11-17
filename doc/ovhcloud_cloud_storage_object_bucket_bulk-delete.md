@@ -1,6 +1,6 @@
 ## ovhcloud cloud storage object bucket bulk-delete
 
-Bulk delete objects in the given bucket
+Bulk delete objects in the given storage container
 
 ```
 ovhcloud cloud storage object bucket bulk-delete <bucket_id> [flags]

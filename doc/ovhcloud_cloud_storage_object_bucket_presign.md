@@ -1,6 +1,6 @@
 ## ovhcloud cloud storage object bucket presign
 
-Generate a presigned URL to download, upload or delete an object of the given bucket
+Generate a presigned URL to download, upload or delete an object in the given storage container
 
 ```
 ovhcloud cloud storage object bucket presign <bucket_id> <object_key> [flags]

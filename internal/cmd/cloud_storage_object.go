@@ -76,7 +76,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 
 	bulkDeleteCmd := &cobra.Command{
 		Use:               "bulk-delete <bucket_id>",
-		Short:             "Bulk delete objects in the given bucket",
+		Short:             "Bulk delete objects in the given storage container",
 		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
 		Run:               cloud.StorageS3BulkDeleteObjects,
 		Args:              cobra.ExactArgs(1),
@@ -91,14 +91,14 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 
 	objectCmd := &cobra.Command{
 		Use:   "object",
-		Short: "Manage objects in the given bucket",
+		Short: "Manage objects in the given storage container",
 	}
 	bucketCmd.AddCommand(objectCmd)
 
 	objectListCmd := &cobra.Command{
 		Use:               "list <bucket_id>",
 		Aliases:           []string{"ls"},
-		Short:             "List objects in the given bucket",
+		Short:             "List objects in the given storage container",
 		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
 		Run:               cloud.ListStorageS3Objects,
 		Args:              cobra.ExactArgs(1),
@@ -110,7 +110,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 
 	objectCmd.AddCommand(&cobra.Command{
 		Use:               "get <bucket_id> <object_key>",
-		Short:             "Get a specific object of the given bucket",
+		Short:             "Get a specific object from the given storage container",
 		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
 		Run:               cloud.GetStorageS3Object,
 		Args:              cobra.ExactArgs(2),
@@ -131,7 +131,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 
 	objectCmd.AddCommand(&cobra.Command{
 		Use:               "delete <bucket_id> <object_key>",
-		Short:             "Delete the given object from the bucket",
+		Short:             "Delete the given object from the storage container",
 		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
 		Run:               cloud.DeleteStorageS3Object,
 		Args:              cobra.ExactArgs(2),
@@ -159,14 +159,14 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 
 	objectVersionCmd := &cobra.Command{
 		Use:   "version",
-		Short: "Manage versions of objects in the given bucket",
+		Short: "Manage versions of objects in the given storage container",
 	}
 	objectCmd.AddCommand(objectVersionCmd)
 
 	objectVersionCmd.AddCommand(withFilterFlag(&cobra.Command{
 		Use:               "list <bucket_id> <object_key>",
 		Aliases:           []string{"ls"},
-		Short:             "List versions of a specific object in the given bucket",
+		Short:             "List versions of a specific object in the given storage container",
 		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
 		Run:               cloud.ListStorageS3ObjectVersions,
 		Args:              cobra.ExactArgs(2),
@@ -174,7 +174,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 
 	objectVersionCmd.AddCommand(&cobra.Command{
 		Use:               "get <bucket_id> <object_key> <version_id>",
-		Short:             "Get a specific version of an object of the given bucket",
+		Short:             "Get a specific version of an object from the given storage container",
 		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
 		Run:               cloud.GetStorageS3ObjectVersion,
 		Args:              cobra.ExactArgs(3),
@@ -195,7 +195,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 
 	objectVersionCmd.AddCommand(&cobra.Command{
 		Use:               "delete <bucket_id> <object_key> <version_id>",
-		Short:             "Delete a specific version of an object from the given bucket",
+		Short:             "Delete a specific version of an object from the storage container",
 		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
 		Run:               cloud.DeleteStorageS3ObjectVersion,
 		Args:              cobra.ExactArgs(3),
@@ -223,7 +223,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 
 	presignCmd := &cobra.Command{
 		Use:               "presign <bucket_id> <object_key>",
-		Short:             "Generate a presigned URL to download, upload or delete an object of the given bucket",
+		Short:             "Generate a presigned URL to download, upload or delete an object in the given storage container",
 		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
 		Run:               cloud.PresignStorageS3,
 		Args:              cobra.ExactArgs(2),

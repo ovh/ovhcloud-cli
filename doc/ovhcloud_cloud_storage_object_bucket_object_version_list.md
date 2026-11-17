@@ -1,6 +1,6 @@
 ## ovhcloud cloud storage object bucket object version list
 
-List versions of a specific object in the given bucket
+List versions of a specific object in the given storage container
 
 ```
 ovhcloud cloud storage object bucket object version list <bucket_id> <object_key> [flags]
@@ -41,5 +41,5 @@ ovhcloud cloud storage object bucket object version list <bucket_id> <object_key
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given bucket
+* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given storage container
 

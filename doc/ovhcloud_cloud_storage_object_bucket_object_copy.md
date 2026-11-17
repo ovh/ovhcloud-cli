@@ -37,5 +37,5 @@ ovhcloud cloud storage object bucket object copy <bucket_id> <object_key> [flags
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket object](ovhcloud_cloud_storage_object_bucket_object.md)	 - Manage objects in the given bucket
+* [ovhcloud cloud storage object bucket object](ovhcloud_cloud_storage_object_bucket_object.md)	 - Manage objects in the given storage container
 

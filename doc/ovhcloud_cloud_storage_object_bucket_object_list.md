@@ -1,6 +1,6 @@
 ## ovhcloud cloud storage object bucket object list
 
-List objects in the given bucket
+List objects in the given storage container
 
 ```
 ovhcloud cloud storage object bucket object list <bucket_id> [flags]
@@ -44,5 +44,5 @@ ovhcloud cloud storage object bucket object list <bucket_id> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket object](ovhcloud_cloud_storage_object_bucket_object.md)	 - Manage objects in the given bucket
+* [ovhcloud cloud storage object bucket object](ovhcloud_cloud_storage_object_bucket_object.md)	 - Manage objects in the given storage container
 

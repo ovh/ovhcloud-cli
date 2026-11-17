@@ -1,6 +1,6 @@
 ## ovhcloud cloud storage object bucket object version delete
 
-Delete a specific version of an object from the given bucket
+Delete a specific version of an object from the storage container
 
 ```
 ovhcloud cloud storage object bucket object version delete <bucket_id> <object_key> <version_id> [flags]
@@ -34,5 +34,5 @@ ovhcloud cloud storage object bucket object version delete <bucket_id> <object_k
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given bucket
+* [ovhcloud cloud storage object bucket object version](ovhcloud_cloud_storage_object_bucket_object_version.md)	 - Manage versions of objects in the given storage container
 
