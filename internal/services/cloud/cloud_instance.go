@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
@@ -62,7 +63,7 @@ var (
 	//go:embed templates/cloud_instance_group.tmpl
 	cloudInstanceGroupTemplate string
 
-	instanceGroupColumnsToDisplay = []string{"id", "name", "type", "region", "instance_ids"}
+	instanceGroupColumnsToDisplay = []string{"id", "currentState.name name", "currentState.policy policy", "currentState.location.region region", "resourceStatus status"}
 
 	InstanceGroupType string
 
@@ -1069,6 +1070,10 @@ func DeleteAutobackup(_ *cobra.Command, args []string) {
 
 // Instance Groups
 
+func instanceGroupV2Endpoint(projectID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/compute/instanceGroup", projectID)
+}
+
 func ListInstanceGroups(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -1076,7 +1081,7 @@ func ListInstanceGroups(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequestNoExpand(fmt.Sprintf("/v1/cloud/project/%s/instance/group", projectID), instanceGroupColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequestNoExpand(instanceGroupV2Endpoint(projectID), instanceGroupColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetInstanceGroup(_ *cobra.Command, args []string) {
@@ -1086,7 +1091,19 @@ func GetInstanceGroup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/instance/group", projectID), args[0], cloudInstanceGroupTemplate)
+	common.ManageObjectRequest(instanceGroupV2Endpoint(projectID), args[0], cloudInstanceGroupTemplate)
+}
+
+// instanceGroupPolicy converts the --type flag value (affinity, anti-affinity)
+// to the API v2 placement policy (AFFINITY, ANTI_AFFINITY).
+func instanceGroupPolicy(groupType string) (string, error) {
+	switch strings.ToLower(groupType) {
+	case "affinity":
+		return "AFFINITY", nil
+	case "anti-affinity", "anti_affinity":
+		return "ANTI_AFFINITY", nil
+	}
+	return "", fmt.Errorf("invalid group type: %q. Use 'affinity' or 'anti-affinity'", groupType)
 }
 
 func CreateInstanceGroup(_ *cobra.Command, args []string) {
@@ -1096,20 +1113,22 @@ func CreateInstanceGroup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if InstanceGroupType != "affinity" && InstanceGroupType != "anti-affinity" {
-		display.OutputError(&flags.OutputFormatConfig, "invalid group type: %q. Use 'affinity' or 'anti-affinity'.", InstanceGroupType)
+	policy, err := instanceGroupPolicy(InstanceGroupType)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/group", projectID)
 	body := map[string]any{
-		"name":   args[0],
-		"region": args[1],
-		"type":   InstanceGroupType,
+		"targetSpec": map[string]any{
+			"name":     args[0],
+			"location": map[string]any{"region": args[1]},
+			"policy":   policy,
+		},
 	}
 
 	var response map[string]any
-	if err := httpLib.Client.Post(endpoint, body, &response); err != nil {
+	if err := httpLib.Client.Post(instanceGroupV2Endpoint(projectID), body, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error creating instance group: %s", err)
 		return
 	}
@@ -1124,7 +1143,7 @@ func DeleteInstanceGroup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/group/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("%s/%s", instanceGroupV2Endpoint(projectID), url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting instance group %q: %s", args[0], err)

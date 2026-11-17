@@ -443,7 +443,7 @@ There are three ways to define the installation parameters:
 	groupCmd.AddCommand(&cobra.Command{
 		Use:               "get <group_id>",
 		Short:             "Get a specific instance group",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance/group"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instanceGroup"),
 		Run:               cloud.GetInstanceGroup,
 		Args:              cobra.ExactArgs(1),
 	})
@@ -460,7 +460,7 @@ There are three ways to define the installation parameters:
 	groupCmd.AddCommand(&cobra.Command{
 		Use:               "delete <group_id>",
 		Short:             "Delete a specific instance group",
-		ValidArgsFunction: completion.CloudResources("/v1/cloud/project/%s/instance/group"),
+		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instanceGroup"),
 		Run:               cloud.DeleteInstanceGroup,
 		Args:              cobra.ExactArgs(1),
 	})
