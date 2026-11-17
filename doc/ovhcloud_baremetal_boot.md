@@ -32,5 +32,6 @@ Manage boot options for the given baremetal
 * [ovhcloud baremetal](ovhcloud_baremetal.md)	 - Retrieve information and manage your Bare Metal services
 * [ovhcloud baremetal boot list](ovhcloud_baremetal_boot_list.md)	 - List boot options for the given baremetal
 * [ovhcloud baremetal boot set](ovhcloud_baremetal_boot_set.md)	 - Configure a boot ID on the given baremetal
+* [ovhcloud baremetal boot set-disk](ovhcloud_baremetal_boot_set-disk.md)	 - Configure the given baremetal to boot on its hard disk
 * [ovhcloud baremetal boot set-script](ovhcloud_baremetal_boot_set-script.md)	 - Configure a boot script on the given baremetal
 
