@@ -278,7 +278,7 @@ func ListVpsAutomatedBackupRestorePoints(_ *cobra.Command, args []string) {
 		})
 	}
 
-	display.RenderTable(pointsMaps, []string{"restorePoint"}, &flags.OutputFormatConfig)
+	common.RenderFilteredTable(pointsMaps, []string{"restorePoint"})
 }
 
 func ListVpsAvailableUpgrades(_ *cobra.Command, args []string) {
