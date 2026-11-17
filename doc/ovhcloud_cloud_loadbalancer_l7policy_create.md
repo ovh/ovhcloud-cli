@@ -1,27 +1,37 @@
 ## ovhcloud cloud loadbalancer l7policy create
 
-Create an L7 policy in the given region
+Create an L7 policy on a listener
+
+### Synopsis
+
+Create an L7 policy on a listener.
+At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor.
 
 ```
-ovhcloud cloud loadbalancer l7policy create <region> [flags]
+ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> [flags]
 ```
 
 ### Options
 
 ```
-      --action string             L7 policy action (redirectToPool, redirectToUrl, redirectPrefix, reject)
-      --description string        Description
-      --editor                    Use a text editor to define parameters
-      --from-file string          File containing parameters
-  -h, --help                      help for create
-      --init-file string          Create a file with example parameters
-      --listener-id string        Listener ID
-      --name string               Name of the L7 policy
-      --position int              Position on the listener
-      --redirect-pool-id string   Redirect pool ID
-      --redirect-prefix string    Redirect prefix URL
-      --redirect-url string       Redirect URL
-      --replace                   Replace parameters file if it already exists
+      --action string              L7 policy action (REDIRECT_TO_POOL, REDIRECT_TO_URL, REDIRECT_PREFIX, REJECT)
+      --description string         Description
+      --editor                     Use a text editor to define parameters
+      --from-file string           File containing parameters
+  -h, --help                       help for create
+      --init-file string           Create a file with example parameters
+      --name string                Name of the L7 policy
+      --position int               Position on the listener
+      --redirect-http-code int     HTTP status code of the redirection (301, 302, 303, 307, 308)
+      --redirect-pool-id string    Pool ID to redirect to
+      --redirect-prefix string     Prefix URL to redirect to
+      --redirect-url string        URL to redirect to
+      --replace                    Replace parameters file if it already exists
+      --rule-compare-type string   Comparison type of the rule (CONTAINS, ENDS_WITH, EQUAL_TO, REGEX, STARTS_WITH)
+      --rule-invert                Invert the result of the rule
+      --rule-key string            Key of the rule, for COOKIE and HEADER rules
+      --rule-type string           Type of the rule (COOKIE, FILE_TYPE, HEADER, HOST_NAME, PATH)
+      --rule-value string          Value to compare the rule with
 ```
 
 ### Options inherited from parent commands

@@ -406,55 +406,60 @@ func initPoolMemberSubCommands(poolCmd *cobra.Command) {
 	poolCmd.AddCommand(memberCmd)
 
 	memberCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <pool_id>",
+		Use:     "list <loadbalancer_id> <pool_id>",
 		Aliases: []string{"ls"},
 		Short:   "List members of a specific pool",
 		Run:     cloud.ListCloudLoadbalancerPoolMembers,
-		Args:    cobra.ExactArgs(1),
+		Args:    cobra.ExactArgs(2),
 	}))
 
 	memberCmd.AddCommand(&cobra.Command{
-		Use:   "get <pool_id> <member_id>",
+		Use:   "get <loadbalancer_id> <pool_id> <member_id>",
 		Short: "Get a specific pool member",
 		Run:   cloud.GetCloudLoadbalancerPoolMember,
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(3),
 	})
 
 	memberCmd.AddCommand(getPoolMemberCreationCmd())
 
 	memberEditCmd := &cobra.Command{
-		Use:   "edit <pool_id> <member_id>",
+		Use:   "edit <loadbalancer_id> <pool_id> <member_id>",
 		Short: "Edit a specific pool member",
 		Run:   cloud.EditCloudLoadbalancerPoolMember,
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(3),
 	}
-	memberEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolMemberUpdateSpec.Name, "name", "", "Name of the member")
-	memberEditCmd.Flags().IntVar(&cloud.CloudLoadbalancerPoolMemberUpdateSpec.Weight, "weight", 0, "Weight of the member (1-256)")
+	editSpec := &cloud.CloudLoadbalancerPoolMemberUpdateSpec.TargetSpec
+	memberEditCmd.Flags().StringVar(&editSpec.Name, "name", "", "Name of the member")
+	memberEditCmd.Flags().IntVar(&editSpec.Weight, "weight", 0, "Weight of the member (1-256)")
+	memberEditCmd.Flags().BoolVar(&editSpec.Backup, "backup", false, "Use the member as a backup, only used when all the other members are down")
 	addInteractiveEditorFlag(memberEditCmd)
 	memberCmd.AddCommand(memberEditCmd)
 
 	memberCmd.AddCommand(&cobra.Command{
-		Use:   "delete <pool_id> <member_id>",
+		Use:   "delete <loadbalancer_id> <pool_id> <member_id>",
 		Short: "Delete a specific pool member",
 		Run:   cloud.DeleteCloudLoadbalancerPoolMember,
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(3),
 	})
 }
 
 func getPoolMemberCreationCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create <pool_id>",
-		Short: "Create member(s) in a specific pool",
+		Use:   "create <loadbalancer_id> <pool_id>",
+		Short: "Add a member to a pool",
 		Run:   cloud.CreateCloudLoadbalancerPoolMember,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 	}
 
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolMemberCreateSpec.Address, "address", "", "IP address of the member")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerPoolMemberCreateSpec.Name, "name", "", "Name of the member")
-	cmd.Flags().IntVar(&cloud.CloudLoadbalancerPoolMemberCreateSpec.ProtocolPort, "protocol-port", 0, "Protocol port number of the member")
-	cmd.Flags().IntVar(&cloud.CloudLoadbalancerPoolMemberCreateSpec.Weight, "weight", 0, "Weight of the member (1-256)")
+	spec := &cloud.CloudLoadbalancerPoolMemberCreateSpec.TargetSpec
+	cmd.Flags().StringVar(&spec.Address, "address", "", "IP address of the member")
+	cmd.Flags().IntVar(&spec.ProtocolPort, "protocol-port", 0, "Protocol port number of the member")
+	cmd.Flags().StringVar(&spec.Name, "name", "", "Name of the member")
+	cmd.Flags().IntVar(&spec.Weight, "weight", 0, "Weight of the member (1-256)")
+	cmd.Flags().BoolVar(&spec.Backup, "backup", false, "Use the member as a backup, only used when all the other members are down")
+	cmd.Flags().StringVar(&spec.Subnet.Id, "subnet-id", "", "ID of the subnet of the member")
 
-	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool/{poolId}/member", "post", cloud.LoadbalancerPoolMemberCreationExample, nil)
+	addParameterFileFlags(cmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/pool/{poolId}/member", "post", cloud.LoadbalancerPoolMemberCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
 	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 
@@ -471,132 +476,76 @@ func initL7PolicySubCommands(loadbalancerCmd *cobra.Command) {
 	loadbalancerCmd.AddCommand(l7PolicyCmd)
 
 	l7PolicyCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list",
+		Use:     "list <loadbalancer_id> <listener_id>",
 		Aliases: []string{"ls"},
-		Short:   "List all L7 policies",
+		Short:   "List the L7 policies of a listener",
 		Run:     cloud.ListCloudLoadbalancerL7Policies,
+		Args:    cobra.ExactArgs(2),
 	}))
 
 	l7PolicyCmd.AddCommand(&cobra.Command{
-		Use:   "get <l7policy_id>",
+		Use:   "get <loadbalancer_id> <listener_id> <l7policy_id>",
 		Short: "Get a specific L7 policy",
 		Run:   cloud.GetCloudLoadbalancerL7Policy,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(3),
 	})
 
 	l7PolicyCmd.AddCommand(getL7PolicyCreationCmd())
 
 	l7PolicyEditCmd := &cobra.Command{
-		Use:   "edit <l7policy_id>",
+		Use:   "edit <loadbalancer_id> <listener_id> <l7policy_id>",
 		Short: "Edit a specific L7 policy",
-		Run:   cloud.EditCloudLoadbalancerL7Policy,
-		Args:  cobra.ExactArgs(1),
+		Long: `Edit a specific L7 policy, including the rules nested in it.
+The flags leave the rules of the policy untouched. To add, change or remove rules, use --editor.`,
+		Run:  cloud.EditCloudLoadbalancerL7Policy,
+		Args: cobra.ExactArgs(3),
 	}
-	l7PolicyEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyUpdateSpec.Action, "action", "", "L7 policy action")
-	l7PolicyEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyUpdateSpec.Description, "description", "", "Description")
-	l7PolicyEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyUpdateSpec.ListenerId, "listener-id", "", "Listener ID")
-	l7PolicyEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyUpdateSpec.Name, "name", "", "Name of the L7 policy")
-	l7PolicyEditCmd.Flags().IntVar(&cloud.CloudLoadbalancerL7PolicyUpdateSpec.Position, "position", 0, "Position on the listener")
-	l7PolicyEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyUpdateSpec.RedirectPoolId, "redirect-pool-id", "", "Redirect pool ID")
-	l7PolicyEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyUpdateSpec.RedirectPrefix, "redirect-prefix", "", "Redirect prefix URL")
-	l7PolicyEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyUpdateSpec.RedirectUrl, "redirect-url", "", "Redirect URL")
+	editSpec := &cloud.CloudLoadbalancerL7PolicyUpdateSpec.TargetSpec
+	l7PolicyEditCmd.Flags().StringVar(&editSpec.Action, "action", "", "L7 policy action (REDIRECT_TO_POOL, REDIRECT_TO_URL, REDIRECT_PREFIX, REJECT)")
+	l7PolicyEditCmd.Flags().StringVar(&editSpec.Name, "name", "", "Name of the L7 policy")
+	l7PolicyEditCmd.Flags().StringVar(&editSpec.Description, "description", "", "Description")
+	l7PolicyEditCmd.Flags().IntVar(&editSpec.Position, "position", 0, "Position on the listener")
+	l7PolicyEditCmd.Flags().StringVar(&editSpec.RedirectPool.Id, "redirect-pool-id", "", "Pool ID to redirect to")
+	l7PolicyEditCmd.Flags().StringVar(&editSpec.RedirectUrl, "redirect-url", "", "URL to redirect to")
+	l7PolicyEditCmd.Flags().StringVar(&editSpec.RedirectPrefix, "redirect-prefix", "", "Prefix URL to redirect to")
+	l7PolicyEditCmd.Flags().IntVar(&editSpec.RedirectHttpCode, "redirect-http-code", 0, "HTTP status code of the redirection (301, 302, 303, 307, 308)")
 	addInteractiveEditorFlag(l7PolicyEditCmd)
 	l7PolicyCmd.AddCommand(l7PolicyEditCmd)
 
 	l7PolicyCmd.AddCommand(&cobra.Command{
-		Use:   "delete <l7policy_id>",
+		Use:   "delete <loadbalancer_id> <listener_id> <l7policy_id>",
 		Short: "Delete a specific L7 policy",
 		Run:   cloud.DeleteCloudLoadbalancerL7Policy,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(3),
 	})
-
-	// L7 Rule sub-commands
-	initL7RuleSubCommands(l7PolicyCmd)
 }
 
 func getL7PolicyCreationCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create <region>",
-		Short: "Create an L7 policy in the given region",
-		Run:   cloud.CreateCloudLoadbalancerL7Policy,
-		Args:  cobra.ExactArgs(1),
+		Use:   "create <loadbalancer_id> <listener_id>",
+		Short: "Create an L7 policy on a listener",
+		Long: `Create an L7 policy on a listener.
+At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor.`,
+		Run:  cloud.CreateCloudLoadbalancerL7Policy,
+		Args: cobra.ExactArgs(2),
 	}
 
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyCreateSpec.Action, "action", "", "L7 policy action (redirectToPool, redirectToUrl, redirectPrefix, reject)")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyCreateSpec.Description, "description", "", "Description")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyCreateSpec.ListenerId, "listener-id", "", "Listener ID")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyCreateSpec.Name, "name", "", "Name of the L7 policy")
-	cmd.Flags().IntVar(&cloud.CloudLoadbalancerL7PolicyCreateSpec.Position, "position", 0, "Position on the listener")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyCreateSpec.RedirectPoolId, "redirect-pool-id", "", "Redirect pool ID")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyCreateSpec.RedirectPrefix, "redirect-prefix", "", "Redirect prefix URL")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7PolicyCreateSpec.RedirectUrl, "redirect-url", "", "Redirect URL")
+	spec := &cloud.CloudLoadbalancerL7PolicyCreateSpec.TargetSpec
+	cmd.Flags().StringVar(&spec.Action, "action", "", "L7 policy action (REDIRECT_TO_POOL, REDIRECT_TO_URL, REDIRECT_PREFIX, REJECT)")
+	cmd.Flags().StringVar(&spec.Name, "name", "", "Name of the L7 policy")
+	cmd.Flags().StringVar(&spec.Description, "description", "", "Description")
+	cmd.Flags().IntVar(&spec.Position, "position", 0, "Position on the listener")
+	cmd.Flags().StringVar(&spec.RedirectPool.Id, "redirect-pool-id", "", "Pool ID to redirect to")
+	cmd.Flags().StringVar(&spec.RedirectUrl, "redirect-url", "", "URL to redirect to")
+	cmd.Flags().StringVar(&spec.RedirectPrefix, "redirect-prefix", "", "Prefix URL to redirect to")
+	cmd.Flags().IntVar(&spec.RedirectHttpCode, "redirect-http-code", 0, "HTTP status code of the redirection (301, 302, 303, 307, 308)")
+	cmd.Flags().StringVar(&spec.Rule.Type, "rule-type", "", "Type of the rule (COOKIE, FILE_TYPE, HEADER, HOST_NAME, PATH)")
+	cmd.Flags().StringVar(&spec.Rule.CompareType, "rule-compare-type", "", "Comparison type of the rule (CONTAINS, ENDS_WITH, EQUAL_TO, REGEX, STARTS_WITH)")
+	cmd.Flags().StringVar(&spec.Rule.Value, "rule-value", "", "Value to compare the rule with")
+	cmd.Flags().StringVar(&spec.Rule.Key, "rule-key", "", "Key of the rule, for COOKIE and HEADER rules")
+	cmd.Flags().BoolVar(&spec.Rule.Invert, "rule-invert", false, "Invert the result of the rule")
 
-	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/l7Policy", "post", cloud.LoadbalancerL7PolicyCreationExample, nil)
-	addInteractiveEditorFlag(cmd)
-	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
-
-	return cmd
-}
-
-func initL7RuleSubCommands(l7PolicyCmd *cobra.Command) {
-	l7RuleCmd := &cobra.Command{
-		Use:   "l7rule",
-		Short: "Manage L7 rules of a loadbalancer L7 policy",
-	}
-	l7PolicyCmd.AddCommand(l7RuleCmd)
-
-	l7RuleCmd.AddCommand(withFilterFlag(&cobra.Command{
-		Use:     "list <l7policy_id>",
-		Aliases: []string{"ls"},
-		Short:   "List L7 rules of a specific L7 policy",
-		Run:     cloud.ListCloudLoadbalancerL7Rules,
-		Args:    cobra.ExactArgs(1),
-	}))
-
-	l7RuleCmd.AddCommand(&cobra.Command{
-		Use:   "get <l7policy_id> <l7rule_id>",
-		Short: "Get a specific L7 rule",
-		Run:   cloud.GetCloudLoadbalancerL7Rule,
-		Args:  cobra.ExactArgs(2),
-	})
-
-	l7RuleCmd.AddCommand(getL7RuleCreationCmd())
-
-	l7RuleEditCmd := &cobra.Command{
-		Use:   "edit <l7policy_id> <l7rule_id>",
-		Short: "Edit a specific L7 rule",
-		Run:   cloud.EditCloudLoadbalancerL7Rule,
-		Args:  cobra.ExactArgs(2),
-	}
-	l7RuleEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleUpdateSpec.CompareType, "compare-type", "", "Comparison type")
-	l7RuleEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleUpdateSpec.Key, "key", "", "Key to use for comparison")
-	l7RuleEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleUpdateSpec.RuleType, "rule-type", "", "Rule type")
-	l7RuleEditCmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleUpdateSpec.Value, "value", "", "Value to compare")
-	addInteractiveEditorFlag(l7RuleEditCmd)
-	l7RuleCmd.AddCommand(l7RuleEditCmd)
-
-	l7RuleCmd.AddCommand(&cobra.Command{
-		Use:   "delete <l7policy_id> <l7rule_id>",
-		Short: "Delete a specific L7 rule",
-		Run:   cloud.DeleteCloudLoadbalancerL7Rule,
-		Args:  cobra.ExactArgs(2),
-	})
-}
-
-func getL7RuleCreationCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "create <l7policy_id>",
-		Short: "Create an L7 rule in a specific L7 policy",
-		Run:   cloud.CreateCloudLoadbalancerL7Rule,
-		Args:  cobra.ExactArgs(1),
-	}
-
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleCreateSpec.CompareType, "compare-type", "", "Comparison type (contains, endsWith, equalTo, regex, startsWith)")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleCreateSpec.Key, "key", "", "Key to use for comparison")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleCreateSpec.RuleType, "rule-type", "", "Rule type (cookie, fileType, header, hostName, path, sslConnHasCert, sslDNField, sslVerifyResult)")
-	cmd.Flags().StringVar(&cloud.CloudLoadbalancerL7RuleCreateSpec.Value, "value", "", "Value to compare")
-
-	addParameterFileFlags(cmd, false, assets.CloudOpenapiSchema, "/cloud/project/{serviceName}/region/{regionName}/loadbalancing/l7Policy/{l7PolicyId}/l7Rule", "post", cloud.LoadbalancerL7RuleCreationExample, nil)
+	addParameterFileFlags(cmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/listener/{listenerId}/l7policy", "post", cloud.LoadbalancerL7PolicyCreationExample, nil)
 	addInteractiveEditorFlag(cmd)
 	markFlagsMutuallyExclusive(cmd, "from-file", "editor")
 

@@ -3,7 +3,7 @@
 Get a specific L7 policy
 
 ```
-ovhcloud cloud loadbalancer l7policy get <l7policy_id> [flags]
+ovhcloud cloud loadbalancer l7policy get <loadbalancer_id> <listener_id> <l7policy_id> [flags]
 ```
 
 ### Options

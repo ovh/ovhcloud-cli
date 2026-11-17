@@ -3,7 +3,7 @@
 Delete a specific L7 policy
 
 ```
-ovhcloud cloud loadbalancer l7policy delete <l7policy_id> [flags]
+ovhcloud cloud loadbalancer l7policy delete <loadbalancer_id> <listener_id> <l7policy_id> [flags]
 ```
 
 ### Options

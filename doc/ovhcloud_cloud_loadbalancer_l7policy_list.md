@@ -1,9 +1,9 @@
 ## ovhcloud cloud loadbalancer l7policy list
 
-List all L7 policies
+List the L7 policies of a listener
 
 ```
-ovhcloud cloud loadbalancer l7policy list [flags]
+ovhcloud cloud loadbalancer l7policy list <loadbalancer_id> <listener_id> [flags]
 ```
 
 ### Options

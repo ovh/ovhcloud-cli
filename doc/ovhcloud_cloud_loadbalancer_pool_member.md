@@ -31,7 +31,7 @@ Manage members of a loadbalancer pool
 ### SEE ALSO
 
 * [ovhcloud cloud loadbalancer pool](ovhcloud_cloud_loadbalancer_pool.md)	 - Manage pools of loadbalancers
-* [ovhcloud cloud loadbalancer pool member create](ovhcloud_cloud_loadbalancer_pool_member_create.md)	 - Create member(s) in a specific pool
+* [ovhcloud cloud loadbalancer pool member create](ovhcloud_cloud_loadbalancer_pool_member_create.md)	 - Add a member to a pool
 * [ovhcloud cloud loadbalancer pool member delete](ovhcloud_cloud_loadbalancer_pool_member_delete.md)	 - Delete a specific pool member
 * [ovhcloud cloud loadbalancer pool member edit](ovhcloud_cloud_loadbalancer_pool_member_edit.md)	 - Edit a specific pool member
 * [ovhcloud cloud loadbalancer pool member get](ovhcloud_cloud_loadbalancer_pool_member_get.md)	 - Get a specific pool member

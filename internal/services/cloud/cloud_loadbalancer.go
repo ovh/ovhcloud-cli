@@ -6,13 +6,13 @@ package cloud
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
-	filtersLib "github.com/ovh/ovhcloud-cli/internal/filters"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
@@ -145,66 +145,54 @@ var (
 	}
 
 	CloudLoadbalancerPoolMemberUpdateSpec struct {
-		Name   string `json:"name,omitempty"`
-		Weight int    `json:"weight,omitempty"`
+		TargetSpec struct {
+			Backup bool   `json:"backup,omitempty"`
+			Name   string `json:"name,omitempty"`
+			Weight int    `json:"weight,omitempty"`
+		} `json:"targetSpec"`
 	}
 
-	CloudLoadbalancerPoolMemberCreateSpec cloudLoadbalancerPoolMemberCreateSpec
+	CloudLoadbalancerPoolMemberCreateSpec struct {
+		TargetSpec struct {
+			Address      string `json:"address,omitempty"`
+			Backup       bool   `json:"backup,omitempty"`
+			Name         string `json:"name,omitempty"`
+			ProtocolPort int    `json:"protocolPort,omitempty"`
+			Subnet       struct {
+				Id string `json:"id,omitempty"`
+			} `json:"subnet,omitzero"`
+			Weight int `json:"weight,omitempty"`
+		} `json:"targetSpec"`
+	}
 
-	// L7 Policy & Rule
-	l7PolicyColumnsToDisplay = []string{"id", "name", "action", "listenerId", "position", "operatingStatus"}
-	l7RuleColumnsToDisplay   = []string{"id", "ruleType", "compareType", "value", "key", "invert"}
+	// L7 Policy
+	l7PolicyColumnsToDisplay = []string{"id", "currentState.name name", "currentState.action action", "currentState.position position", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
 
 	//go:embed templates/cloud_loadbalancer_l7policy.tmpl
 	cloudLoadbalancerL7PolicyTemplate string
 
-	//go:embed templates/cloud_loadbalancer_l7rule.tmpl
-	cloudLoadbalancerL7RuleTemplate string
-
 	//go:embed parameter-samples/loadbalancer-l7policy-create.json
 	LoadbalancerL7PolicyCreationExample string
 
-	//go:embed parameter-samples/loadbalancer-l7rule-create.json
-	LoadbalancerL7RuleCreationExample string
-
 	CloudLoadbalancerL7PolicyCreateSpec struct {
-		Action           string `json:"action,omitempty"`
-		Description      string `json:"description,omitempty"`
-		ListenerId       string `json:"listenerId,omitempty"`
-		Name             string `json:"name,omitempty"`
-		Position         int    `json:"position,omitempty"`
-		RedirectHttpCode int    `json:"redirectHttpCode,omitempty"`
-		RedirectPoolId   string `json:"redirectPoolId,omitempty"`
-		RedirectPrefix   string `json:"redirectPrefix,omitempty"`
-		RedirectUrl      string `json:"redirectUrl,omitempty"`
+		TargetSpec l7PolicyTargetSpecParams `json:"targetSpec"`
 	}
 
+	// CloudLoadbalancerL7PolicyUpdateSpec carries no rule: the rules of a policy are
+	// kept as is unless they are edited with --editor or --from-file.
 	CloudLoadbalancerL7PolicyUpdateSpec struct {
-		Action           string `json:"action,omitempty"`
-		Description      string `json:"description,omitempty"`
-		ListenerId       string `json:"listenerId,omitempty"`
-		Name             string `json:"name,omitempty"`
-		Position         int    `json:"position,omitempty"`
-		RedirectHttpCode int    `json:"redirectHttpCode,omitempty"`
-		RedirectPoolId   string `json:"redirectPoolId,omitempty"`
-		RedirectPrefix   string `json:"redirectPrefix,omitempty"`
-		RedirectUrl      string `json:"redirectUrl,omitempty"`
-	}
-
-	CloudLoadbalancerL7RuleCreateSpec struct {
-		CompareType string `json:"compareType,omitempty"`
-		Invert      bool   `json:"invert,omitempty"`
-		Key         string `json:"key,omitempty"`
-		RuleType    string `json:"ruleType,omitempty"`
-		Value       string `json:"value,omitempty"`
-	}
-
-	CloudLoadbalancerL7RuleUpdateSpec struct {
-		CompareType string `json:"compareType,omitempty"`
-		Invert      bool   `json:"invert,omitempty"`
-		Key         string `json:"key,omitempty"`
-		RuleType    string `json:"ruleType,omitempty"`
-		Value       string `json:"value,omitempty"`
+		TargetSpec struct {
+			Action           string `json:"action,omitempty"`
+			Description      string `json:"description,omitempty"`
+			Name             string `json:"name,omitempty"`
+			Position         int    `json:"position,omitempty"`
+			RedirectHttpCode int    `json:"redirectHttpCode,omitempty"`
+			RedirectPool     struct {
+				Id string `json:"id,omitempty"`
+			} `json:"redirectPool,omitzero"`
+			RedirectPrefix string `json:"redirectPrefix,omitempty"`
+			RedirectUrl    string `json:"redirectUrl,omitempty"`
+		} `json:"targetSpec"`
 	}
 
 	// Log
@@ -279,11 +267,52 @@ func healthMonitorMissingError(missing []string, noneYet bool) error {
 	return fmt.Errorf("incomplete health monitor, the following parameters are required: %s", list)
 }
 
-type cloudLoadbalancerPoolMemberCreateSpec struct {
-	Address      string `json:"address,omitempty"`
-	Name         string `json:"name,omitempty"`
-	ProtocolPort int    `json:"protocolPort,omitempty"`
-	Weight       int    `json:"weight,omitempty"`
+// L7PolicyRuleParams is the single rule that can be given with flags when creating an L7 policy.
+type L7PolicyRuleParams struct {
+	CompareType string `json:"compareType,omitempty"`
+	Invert      bool   `json:"invert,omitempty"`
+	Key         string `json:"key,omitempty"`
+	Type        string `json:"type,omitempty"`
+	Value       string `json:"value,omitempty"`
+}
+
+func (r *L7PolicyRuleParams) isSet() bool {
+	return *r != L7PolicyRuleParams{}
+}
+
+func (r *L7PolicyRuleParams) upperCase() {
+	r.CompareType = strings.ToUpper(r.CompareType)
+	r.Type = strings.ToUpper(r.Type)
+}
+
+// l7PolicyTargetSpecParams is the target spec of an L7 policy created with flags.
+type l7PolicyTargetSpecParams struct {
+	Action           string `json:"action,omitempty"`
+	Description      string `json:"description,omitempty"`
+	Name             string `json:"name,omitempty"`
+	Position         int    `json:"position,omitempty"`
+	RedirectHttpCode int    `json:"redirectHttpCode,omitempty"`
+	RedirectPool     struct {
+		Id string `json:"id,omitempty"`
+	} `json:"redirectPool,omitzero"`
+	RedirectPrefix string `json:"redirectPrefix,omitempty"`
+	RedirectUrl    string `json:"redirectUrl,omitempty"`
+
+	// Rule is the single rule given with flags, sent as the only element of "rules".
+	Rule L7PolicyRuleParams `json:"-"`
+}
+
+// MarshalJSON sends the rule given with flags as the "rules" array expected by the API.
+func (t l7PolicyTargetSpecParams) MarshalJSON() ([]byte, error) {
+	type alias l7PolicyTargetSpecParams
+	out := struct {
+		alias
+		Rules []L7PolicyRuleParams `json:"rules,omitempty"`
+	}{alias: alias(t)}
+	if t.Rule.isSet() {
+		out.Rules = []L7PolicyRuleParams{t.Rule}
+	}
+	return json.Marshal(out)
 }
 
 // ---------------------------------------------------------------------------
@@ -309,62 +338,6 @@ func locateLoadbalancer(projectID, loadbalancerID string) (string, map[string]an
 	}
 
 	return "", nil, fmt.Errorf("no loadbalancer found with id %s", loadbalancerID)
-}
-
-// locateLoadbalancingResource searches for a loadbalancing resource by type and ID across all regions.
-// resourceType is e.g. "pool", "l7Policy".
-func locateLoadbalancingResource(projectID, resourceType, resourceID string) (string, map[string]any, error) {
-	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "octavialoadbalancer")
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to fetch regions with loadbalancer feature available: %w", err)
-	}
-
-	for _, region := range regions {
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/%s/%s",
-			projectID, url.PathEscape(region.(string)), resourceType, url.PathEscape(resourceID))
-
-		var resource map[string]any
-		if err := httpLib.Client.Get(endpoint, &resource); err == nil {
-			return region.(string), resource, nil
-		}
-	}
-
-	return "", nil, fmt.Errorf("no %s found with id %s", resourceType, resourceID)
-}
-
-// listLoadbalancingResources fetches a loadbalancing resource type across all regions in parallel.
-func listLoadbalancingResources(resourceType string, columnsToDisplay []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	regions, err := getCloudRegionsWithFeatureAvailable(projectID, "octavialoadbalancer")
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch regions with loadbalancer feature available: %s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region", projectID)
-	containers, err := httpLib.FetchObjectsParallel[[]map[string]any](endpoint+"/%s/loadbalancing/"+resourceType, regions, true)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch %s: %s", resourceType, err)
-		return
-	}
-
-	var allResources []map[string]any
-	for _, regionResources := range containers {
-		allResources = append(allResources, regionResources...)
-	}
-
-	allResources, err = filtersLib.FilterLines(allResources, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
-	}
-
-	display.RenderTable(allResources, columnsToDisplay, &flags.OutputFormatConfig)
 }
 
 // ---------------------------------------------------------------------------
@@ -773,6 +746,10 @@ func DeleteCloudLoadbalancerPool(_ *cobra.Command, args []string) {
 // Pool Member
 // ---------------------------------------------------------------------------
 
+func loadbalancerPoolMemberPath(projectID, loadbalancerID, poolID string) string {
+	return fmt.Sprintf("%s/%s/member", loadbalancerPoolPath(projectID, loadbalancerID), url.PathEscape(poolID))
+}
+
 func ListCloudLoadbalancerPoolMembers(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -780,16 +757,7 @@ func ListCloudLoadbalancerPoolMembers(_ *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancingResource(projectID, "pool", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]))
-
-	common.ManageListRequestNoExpand(endpoint, poolMemberColumnsToDisplay, flags.GenericFilters)
+	common.ManageListRequestNoExpand(loadbalancerPoolMemberPath(projectID, args[0], args[1]), poolMemberColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCloudLoadbalancerPoolMember(_ *cobra.Command, args []string) {
@@ -799,22 +767,7 @@ func GetCloudLoadbalancerPoolMember(_ *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancingResource(projectID, "pool", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member/%s",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]), url.PathEscape(args[1]))
-
-	var member map[string]any
-	if err := httpLib.Client.Get(endpoint, &member); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch pool member: %s", err)
-		return
-	}
-
-	display.OutputObject(member, args[1], cloudLoadbalancerPoolMemberTemplate, &flags.OutputFormatConfig)
+	common.ManageObjectRequest(loadbalancerPoolMemberPath(projectID, args[0], args[1]), args[2], cloudLoadbalancerPoolMemberTemplate)
 }
 
 func CreateCloudLoadbalancerPoolMember(cmd *cobra.Command, args []string) {
@@ -824,51 +777,21 @@ func CreateCloudLoadbalancerPoolMember(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancingResource(projectID, "pool", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]))
-
-	// When using CLI flags (not --from-file or --editor), wrap the single member
-	// into the members array expected by the API, and POST directly.
-	// For --from-file/--editor, fall back to CreateResource which handles those input methods.
-	if !flags.ParametersViaEditor && flags.ParametersFile == "" &&
-		(CloudLoadbalancerPoolMemberCreateSpec.Address != "" || CloudLoadbalancerPoolMemberCreateSpec.ProtocolPort != 0) {
-		body := struct {
-			Members []cloudLoadbalancerPoolMemberCreateSpec `json:"members"`
-		}{
-			Members: []cloudLoadbalancerPoolMemberCreateSpec{CloudLoadbalancerPoolMemberCreateSpec},
-		}
-
-		var result map[string]any
-		if err := httpLib.Client.Post(endpoint, body, &result); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to create pool member: %s", err)
-			return
-		}
-
-		display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Pool member(s) created successfully")
-		return
-	}
-
 	result, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool/{poolId}/member",
-		endpoint,
+		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/pool/{poolId}/member",
+		loadbalancerPoolMemberPath(projectID, args[0], args[1]),
 		LoadbalancerPoolMemberCreationExample,
-		struct{}{},
-		assets.CloudOpenapiSchema,
-		nil,
+		CloudLoadbalancerPoolMemberCreateSpec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec.address", "targetSpec.protocolPort"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create pool member: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Pool member(s) created successfully")
+	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ Pool member created successfully (ID: %s)", result["id"])
 }
 
 func EditCloudLoadbalancerPoolMember(cmd *cobra.Command, args []string) {
@@ -878,19 +801,12 @@ func EditCloudLoadbalancerPoolMember(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancingResource(projectID, "pool", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
 	if err := common.EditResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/pool/{poolId}/member/{memberId}",
-		fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member/%s",
-			projectID, url.PathEscape(region), url.PathEscape(args[0]), url.PathEscape(args[1])),
+		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/pool/{poolId}/member/{memberId}",
+		fmt.Sprintf("%s/%s", loadbalancerPoolMemberPath(projectID, args[0], args[1]), url.PathEscape(args[2])),
 		CloudLoadbalancerPoolMemberUpdateSpec,
-		assets.CloudOpenapiSchema,
+		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -904,29 +820,31 @@ func DeleteCloudLoadbalancerPoolMember(_ *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancingResource(projectID, "pool", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/pool/%s/member/%s",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]), url.PathEscape(args[1]))
-
+	endpoint := fmt.Sprintf("%s/%s", loadbalancerPoolMemberPath(projectID, args[0], args[1]), url.PathEscape(args[2]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete pool member: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Pool member %s deleted successfully", args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Pool member %s deleted successfully", args[2])
 }
 
 // ---------------------------------------------------------------------------
 // L7 Policy
 // ---------------------------------------------------------------------------
 
-func ListCloudLoadbalancerL7Policies(_ *cobra.Command, _ []string) {
-	listLoadbalancingResources("l7Policy", l7PolicyColumnsToDisplay)
+func loadbalancerL7PolicyPath(projectID, loadbalancerID, listenerID string) string {
+	return fmt.Sprintf("%s/%s/l7policy", loadbalancerListenerPath(projectID, loadbalancerID), url.PathEscape(listenerID))
+}
+
+func ListCloudLoadbalancerL7Policies(_ *cobra.Command, args []string) {
+	projectID, err := getConfiguredCloudProject()
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
+	common.ManageListRequestNoExpand(loadbalancerL7PolicyPath(projectID, args[0], args[1]), l7PolicyColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetCloudLoadbalancerL7Policy(_ *cobra.Command, args []string) {
@@ -936,13 +854,7 @@ func GetCloudLoadbalancerL7Policy(_ *cobra.Command, args []string) {
 		return
 	}
 
-	_, policy, err := locateLoadbalancingResource(projectID, "l7Policy", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	display.OutputObject(policy, args[0], cloudLoadbalancerL7PolicyTemplate, &flags.OutputFormatConfig)
+	common.ManageObjectRequest(loadbalancerL7PolicyPath(projectID, args[0], args[1]), args[2], cloudLoadbalancerL7PolicyTemplate)
 }
 
 func CreateCloudLoadbalancerL7Policy(cmd *cobra.Command, args []string) {
@@ -952,18 +864,19 @@ func CreateCloudLoadbalancerL7Policy(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	region := args[0]
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy",
-		projectID, url.PathEscape(region))
+	// API v2 expects upper case enum values
+	spec := &CloudLoadbalancerL7PolicyCreateSpec.TargetSpec
+	spec.Action = strings.ToUpper(spec.Action)
+	spec.Rule.upperCase()
 
 	result, err := common.CreateResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/l7Policy",
-		endpoint,
+		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/listener/{listenerId}/l7policy",
+		loadbalancerL7PolicyPath(projectID, args[0], args[1]),
 		LoadbalancerL7PolicyCreationExample,
 		CloudLoadbalancerL7PolicyCreateSpec,
-		assets.CloudOpenapiSchema,
-		[]string{"action", "listenerId"},
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec.action"},
 	)
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to create L7 policy: %s", err)
@@ -980,19 +893,15 @@ func EditCloudLoadbalancerL7Policy(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancingResource(projectID, "l7Policy", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
+	// API v2 expects upper case enum values. Rules are only editable with --editor or --from-file.
+	CloudLoadbalancerL7PolicyUpdateSpec.TargetSpec.Action = strings.ToUpper(CloudLoadbalancerL7PolicyUpdateSpec.TargetSpec.Action)
 
 	if err := common.EditResource(
 		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/l7Policy/{l7PolicyId}",
-		fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s",
-			projectID, url.PathEscape(region), url.PathEscape(args[0])),
+		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/listener/{listenerId}/l7policy/{l7PolicyId}",
+		fmt.Sprintf("%s/%s", loadbalancerL7PolicyPath(projectID, args[0], args[1]), url.PathEscape(args[2])),
 		CloudLoadbalancerL7PolicyUpdateSpec,
-		assets.CloudOpenapiSchema,
+		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
@@ -1006,152 +915,13 @@ func DeleteCloudLoadbalancerL7Policy(_ *cobra.Command, args []string) {
 		return
 	}
 
-	region, _, err := locateLoadbalancingResource(projectID, "l7Policy", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]))
-
+	endpoint := fmt.Sprintf("%s/%s", loadbalancerL7PolicyPath(projectID, args[0], args[1]), url.PathEscape(args[2]))
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete L7 policy: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ L7 policy %s deleted successfully", args[0])
-}
-
-// ---------------------------------------------------------------------------
-// L7 Rule
-// ---------------------------------------------------------------------------
-
-func ListCloudLoadbalancerL7Rules(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	region, _, err := locateLoadbalancingResource(projectID, "l7Policy", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s/l7Rule",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]))
-
-	common.ManageListRequestNoExpand(endpoint, l7RuleColumnsToDisplay, flags.GenericFilters)
-}
-
-func GetCloudLoadbalancerL7Rule(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	region, _, err := locateLoadbalancingResource(projectID, "l7Policy", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s/l7Rule/%s",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]), url.PathEscape(args[1]))
-
-	var rule map[string]any
-	if err := httpLib.Client.Get(endpoint, &rule); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch L7 rule: %s", err)
-		return
-	}
-
-	display.OutputObject(rule, args[1], cloudLoadbalancerL7RuleTemplate, &flags.OutputFormatConfig)
-}
-
-func CreateCloudLoadbalancerL7Rule(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	region, _, err := locateLoadbalancingResource(projectID, "l7Policy", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s/l7Rule",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]))
-
-	result, err := common.CreateResource(
-		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/l7Policy/{l7PolicyId}/l7Rule",
-		endpoint,
-		LoadbalancerL7RuleCreationExample,
-		CloudLoadbalancerL7RuleCreateSpec,
-		assets.CloudOpenapiSchema,
-		nil,
-	)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to create L7 rule: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, result, "✅ L7 rule created successfully (ID: %s)", result["id"])
-}
-
-func EditCloudLoadbalancerL7Rule(cmd *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	region, _, err := locateLoadbalancingResource(projectID, "l7Policy", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	if err := common.EditResource(
-		cmd,
-		"/cloud/project/{serviceName}/region/{regionName}/loadbalancing/l7Policy/{l7PolicyId}/l7Rule/{l7RuleId}",
-		fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s/l7Rule/%s",
-			projectID, url.PathEscape(region), url.PathEscape(args[0]), url.PathEscape(args[1])),
-		CloudLoadbalancerL7RuleUpdateSpec,
-		assets.CloudOpenapiSchema,
-	); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-}
-
-func DeleteCloudLoadbalancerL7Rule(_ *cobra.Command, args []string) {
-	projectID, err := getConfiguredCloudProject()
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	region, _, err := locateLoadbalancingResource(projectID, "l7Policy", args[0])
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "%s", err)
-		return
-	}
-
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/loadbalancing/l7Policy/%s/l7Rule/%s",
-		projectID, url.PathEscape(region), url.PathEscape(args[0]), url.PathEscape(args[1]))
-
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to delete L7 rule: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ L7 rule %s deleted successfully", args[1])
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ L7 policy %s deleted successfully", args[2])
 }
 
 // ---------------------------------------------------------------------------

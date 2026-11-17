@@ -811,119 +811,170 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolDeleteCmd(assert, require *td.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Pool Member – list
+// Pool Member
 // ---------------------------------------------------------------------------
 
+const membersURL = poolsURL + "/pool-001/member"
+
 func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	// Locate the pool first
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001",
-		httpmock.NewStringResponder(200, `{"id":"pool-001"}`))
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001/member",
+	httpmock.RegisterResponder(http.MethodGet, membersURL,
 		httpmock.NewStringResponder(200, `[
 			{
 				"id": "mem-001",
-				"name": "backend-1",
-				"address": "10.0.0.10",
-				"protocolPort": 8080,
-				"weight": 1,
-				"operatingStatus": "online"
-			},
-			{
-				"id": "mem-002",
-				"name": "backend-2",
-				"address": "10.0.0.11",
-				"protocolPort": 8080,
-				"weight": 2,
-				"operatingStatus": "online"
+				"resourceStatus": "READY",
+				"currentState": {
+					"name": "web-1",
+					"address": "10.0.0.10",
+					"protocolPort": 80,
+					"weight": 1,
+					"operatingStatus": "ONLINE"
+				}
 			}
 		]`))
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "ls", "pool-001", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "ls", "lb-001", "pool-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
 			"id": "mem-001",
-			"name": "backend-1",
-			"address": "10.0.0.10",
-			"protocolPort": 8080,
-			"weight": 1,
-			"operatingStatus": "online"
-		},
-		{
-			"id": "mem-002",
-			"name": "backend-2",
-			"address": "10.0.0.11",
-			"protocolPort": 8080,
-			"weight": 2,
-			"operatingStatus": "online"
+			"resourceStatus": "READY",
+			"currentState": {
+				"name": "web-1",
+				"address": "10.0.0.10",
+				"protocolPort": 80,
+				"weight": 1,
+				"operatingStatus": "ONLINE"
+			}
 		}
 	]`))
 }
 
-// ---------------------------------------------------------------------------
-// Pool Member – get
-// ---------------------------------------------------------------------------
-
 func (ms *MockSuite) TestCloudLoadbalancerPoolMemberGetCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001",
-		httpmock.NewStringResponder(200, `{"id":"pool-001"}`))
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001/member/mem-001",
+	httpmock.RegisterResponder(http.MethodGet, membersURL+"/mem-001",
 		httpmock.NewStringResponder(200, `{
 			"id": "mem-001",
-			"name": "backend-1",
-			"address": "10.0.0.10",
-			"protocolPort": 8080,
-			"weight": 1,
-			"operatingStatus": "online",
-			"provisioningStatus": "active"
+			"resourceStatus": "READY",
+			"createdAt": "2026-11-10T10:00:00Z",
+			"updatedAt": "2026-11-10T10:05:00Z",
+			"currentState": {
+				"name": "web-1",
+				"address": "10.0.0.10",
+				"protocolPort": 80,
+				"weight": 2,
+				"backup": true,
+				"operatingStatus": "ONLINE",
+				"provisioningStatus": "ACTIVE",
+				"subnet": {"id": "sub-001"}
+			}
 		}`))
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "get", "pool-001", "mem-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "get", "lb-001", "pool-001", "mem-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
   # 👤 Pool member mem-001
 
-  *backend-1*
+  *web-1*
 
   ## General information
 
+  **ID**:                  mem-001
+  **Status**:              READY
   **Address**:             10.0.0.10
-  **Protocol port**:       8080
-  **Weight**:              1
-  **Operating status**:    online
-  **Provisioning status**: active
+  **Protocol port**:       80
+  **Weight**:              2
+  **Backup**:              true
+  **Operating status**:    ONLINE
+  **Provisioning status**: ACTIVE
+  **Subnet ID**:           sub-001
+  **Creation date**:       2026-11-10T10:00:00Z
+  **Update date**:         2026-11-10T10:05:00Z
 
-  💡 Use option --json or --yaml to get the raw output with all information
+  💡 Use option -o json or -o yaml to get the raw output with all information
 
 `)
 }
 
-// ---------------------------------------------------------------------------
-// Pool Member – delete
-// ---------------------------------------------------------------------------
+func (ms *MockSuite) TestCloudLoadbalancerPoolMemberGetCreatingCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, membersURL+"/mem-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "mem-001",
+			"resourceStatus": "CREATING",
+			"createdAt": "2026-11-10T10:00:00Z",
+			"updatedAt": "2026-11-10T10:00:00Z",
+			"currentState": null,
+			"targetSpec": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 8080}
+		}`))
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "get", "lb-001", "pool-001", "mem-001", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("*web-1*"))
+	assert.Cmp(out, td.Re(`\*\*Address\*\*:\s+10\.0\.0\.10`))
+	assert.Cmp(out, td.Re(`\*\*Operating status\*\*:\s+\*not yet available\*`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolMemberCreateCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, membersURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"address": "10.0.0.10",
+				"protocolPort": 80,
+				"name": "web-1",
+				"weight": 2,
+				"backup": true,
+				"subnet": {"id": "sub-001"}
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "mem-001"}`),
+	)
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "create", "lb-001", "pool-001",
+		"--cloud-project", "fakeProjectID",
+		"--address", "10.0.0.10",
+		"--protocol-port", "80",
+		"--name", "web-1",
+		"--weight", "2",
+		"--backup",
+		"--subnet-id", "sub-001",
+		"-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Pool member created successfully (ID: mem-001)", "details": {"id": "mem-001"}}`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolMemberCreateMissingAddressCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "create", "lb-001", "pool-001",
+		"--cloud-project", "fakeProjectID",
+		"--protocol-port", "80")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`targetSpec.address`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolMemberEditCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, membersURL+"/mem-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "mem-001",
+			"checksum": "abc",
+			"targetSpec": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 80, "weight": 1}
+		}`))
+
+	httpmock.RegisterMatcherResponder(http.MethodPut, membersURL+"/mem-001",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc",
+			"targetSpec": {"name": "web-1", "weight": 5}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "mem-001"}`),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "edit", "lb-001", "pool-001", "mem-001",
+		"--cloud-project", "fakeProjectID",
+		"--weight", "5")
+	require.CmpNoError(err)
+}
 
 func (ms *MockSuite) TestCloudLoadbalancerPoolMemberDeleteCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001",
-		httpmock.NewStringResponder(200, `{"id":"pool-001"}`))
-
-	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001/member/mem-001",
+	httpmock.RegisterResponder(http.MethodDelete, membersURL+"/mem-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "delete", "pool-001", "mem-001", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "delete", "lb-001", "pool-001", "mem-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Pool member mem-001 deleted successfully"
@@ -931,277 +982,191 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberDeleteCmd(assert, require *t
 }
 
 // ---------------------------------------------------------------------------
-// Pool Member – create with flags
+// L7 Policy
 // ---------------------------------------------------------------------------
 
-func (ms *MockSuite) TestCloudLoadbalancerPoolMemberCreateWithFlagsCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	// Locate pool
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001",
-		httpmock.NewStringResponder(200, `{"id":"pool-001"}`))
-
-	httpmock.RegisterMatcherResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001/member",
-		tdhttpmock.JSONBody(td.JSON(`{
-			"members": [
-				{
-					"address": "10.0.0.42",
-					"name": "my-member",
-					"protocolPort": 8080,
-					"weight": 5
-				}
-			]
-		}`)),
-		httpmock.NewStringResponder(200, `{
-			"members": [
-				{
-					"id": "mem-new-001",
-					"address": "10.0.0.42",
-					"name": "my-member",
-					"protocolPort": 8080,
-					"weight": 5,
-					"operatingStatus": "online",
-					"provisioningStatus": "active"
-				}
-			]
-		}`),
-	)
-
-	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "create", "pool-001",
-		"--cloud-project", "fakeProjectID",
-		"--address", "10.0.0.42",
-		"--name", "my-member",
-		"--protocol-port", "8080",
-		"--weight", "5",
-		"-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{
-		"message": "✅ Pool member(s) created successfully",
-		"details": {
-			"members": [
-				{
-					"id": "mem-new-001",
-					"address": "10.0.0.42",
-					"name": "my-member",
-					"protocolPort": 8080,
-					"weight": 5,
-					"operatingStatus": "online",
-					"provisioningStatus": "active"
-				}
-			]
-		}
-	}`))
-}
-
-// ---------------------------------------------------------------------------
-// L7 Policy – list
-// ---------------------------------------------------------------------------
+const l7PoliciesURL = listenersURL + "/lis-001/l7policy"
 
 func (ms *MockSuite) TestCloudLoadbalancerL7PolicyListCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy",
+	httpmock.RegisterResponder(http.MethodGet, l7PoliciesURL,
 		httpmock.NewStringResponder(200, `[
 			{
-				"id": "l7p-001",
-				"name": "my-policy",
-				"action": "redirectToPool",
-				"listenerId": "lis-001",
-				"position": 1,
-				"operatingStatus": "online"
+				"id": "pol-001",
+				"resourceStatus": "READY",
+				"currentState": {
+					"name": "to-api",
+					"action": "REDIRECT_TO_POOL",
+					"position": 1,
+					"operatingStatus": "ONLINE",
+					"provisioningStatus": "ACTIVE"
+				}
 			}
 		]`))
 
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/l7Policy",
-		httpmock.NewStringResponder(200, `[]`))
-
-	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "ls", "lb-001", "lis-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
-			"id": "l7p-001",
-			"name": "my-policy",
-			"action": "redirectToPool",
-			"listenerId": "lis-001",
-			"position": 1,
-			"operatingStatus": "online"
+			"id": "pol-001",
+			"resourceStatus": "READY",
+			"currentState": {
+				"name": "to-api",
+				"action": "REDIRECT_TO_POOL",
+				"position": 1,
+				"operatingStatus": "ONLINE",
+				"provisioningStatus": "ACTIVE"
+			}
 		}
 	]`))
 }
-
-// ---------------------------------------------------------------------------
-// L7 Policy – get
-// ---------------------------------------------------------------------------
 
 func (ms *MockSuite) TestCloudLoadbalancerL7PolicyGetCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy/l7p-001",
+	httpmock.RegisterResponder(http.MethodGet, l7PoliciesURL+"/pol-001",
 		httpmock.NewStringResponder(200, `{
-			"id": "l7p-001",
-			"name": "my-policy",
-			"action": "redirectToPool",
-			"listenerId": "lis-001",
-			"position": 1,
-			"operatingStatus": "online",
-			"provisioningStatus": "active",
-			"description": "Redirect to backend pool",
-			"redirectPoolId": "pool-001",
-			"redirectUrl": "",
-			"redirectPrefix": ""
+			"id": "pol-001",
+			"resourceStatus": "READY",
+			"createdAt": "2026-11-10T10:00:00Z",
+			"updatedAt": "2026-11-10T10:05:00Z",
+			"currentState": {
+				"name": "to-api",
+				"description": "Send /api to the API pool",
+				"action": "REDIRECT_TO_POOL",
+				"position": 1,
+				"operatingStatus": "ONLINE",
+				"provisioningStatus": "ACTIVE",
+				"redirectPool": {"id": "pool-001"},
+				"rules": [
+					{"id": "rule-001", "type": "PATH", "compareType": "STARTS_WITH", "value": "/api", "key": "", "invert": false}
+				]
+			}
 		}`))
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "get", "l7p-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "get", "lb-001", "lis-001", "pol-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
-	assert.Cmp(cleanWhitespacesHelper(out), `
-  # 📋 L7 policy l7p-001
-
-  *my-policy*
-
-  ## General information
-
-  **Action**:              redirectToPool
-  **Position**:            1
-  **Listener ID**:         lis-001
-  **Operating status**:    online
-  **Provisioning status**: active
-  **Description**:         Redirect to backend pool
-  **Redirect pool ID**:    pool-001
-
-  💡 Use option --json or --yaml to get the raw output with all information
-
-`)
+	assert.Cmp(out, td.Contains("*to-api*"))
+	assert.Cmp(out, td.Re(`\*\*Action\*\*:\s+REDIRECT_TO_POOL`))
+	assert.Cmp(out, td.Re(`\*\*Redirect pool ID\*\*:\s+pool-001`))
+	assert.Cmp(out, td.Contains("/api"))
+	assert.Cmp(out, td.Contains("STARTS_WITH"))
+	assert.Cmp(out, td.Not(td.Contains("No rule")))
 }
 
-// ---------------------------------------------------------------------------
-// L7 Policy – delete
-// ---------------------------------------------------------------------------
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyGetCreatingWithoutRuleCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, l7PoliciesURL+"/pol-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "pol-001",
+			"resourceStatus": "CREATING",
+			"createdAt": "2026-11-10T10:00:00Z",
+			"updatedAt": "2026-11-10T10:00:00Z",
+			"currentState": null,
+			"targetSpec": {"name": "deny", "action": "REJECT", "position": 2}
+		}`))
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "get", "lb-001", "lis-001", "pol-001", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("*deny*"))
+	assert.Cmp(out, td.Re(`\*\*Action\*\*:\s+REJECT`))
+	assert.Cmp(out, td.Re(`\*\*Operating status\*\*:\s+\*not yet available\*`))
+	assert.Cmp(out, td.Contains("No rule"))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateWithRuleCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, l7PoliciesURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "to-api",
+				"action": "REDIRECT_TO_POOL",
+				"position": 1,
+				"redirectPool": {"id": "pool-001"},
+				"rules": [
+					{"type": "PATH", "compareType": "STARTS_WITH", "value": "/api"}
+				]
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "pol-001"}`),
+	)
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "create", "lb-001", "lis-001",
+		"--cloud-project", "fakeProjectID",
+		"--name", "to-api",
+		"--action", "redirect_to_pool",
+		"--position", "1",
+		"--redirect-pool-id", "pool-001",
+		"--rule-type", "path",
+		"--rule-compare-type", "starts_with",
+		"--rule-value", "/api",
+		"-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ L7 policy created successfully (ID: pol-001)", "details": {"id": "pol-001"}}`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateWithoutRuleCmd(assert, require *td.T) {
+	// The rules key must be absent from the body when no --rule-* flag is given
+	httpmock.RegisterMatcherResponder(http.MethodPost, l7PoliciesURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {"action": "REJECT", "name": "deny"}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "pol-001"}`),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "create", "lb-001", "lis-001",
+		"--cloud-project", "fakeProjectID",
+		"--name", "deny",
+		"--action", "REJECT")
+	require.CmpNoError(err)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateMissingActionCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "create", "lb-001", "lis-001",
+		"--cloud-project", "fakeProjectID",
+		"--name", "deny")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`targetSpec.action`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyEditKeepsRulesCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, l7PoliciesURL+"/pol-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "pol-001",
+			"checksum": "abc",
+			"targetSpec": {
+				"name": "to-api",
+				"action": "REDIRECT_TO_POOL",
+				"position": 1,
+				"redirectPool": {"id": "pool-001"},
+				"rules": [{"type": "PATH", "compareType": "STARTS_WITH", "value": "/api"}]
+			}
+		}`))
+
+	// The rules of the policy are sent back unchanged: the PUT replaces the whole list
+	httpmock.RegisterMatcherResponder(http.MethodPut, l7PoliciesURL+"/pol-001",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc",
+			"targetSpec": {
+				"name": "to-api",
+				"action": "REDIRECT_TO_POOL",
+				"position": 3,
+				"redirectPool": {"id": "pool-001"},
+				"rules": [{"type": "PATH", "compareType": "STARTS_WITH", "value": "/api"}]
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "pol-001"}`),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "edit", "lb-001", "lis-001", "pol-001",
+		"--cloud-project", "fakeProjectID",
+		"--position", "3")
+	require.CmpNoError(err)
+}
 
 func (ms *MockSuite) TestCloudLoadbalancerL7PolicyDeleteCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy/l7p-001",
-		httpmock.NewStringResponder(200, `{"id":"l7p-001"}`))
-
-	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy/l7p-001",
+	httpmock.RegisterResponder(http.MethodDelete, l7PoliciesURL+"/pol-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "delete", "l7p-001", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "delete", "lb-001", "lis-001", "pol-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
-		"message": "✅ L7 policy l7p-001 deleted successfully"
-	}`))
-}
-
-// ---------------------------------------------------------------------------
-// L7 Rule – list
-// ---------------------------------------------------------------------------
-
-func (ms *MockSuite) TestCloudLoadbalancerL7RuleListCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	// Locate the L7 policy first
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy/l7p-001",
-		httpmock.NewStringResponder(200, `{"id":"l7p-001"}`))
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy/l7p-001/l7Rule",
-		httpmock.NewStringResponder(200, `[
-			{
-				"id": "l7r-001",
-				"ruleType": "header",
-				"compareType": "equalTo",
-				"value": "application/json",
-				"key": "Content-Type",
-				"invert": false
-			}
-		]`))
-
-	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "l7rule", "ls", "l7p-001", "--cloud-project", "fakeProjectID", "-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`[
-		{
-			"id": "l7r-001",
-			"ruleType": "header",
-			"compareType": "equalTo",
-			"value": "application/json",
-			"key": "Content-Type",
-			"invert": false
-		}
-	]`))
-}
-
-// ---------------------------------------------------------------------------
-// L7 Rule – get
-// ---------------------------------------------------------------------------
-
-func (ms *MockSuite) TestCloudLoadbalancerL7RuleGetCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy/l7p-001",
-		httpmock.NewStringResponder(200, `{"id":"l7p-001"}`))
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy/l7p-001/l7Rule/l7r-001",
-		httpmock.NewStringResponder(200, `{
-			"id": "l7r-001",
-			"ruleType": "header",
-			"compareType": "equalTo",
-			"value": "application/json",
-			"key": "Content-Type",
-			"invert": false,
-			"operatingStatus": "online",
-			"provisioningStatus": "active"
-		}`))
-
-	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "l7rule", "get", "l7p-001", "l7r-001", "--cloud-project", "fakeProjectID")
-	require.CmpNoError(err)
-	assert.Cmp(cleanWhitespacesHelper(out), `
-  # 📏 L7 rule l7r-001
-
-  ## General information
-
-  **Rule type**:           header
-  **Compare type**:        equalTo
-  **Value**:               application/json
-  **Key**:                 Content-Type
-  **Invert**:              false
-  **Operating status**:    online
-  **Provisioning status**: active
-
-  💡 Use option --json or --yaml to get the raw output with all information
-
-`)
-}
-
-// ---------------------------------------------------------------------------
-// L7 Rule – delete
-// ---------------------------------------------------------------------------
-
-func (ms *MockSuite) TestCloudLoadbalancerL7RuleDeleteCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy/l7p-001",
-		httpmock.NewStringResponder(200, `{"id":"l7p-001"}`))
-
-	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/l7Policy/l7p-001/l7Rule/l7r-001",
-		httpmock.NewStringResponder(200, `null`))
-
-	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "l7rule", "delete", "l7p-001", "l7r-001", "--cloud-project", "fakeProjectID", "-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{
-		"message": "✅ L7 rule l7r-001 deleted successfully"
+		"message": "✅ L7 policy pol-001 deleted successfully"
 	}`))
 }
 

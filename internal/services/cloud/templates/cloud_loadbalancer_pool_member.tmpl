@@ -1,14 +1,44 @@
+{{- /* currentState is null while the member is being created: fall back on targetSpec */ -}}
+{{- $cs := index .Result "currentState" -}}
+{{- $name := "" -}}
+{{- $address := "" -}}
+{{- $port := "" -}}
+{{- $weight := "" -}}
+{{- $backup := false -}}
+{{- $subnet := "" -}}
+{{- with index .Result "targetSpec" -}}
+{{- $name = index . "name" -}}
+{{- $address = index . "address" -}}
+{{- $port = index . "protocolPort" -}}
+{{- $weight = index . "weight" -}}
+{{- $backup = index . "backup" -}}
+{{- with index . "subnet" -}}{{- $subnet = index . "id" -}}{{- end -}}
+{{- end -}}
+{{- with $cs -}}
+{{- $name = index . "name" -}}
+{{- $address = index . "address" -}}
+{{- $port = index . "protocolPort" -}}
+{{- $weight = index . "weight" -}}
+{{- $backup = index . "backup" -}}
+{{- with index . "subnet" -}}{{- $subnet = index . "id" -}}{{- end -}}
+{{- end -}}
 👤 Pool member {{.ServiceName}}
 =======
 
-_{{index .Result "name"}}_
+_{{$name}}_
 
 ## General information
 
-**Address**:             {{index .Result "address"}}
-**Protocol port**:       {{index .Result "protocolPort"}}
-**Weight**:              {{index .Result "weight"}}
-**Operating status**:    {{index .Result "operatingStatus"}}
-**Provisioning status**: {{index .Result "provisioningStatus"}}
+**ID**:                  {{index .Result "id"}}
+**Status**:              {{index .Result "resourceStatus"}}
+**Address**:             {{$address}}
+**Protocol port**:       {{$port}}
+**Weight**:              {{$weight}}
+**Backup**:              {{$backup}}
+**Operating status**:    {{with $cs}}{{index . "operatingStatus"}}{{else}}_not yet available_{{end}}
+**Provisioning status**: {{with $cs}}{{index . "provisioningStatus"}}{{else}}_not yet available_{{end}}
+{{if $subnet}}**Subnet ID**:           {{$subnet}}
+{{end}}**Creation date**:       {{index .Result "createdAt"}}
+**Update date**:         {{index .Result "updatedAt"}}
 
-💡 Use option --json or --yaml to get the raw output with all information
+💡 Use option -o json or -o yaml to get the raw output with all information

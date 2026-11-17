@@ -1,15 +1,16 @@
 ## ovhcloud cloud loadbalancer pool member create
 
-Create member(s) in a specific pool
+Add a member to a pool
 
 ```
-ovhcloud cloud loadbalancer pool member create <pool_id> [flags]
+ovhcloud cloud loadbalancer pool member create <loadbalancer_id> <pool_id> [flags]
 ```
 
 ### Options
 
 ```
       --address string      IP address of the member
+      --backup              Use the member as a backup, only used when all the other members are down
       --editor              Use a text editor to define parameters
       --from-file string    File containing parameters
   -h, --help                help for create
@@ -17,6 +18,7 @@ ovhcloud cloud loadbalancer pool member create <pool_id> [flags]
       --name string         Name of the member
       --protocol-port int   Protocol port number of the member
       --replace             Replace parameters file if it already exists
+      --subnet-id string    ID of the subnet of the member
       --weight int          Weight of the member (1-256)
 ```
 

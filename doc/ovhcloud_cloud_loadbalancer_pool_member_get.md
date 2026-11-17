@@ -3,7 +3,7 @@
 Get a specific pool member
 
 ```
-ovhcloud cloud loadbalancer pool member get <pool_id> <member_id> [flags]
+ovhcloud cloud loadbalancer pool member get <loadbalancer_id> <pool_id> <member_id> [flags]
 ```
 
 ### Options

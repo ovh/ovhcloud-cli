@@ -2,23 +2,28 @@
 
 Edit a specific L7 policy
 
+### Synopsis
+
+Edit a specific L7 policy, including the rules nested in it.
+The flags leave the rules of the policy untouched. To add, change or remove rules, use --editor.
+
 ```
-ovhcloud cloud loadbalancer l7policy edit <l7policy_id> [flags]
+ovhcloud cloud loadbalancer l7policy edit <loadbalancer_id> <listener_id> <l7policy_id> [flags]
 ```
 
 ### Options
 
 ```
-      --action string             L7 policy action
+      --action string             L7 policy action (REDIRECT_TO_POOL, REDIRECT_TO_URL, REDIRECT_PREFIX, REJECT)
       --description string        Description
       --editor                    Use a text editor to define parameters
   -h, --help                      help for edit
-      --listener-id string        Listener ID
       --name string               Name of the L7 policy
       --position int              Position on the listener
-      --redirect-pool-id string   Redirect pool ID
-      --redirect-prefix string    Redirect prefix URL
-      --redirect-url string       Redirect URL
+      --redirect-http-code int    HTTP status code of the redirection (301, 302, 303, 307, 308)
+      --redirect-pool-id string   Pool ID to redirect to
+      --redirect-prefix string    Prefix URL to redirect to
+      --redirect-url string       URL to redirect to
 ```
 
 ### Options inherited from parent commands
