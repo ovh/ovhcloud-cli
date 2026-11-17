@@ -1177,3 +1177,105 @@ func (ms *MockSuite) TestCloudInstanceGroupCreateWaitCmd(assert, require *td.T) 
 		"details": {"id": "group-id-new", "resourceStatus": "READY", "targetSpec": $1, "currentState": $1}
 	}`, td.Ignore()))
 }
+
+const (
+	instanceSnapshotsURL = "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/snapshot"
+	instancesV2URL       = "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance"
+)
+
+func registerInstanceV2Region(region string) {
+	httpmock.RegisterResponder(http.MethodGet, instancesV2URL+"/fakeInstanceID",
+		httpmock.NewStringResponder(200, `{
+			"id": "fakeInstanceID",
+			"resourceStatus": "READY",
+			"targetSpec": {"name": "my-instance", "location": {"region": "`+region+`"}}
+		}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotCreateCmd(assert, require *td.T) {
+	registerInstanceV2Region("GRA11")
+	httpmock.RegisterMatcherResponder(http.MethodPost, instanceSnapshotsURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {"name": "my-snap", "instance": {"id": "fakeInstanceID"}, "location": {"region": "GRA11"}}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "snap-001", "resourceStatus": "CREATING"}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "create", "fakeInstanceID", "my-snap", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "Snapshot created successfully with ID: snap-001")
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotCreateDistantCmd(assert, require *td.T) {
+	// A cross-region snapshot has no API v2 equivalent and stays on API v1
+	registerInstanceV2Region("GRA11")
+	httpmock.RegisterMatcherResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/instance/fakeInstanceID/snapshot",
+		tdhttpmock.JSONBody(td.JSON(`{"snapshotName": "my-snap", "distantSnapshotName": "my-distant-snap", "distantRegionName": "SBG5"}`)),
+		httpmock.NewStringResponder(200, `{"imageId": "img-001"}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "create", "fakeInstanceID", "my-snap",
+		"--distant-region-name", "SBG5", "--distant-snapshot-name", "my-distant-snap", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "Snapshot created successfully with ID: img-001")
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotAbortCmd(assert, require *td.T) {
+	registerInstanceV2Region("GRA11")
+	httpmock.RegisterResponder(http.MethodPost,
+		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/instance/fakeInstanceID/abortSnapshot",
+		httpmock.NewStringResponder(200, `null`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "abort", "fakeInstanceID", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "Snapshot aborted successfully")
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceSnapshotsURL,
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "snap-001",
+				"resourceStatus": "READY",
+				"currentState": {
+					"name": "my-snap",
+					"instance": {"id": "fakeInstanceID"},
+					"location": {"region": "GRA11"},
+					"status": "ACTIVE"
+				}
+			}
+		]`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "ls", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Re(`snap-001\s+│\s+my-snap\s+│\s+fakeInstanceID\s+│\s+GRA11\s+│\s+ACTIVE\s+│\s+READY`))
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotGetCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceSnapshotsURL+"/snap-001",
+		httpmock.NewStringResponder(200, `{"id": "snap-001", "resourceStatus": "READY", "currentState": {"name": "my-snap"}}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "get", "snap-001", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"id": "snap-001", "resourceStatus": "READY", "currentState": {"name": "my-snap"}}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotDeleteCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodDelete, instanceSnapshotsURL+"/snap-001",
+		httpmock.NewStringResponder(204, ``).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "delete", "snap-001", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "Snapshot successfully deleted")
+}

@@ -384,8 +384,12 @@ There are three ways to define the installation parameters:
 	instanceCmd.AddCommand(snapshotCmd)
 
 	snapshotCreateCmd := &cobra.Command{
-		Use:               "create <instance_id> <snapshot_name>",
-		Short:             "Create a snapshot of the given instance",
+		Use:   "create <instance_id> <snapshot_name>",
+		Short: "Create a snapshot of the given instance",
+		Long: `Create a snapshot of the given instance in its region.
+
+A snapshot copied to another region (--distant-region-name and --distant-snapshot-name)
+still uses API v1, as API v2 does not support cross-region snapshots.`,
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.CreateInstanceSnapshot,
 		Args:              cobra.ExactArgs(2),
@@ -398,6 +402,7 @@ There are three ways to define the installation parameters:
 	snapshotCmd.AddCommand(&cobra.Command{
 		Use:               "abort <instance_id>",
 		Short:             "Abort the snapshot creation of the given instance",
+		Long:              "Abort the snapshot creation of the given instance. This command still uses API v1, as API v2 has no equivalent.",
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.AbortInstanceSnapshot,
 		Args:              cobra.ExactArgs(1),

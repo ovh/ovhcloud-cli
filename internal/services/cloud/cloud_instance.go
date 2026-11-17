@@ -106,6 +106,15 @@ var (
 		UserData         string
 	}
 
+	instanceSnapshotColumnsToDisplay = []string{
+		"id",
+		"currentState.name name",
+		"currentState.instance.id instanceId",
+		"currentState.location.region region",
+		"currentState.status snapshotStatus",
+		"resourceStatus status",
+	}
+
 	InstanceSnapshotSpec struct {
 		SnapshotName        string `json:"snapshotName,omitempty"`
 		DistantSnapshotName string `json:"distantSnapshotName,omitempty"`
@@ -840,6 +849,28 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance correctly migrated to the desired flavor")
 }
 
+func instanceSnapshotV2Endpoint(projectID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/compute/snapshot", projectID)
+}
+
+// getInstanceRegionV2 returns the region of the given instance, read from its
+// API v2 targetSpec (currentState is null while the instance is created).
+func getInstanceRegionV2(projectID, instanceID string) (string, error) {
+	endpoint := fmt.Sprintf("%s/%s", instanceV2Endpoint(projectID), url.PathEscape(instanceID))
+	var instance map[string]any
+	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
+		return "", fmt.Errorf("failed to fetch instance details: %w", err)
+	}
+	for _, key := range []string{"targetSpec", "currentState"} {
+		spec, _ := instance[key].(map[string]any)
+		location, _ := spec["location"].(map[string]any)
+		if region, _ := location["region"].(string); region != "" {
+			return region, nil
+		}
+	}
+	return "", fmt.Errorf("could not determine the region of instance %q", instanceID)
+}
+
 func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -847,18 +878,41 @@ func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch instance details to get its region
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
-	var instance map[string]any
-	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
+	region, err := getInstanceRegionV2(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	region := instance["region"].(string)
 
+	// A cross-region snapshot has no API v2 equivalent: it stays on API v1.
+	if InstanceSnapshotSpec.DistantRegionName != "" {
+		createDistantInstanceSnapshot(projectID, region, args)
+		return
+	}
+
+	body := map[string]any{
+		"targetSpec": map[string]any{
+			"name":     args[1],
+			"instance": map[string]any{"id": args[0]},
+			"location": map[string]any{"region": region},
+		},
+	}
+
+	var response map[string]any
+	if err := httpLib.Client.Post(instanceSnapshotV2Endpoint(projectID), body, &response); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "error creating snapshot for instance %q: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Snapshot created successfully with ID: %s", response["id"])
+}
+
+// createDistantInstanceSnapshot creates a snapshot copied to another region,
+// using API v1 as API v2 has no cross-region snapshot.
+func createDistantInstanceSnapshot(projectID, region string, args []string) {
 	InstanceSnapshotSpec.SnapshotName = args[1]
 
-	endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/snapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/snapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
 	var response map[string]any
 	if err := httpLib.Client.Post(endpoint, InstanceSnapshotSpec, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error creating snapshot for instance %q: %s", args[0], err)
@@ -868,6 +922,7 @@ func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
 	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Snapshot created successfully with ID: %s", response["imageId"])
 }
 
+// AbortInstanceSnapshot stays on API v1, as API v2 has no equivalent.
 func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -875,17 +930,13 @@ func AbortInstanceSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch instance details to get its region
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
-	var instance map[string]any
-	if err := httpLib.Client.Get(endpoint, &instance); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
+	region, err := getInstanceRegionV2(projectID, args[0])
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
-	region := instance["region"].(string)
 
-	// Abort the snapshot
-	endpoint = fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/abortSnapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("/v1/cloud/project/%s/region/%s/instance/%s/abortSnapshot", projectID, url.PathEscape(region), url.PathEscape(args[0]))
 	if err := httpLib.Client.Post(endpoint, nil, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error aborting snapshot for instance %q: %s", args[0], err)
 		return
@@ -901,7 +952,7 @@ func ListInstanceSnapshots(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequestNoExpand(fmt.Sprintf("/v1/cloud/project/%s/snapshot", projectID), []string{"id", "name", "type", "status", "region"}, flags.GenericFilters)
+	common.ManageListRequestNoExpand(instanceSnapshotV2Endpoint(projectID), instanceSnapshotColumnsToDisplay, flags.GenericFilters)
 }
 
 func GetInstanceSnapshot(_ *cobra.Command, args []string) {
@@ -911,7 +962,7 @@ func GetInstanceSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/snapshot", projectID), args[0], "")
+	common.ManageObjectRequest(instanceSnapshotV2Endpoint(projectID), args[0], "")
 }
 
 func DeleteInstanceSnapshot(_ *cobra.Command, args []string) {
@@ -921,7 +972,7 @@ func DeleteInstanceSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/snapshot/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("%s/%s", instanceSnapshotV2Endpoint(projectID), url.PathEscape(args[0]))
 
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting snapshot %q: %s", args[0], err)
