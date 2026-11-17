@@ -2,6 +2,10 @@
 
 Abort the snapshot creation of the given instance
 
+### Synopsis
+
+Abort the snapshot creation of the given instance. This command still uses API v1, as API v2 has no equivalent.
+
 ```
 ovhcloud cloud instance snapshot abort <instance_id> [flags]
 ```
