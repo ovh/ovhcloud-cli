@@ -12,7 +12,6 @@ import (
 	"log"
 	"maps"
 	"net/url"
-	"os"
 	"slices"
 	"strings"
 	"time"
@@ -353,7 +352,7 @@ func StorageS3BulkDeleteObjects(_ *cobra.Command, args []string) {
 		if err := httpLib.Client.Post(bucketEndpoint(projectID, args[0])+"/bulkDeleteObjects", map[string]any{
 			"objects": batch,
 		}, &result); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to delete objects: %s", err)
+			display.OutputError(&flags.OutputFormatConfig, "failed to delete objects after %d were deleted: %s", len(deleted), err)
 			return
 		}
 
@@ -728,31 +727,7 @@ func editBucketRules(cmd *cobra.Command, args []string, configuration string) {
 
 	endpoint := bucketEndpoint(projectID, bucketID) + "/" + configuration
 
-	// EditResource appends the file's rules to the fetched ones, but a PUT replaces all rules.
-	if flags.ParametersFile != "" {
-		fd, err := os.Open(flags.ParametersFile)
-		if err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to open given file: %s", err)
-			return
-		}
-		defer fd.Close()
-
-		var rules map[string]any
-		if err := json.NewDecoder(fd).Decode(&rules); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to parse given file: %s", err)
-			return
-		}
-
-		if err := httpLib.Client.Put(endpoint, rules, nil); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to update %s configuration: %s", configuration, err)
-			return
-		}
-
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Bucket %s %s rules updated successfully", bucketID, configuration)
-		return
-	}
-
-	if err := common.EditResource(
+	if err := common.ReplaceResource(
 		cmd,
 		"/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/"+configuration,
 		endpoint,

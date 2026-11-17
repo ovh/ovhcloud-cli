@@ -350,6 +350,39 @@ func (ms *MockSuite) TestCloudStorageS3BulkDeleteAllBatchesCmd(assert, require *
 	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ 1001 objects deleted successfully"}`))
 }
 
+func (ms *MockSuite) TestCloudStorageS3BulkDeleteBatchErrorCmd(assert, require *td.T) {
+	objects := make([]string, 1001)
+	for i := range objects {
+		objects[i] = fmt.Sprintf(`{"key": "o%d"}`, i)
+	}
+	httpmock.RegisterResponder(http.MethodGet, s3BucketURL+"/object",
+		httpmock.NewStringResponder(200, "["+strings.Join(objects, ",")+"]"))
+
+	calls := 0
+	httpmock.RegisterResponder(http.MethodPost, s3BucketURL+"/bulkDeleteObjects",
+		func(req *http.Request) (*http.Response, error) {
+			calls++
+			if calls > 1 {
+				return httpmock.NewStringResponse(500, `{"message": "boom"}`), nil
+			}
+			var body struct {
+				Objects []map[string]any `json:"objects"`
+			}
+			if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+				return nil, err
+			}
+			deleted, _ := json.Marshal(map[string]any{"deleted": body.Objects})
+			return httpmock.NewBytesResponse(200, deleted), nil
+		})
+
+	_, err := cmd.Execute("cloud", "storage", "object", "bucket", "bulk-delete", "GRA_my-bucket",
+		"--cloud-project", "fakeProjectID",
+		"--all")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("failed to delete objects after 1000 were deleted"))
+}
+
 func (ms *MockSuite) TestCloudStorageS3BulkDeletePartialFailureCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodPost, s3BucketURL+"/bulkDeleteObjects",
 		httpmock.NewStringResponder(200, `{
@@ -442,7 +475,7 @@ func (ms *MockSuite) TestCloudStorageS3LifecycleGetEmptyCmd(assert, require *td.
 func (ms *MockSuite) TestCloudStorageS3LifecycleEditFromFileCmd(assert, require *td.T) {
 	// The file replaces the rules: they must not be appended to the current ones.
 	rulesFile := filepath.Join(require.TempDir(), "rules.json")
-	require.CmpNoError(os.WriteFile(rulesFile, []byte(`{"rules": [{"id": "new", "status": "ENABLED", "expiration": {"days": 7}}]}`), 0o600))
+	require.CmpNoError(os.WriteFile(rulesFile, []byte(`{"rules": [{"id": "new", "status": "ENABLED", "expiration": {"days": 7}}], "unknown": "dropped"}`), 0o600))
 
 	httpmock.RegisterResponder(http.MethodGet, s3BucketURL+"/lifecycle",
 		httpmock.NewStringResponder(200, `{"rules": [{"id": "old", "status": "ENABLED", "expiration": {"days": 1}}]}`))
@@ -457,7 +490,32 @@ func (ms *MockSuite) TestCloudStorageS3LifecycleEditFromFileCmd(assert, require 
 		"-o", "json")
 
 	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Bucket GRA_my-bucket lifecycle rules updated successfully"}`))
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Resource updated successfully"}`))
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+s3BucketURL+"/lifecycle"], 0)
+}
+
+func (ms *MockSuite) TestCloudStorageS3LifecycleEditFromPipeCmd(assert, require *td.T) {
+	rules := `{"rules": [{"id": "piped", "status": "ENABLED", "expiration": {"days": 3}}]}`
+	stdin, stdinWriter, err := os.Pipe()
+	require.CmpNoError(err)
+	_, err = stdinWriter.WriteString(rules)
+	require.CmpNoError(err)
+	require.CmpNoError(stdinWriter.Close())
+
+	originalStdin := os.Stdin
+	os.Stdin = stdin
+	defer func() { os.Stdin = originalStdin }()
+
+	httpmock.RegisterMatcherResponder(http.MethodPut, s3BucketURL+"/lifecycle",
+		tdhttpmock.JSONBody(td.JSON(rules)),
+		httpmock.NewStringResponder(202, rules))
+
+	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "lifecycle", "edit", "GRA_my-bucket",
+		"--cloud-project", "fakeProjectID",
+		"-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Resource updated successfully"}`))
 }
 
 func (ms *MockSuite) TestCloudStorageS3LifecycleEditNoBucketCmd(assert, require *td.T) {
@@ -521,7 +579,7 @@ func (ms *MockSuite) TestCloudStorageS3ReplicationEditFromFileCmd(assert, requir
 		"-o", "json")
 
 	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Bucket GRA_my-bucket replication rules updated successfully"}`))
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Resource updated successfully"}`))
 }
 
 func (ms *MockSuite) TestCloudStorageS3ReplicationDeleteCmd(assert, require *td.T) {
