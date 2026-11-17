@@ -76,6 +76,7 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.RebootBaremetal,
 	}
+	addConfirmationFlags(baremetalRebootCmd, "Print the call that would be made without making it")
 	baremetalCmd.AddCommand(baremetalRebootCmd)
 
 	// Command to reboot a baremetal in rescue mode
@@ -87,6 +88,7 @@ func init() {
 		Run:               baremetal.RebootRescueBaremetal,
 	}
 	baremetalRebootRescueCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reboot to be done before exiting")
+	addConfirmationFlags(baremetalRebootRescueCmd, "Print the call that would be made without making it")
 	baremetalCmd.AddCommand(baremetalRebootRescueCmd)
 
 	// Command to reinstall a baremetal
@@ -113,7 +115,10 @@ There are four ways to define the installation parameters:
 
   Note that you can also pipe the content of the file to reinstall, like the following:
 
-	cat ./install.json | ovhcloud baremetal reinstall ns1234.ip-11.22.33.net
+	cat ./install.json | ovhcloud baremetal reinstall ns1234.ip-11.22.33.net --yes
+
+  Piped input is not a terminal, so there is nobody to answer the confirmation:
+  such a run refuses to start unless --yes is given.
 
   In both cases, you can override the parameters in the given file using command line flags, for example:
 
@@ -144,6 +149,11 @@ You can visit https://eu.api.ovh.com/console/?section=%2Fdedicated%2Fserver&bran
 to see all the available parameters and real life examples.
 
 Please note that all parameters are not compatible with all OSes.
+
+Reinstalling wipes every disk of the server, so the command asks for a
+confirmation: type the server name when prompted. Unattended runs (pipelines,
+piped input) must pass --yes, and --dry-run prints the parameters that would
+be sent without sending them.
 `,
 		Args:              cobra.MaximumNArgs(1),
 		ArgAliases:        []string{"service_name"},
@@ -167,6 +177,7 @@ Please note that all parameters are not compatible with all OSes.
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.PostInstallationScriptExtension, "post-installation-script-extension", "", "Post-installation script extension (cmd, ps1)")
 	reinstallBaremetalCmd.Flags().StringVar(&baremetal.Customizations.SshKey, "ssh-key", "", "SSH public key")
 	reinstallBaremetalCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for reinstall to be done before exiting")
+	addConfirmationFlags(reinstallBaremetalCmd, "Print the installation parameters without sending anything")
 	markFlagsMutuallyExclusive(reinstallBaremetalCmd, "from-file", "editor")
 	if !(runtime.GOARCH == "wasm" && runtime.GOOS == "js") {
 		reinstallBaremetalCmd.Flags().BoolVar(&baremetal.ReinstallWizard, "wizard", false, "Launch an interactive wizard to select installation parameters")
@@ -289,6 +300,7 @@ Please note that all parameters are not compatible with all OSes.
 	}
 	baremetalVNIResetOLAAggregationCmd.Flags().StringArrayVar(&baremetal.BaremetalOLAInterfaces, "interface", nil, "Interfaces to group")
 	baremetalVNIResetOLAAggregationCmd.MarkFlagRequired("interface")
+	addConfirmationFlags(baremetalVNIResetOLAAggregationCmd, "Print the call that would be made without making it")
 	baremetalVNICmd.AddCommand(baremetalVNIResetOLAAggregationCmd)
 
 	baremetalIPMICmd := &cobra.Command{
@@ -312,13 +324,15 @@ Please note that all parameters are not compatible with all OSes.
 	baremetalIPMIGetAccessCmd.Flags().StringVar(&baremetal.BaremetalIpmiSshKey, "ssh-key", "", "Public SSH key for Serial Over Lan SSH access")
 	baremetalIPMICmd.AddCommand(baremetalIPMIGetAccessCmd)
 
-	baremetalIPMICmd.AddCommand(&cobra.Command{
+	baremetalIPMIResetSessionsCmd := &cobra.Command{
 		Use:               "reset-sessions <service_name>",
 		Short:             "Reset IPMI sessions on a baremetal server",
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.ServiceList("/v1/dedicated/server"),
 		Run:               baremetal.BaremetalResetIPMISessions,
-	})
+	}
+	addConfirmationFlags(baremetalIPMIResetSessionsCmd, "Print the call that would be made without making it")
+	baremetalIPMICmd.AddCommand(baremetalIPMIResetSessionsCmd)
 
 	rootCmd.AddCommand(baremetalCmd)
 }

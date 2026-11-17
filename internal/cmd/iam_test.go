@@ -51,7 +51,7 @@ func (ms *MockSuite) TestIAMPolicyDeleteCmd(assert, require *td.T) {
 		httpmock.NewStringResponder(204, ``),
 	)
 
-	out, err := cmd.Execute("iam", "policy", "delete", "policy-1234")
+	out, err := cmd.Execute("iam", "policy", "delete", "policy-1234", "--yes")
 	require.CmpNoError(err)
 	assert.String(out, `✅ IAM policy policy-1234 deleted successfully`)
 }
