@@ -7,6 +7,7 @@ package cmd_test
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
@@ -360,137 +361,63 @@ func (ms *MockSuite) TestCloudLoadbalancerCreateMissingSubnetCmd(assert, require
 // ---------------------------------------------------------------------------
 // Loadbalancer – edit
 // ---------------------------------------------------------------------------
-
-func (ms *MockSuite) TestCloudLoadbalancerEditCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer/lb-001",
-		httpmock.NewStringResponder(200, `{
-			"id": "lb-001",
-			"checksum": "abc",
-			"targetSpec": {
-				"name": "my-lb",
-				"description": "old",
-				"flavor": {"name": "SMALL"},
-				"location": {"region": "GRA11"},
-				"network": {"subnetId": "sub-001"}
-			}
-		}`))
-
-	httpmock.RegisterMatcherResponder(http.MethodPut,
-		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer/lb-001",
-		tdhttpmock.JSONBody(td.JSON(`{
-			"checksum": "abc",
-			"targetSpec": {
-				"name": "my-lb",
-				"description": "new",
-				"flavor": {"name": "LARGE"}
-			}
-		}`)),
-		httpmock.NewStringResponder(200, `{"id": "lb-001"}`),
-	)
-
-	_, err := cmd.Execute("cloud", "loadbalancer", "edit", "lb-001",
-		"--cloud-project", "fakeProjectID",
-		"--description", "new",
-		"--size", "large")
-	require.CmpNoError(err)
-}
-
+// Listener
 // ---------------------------------------------------------------------------
+
+const listenersURL = "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer/lb-001/listener"
 
 func (ms *MockSuite) TestCloudLoadbalancerListenerListCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/listener",
+	httpmock.RegisterResponder(http.MethodGet, listenersURL,
 		httpmock.NewStringResponder(200, `[
 			{
 				"id": "lis-001",
-				"name": "my-listener",
-				"protocol": "http",
-				"port": 80,
-				"operatingStatus": "online",
-				"provisioningStatus": "active"
+				"resourceStatus": "READY",
+				"currentState": {
+					"name": "my-listener",
+					"protocol": "HTTP",
+					"protocolPort": 80,
+					"operatingStatus": "ONLINE",
+					"provisioningStatus": "ACTIVE"
+				}
 			}
 		]`))
 
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/listener",
-		httpmock.NewStringResponder(200, `[]`))
-
-	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "ls", "lb-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
 			"id": "lis-001",
-			"name": "my-listener",
-			"protocol": "http",
-			"port": 80,
-			"operatingStatus": "online",
-			"provisioningStatus": "active"
-		}
-	]`))
-}
-
-func (ms *MockSuite) TestCloudLoadbalancerListenerListWithLoadbalancerIDCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/listener?loadbalancerId=lb-gra-001",
-		httpmock.NewStringResponder(200, `[
-			{
-				"id": "lis-001",
+			"resourceStatus": "READY",
+			"currentState": {
 				"name": "my-listener",
-				"protocol": "http",
-				"port": 80,
-				"operatingStatus": "online",
-				"provisioningStatus": "active"
+				"protocol": "HTTP",
+				"protocolPort": 80,
+				"operatingStatus": "ONLINE",
+				"provisioningStatus": "ACTIVE"
 			}
-		]`))
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/listener?loadbalancerId=lb-gra-001",
-		httpmock.NewStringResponder(200, `[]`))
-
-	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "ls", "--cloud-project", "fakeProjectID", "--loadbalancer-id", "lb-gra-001", "-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`[
-		{
-			"id": "lis-001",
-			"name": "my-listener",
-			"protocol": "http",
-			"port": 80,
-			"operatingStatus": "online",
-			"provisioningStatus": "active"
 		}
 	]`))
 }
-
-// ---------------------------------------------------------------------------
-// Listener – get
-// ---------------------------------------------------------------------------
 
 func (ms *MockSuite) TestCloudLoadbalancerListenerGetCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/listener/lis-001",
-		httpmock.NewStringResponder(404, `{"message":"not found"}`))
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/listener/lis-001",
+	httpmock.RegisterResponder(http.MethodGet, listenersURL+"/lis-001",
 		httpmock.NewStringResponder(200, `{
 			"id": "lis-001",
-			"name": "my-listener",
-			"protocol": "http",
-			"port": 80,
-			"operatingStatus": "online",
-			"provisioningStatus": "active",
-			"defaultPoolId": "pool-001",
-			"description": "My HTTP listener"
+			"resourceStatus": "READY",
+			"createdAt": "2026-11-10T10:00:00Z",
+			"updatedAt": "2026-11-10T10:05:00Z",
+			"currentState": {
+				"name": "my-listener",
+				"description": "My HTTP listener",
+				"protocol": "HTTP",
+				"protocolPort": 80,
+				"operatingStatus": "ONLINE",
+				"provisioningStatus": "ACTIVE",
+				"defaultPool": {"id": "pool-001"}
+			}
 		}`))
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "get", "lis-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "get", "lb-001", "lis-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
   # 🔊 Listener lis-001
@@ -499,34 +426,105 @@ func (ms *MockSuite) TestCloudLoadbalancerListenerGetCmd(assert, require *td.T) 
 
   ## General information
 
-  **Protocol**:            http
+  **ID**:                  lis-001
+  **Status**:              READY
+  **Protocol**:            HTTP
   **Port**:                80
-  **Operating status**:    online
-  **Provisioning status**: active
+  **Operating status**:    ONLINE
+  **Provisioning status**: ACTIVE
   **Default pool ID**:     pool-001
   **Description**:         My HTTP listener
+  **Creation date**:       2026-11-10T10:00:00Z
+  **Update date**:         2026-11-10T10:05:00Z
 
-  💡 Use option --json or --yaml to get the raw output with all information
+  💡 Use option -o json or -o yaml to get the raw output with all information
 
 `)
 }
 
-// ---------------------------------------------------------------------------
-// Listener – delete
-// ---------------------------------------------------------------------------
+func (ms *MockSuite) TestCloudLoadbalancerListenerGetCreatingCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, listenersURL+"/lis-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "lis-001",
+			"resourceStatus": "CREATING",
+			"createdAt": "2026-11-10T10:00:00Z",
+			"updatedAt": "2026-11-10T10:00:00Z",
+			"currentState": null,
+			"targetSpec": {"name": "my-listener", "protocol": "TCP", "protocolPort": 443}
+		}`))
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "get", "lb-001", "lis-001", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("*my-listener*"))
+	assert.Cmp(out, td.Re(`\*\*Protocol\*\*:\s+TCP`))
+	assert.Cmp(out, td.Re(`\*\*Operating status\*\*:\s+\*not yet available\*`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerListenerCreateCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, listenersURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-listener",
+				"protocol": "HTTP",
+				"protocolPort": 80,
+				"defaultPool": {"id": "pool-001"}
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "lis-001"}`),
+	)
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "create", "lb-001",
+		"--cloud-project", "fakeProjectID",
+		"--name", "my-listener",
+		"--protocol", "http",
+		"--port", "80",
+		"--default-pool-id", "pool-001",
+		"-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Listener created successfully (ID: lis-001)", "details": {"id": "lis-001"}}`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerListenerCreateMissingPortCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "loadbalancer", "listener", "create", "lb-001",
+		"--cloud-project", "fakeProjectID",
+		"--name", "my-listener",
+		"--protocol", "HTTP")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`targetSpec.protocolPort`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerListenerEditCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, listenersURL+"/lis-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "lis-001",
+			"checksum": "abc",
+			"targetSpec": {"name": "my-listener", "description": "old", "protocol": "HTTP", "protocolPort": 80}
+		}`))
+
+	httpmock.RegisterMatcherResponder(http.MethodPut, listenersURL+"/lis-001",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc",
+			"targetSpec": {
+				"name": "my-listener",
+				"description": "new",
+				"defaultPool": {"id": "pool-002"}
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "lis-001"}`),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "listener", "edit", "lb-001", "lis-001",
+		"--cloud-project", "fakeProjectID",
+		"--description", "new",
+		"--default-pool-id", "pool-002")
+	require.CmpNoError(err)
+}
 
 func (ms *MockSuite) TestCloudLoadbalancerListenerDeleteCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/listener/lis-001",
-		httpmock.NewStringResponder(200, `{"id":"lis-001"}`))
-
-	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/listener/lis-001",
+	httpmock.RegisterResponder(http.MethodDelete, listenersURL+"/lis-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "delete", "lis-001", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "listener", "delete", "lb-001", "lis-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Listener lis-001 deleted successfully"
@@ -534,64 +532,71 @@ func (ms *MockSuite) TestCloudLoadbalancerListenerDeleteCmd(assert, require *td.
 }
 
 // ---------------------------------------------------------------------------
-// Pool – list
+// Pool
 // ---------------------------------------------------------------------------
 
-func (ms *MockSuite) TestCloudLoadbalancerPoolListCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
+const poolsURL = "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/loadbalancer/lb-001/pool"
 
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool",
+func (ms *MockSuite) TestCloudLoadbalancerPoolListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, poolsURL,
 		httpmock.NewStringResponder(200, `[
 			{
 				"id": "pool-001",
-				"name": "my-pool",
-				"algorithm": "roundRobin",
-				"protocol": "http",
-				"operatingStatus": "online",
-				"provisioningStatus": "active"
+				"resourceStatus": "READY",
+				"currentState": {
+					"name": "my-pool",
+					"algorithm": "ROUND_ROBIN",
+					"protocol": "HTTP",
+					"operatingStatus": "ONLINE",
+					"provisioningStatus": "ACTIVE"
+				}
 			}
 		]`))
 
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/pool",
-		httpmock.NewStringResponder(200, `[]`))
-
-	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "ls", "lb-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
 			"id": "pool-001",
-			"name": "my-pool",
-			"algorithm": "roundRobin",
-			"protocol": "http",
-			"operatingStatus": "online",
-			"provisioningStatus": "active"
+			"resourceStatus": "READY",
+			"currentState": {
+				"name": "my-pool",
+				"algorithm": "ROUND_ROBIN",
+				"protocol": "HTTP",
+				"operatingStatus": "ONLINE",
+				"provisioningStatus": "ACTIVE"
+			}
 		}
 	]`))
 }
 
-// ---------------------------------------------------------------------------
-// Pool – get
-// ---------------------------------------------------------------------------
-
 func (ms *MockSuite) TestCloudLoadbalancerPoolGetCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001",
+	httpmock.RegisterResponder(http.MethodGet, poolsURL+"/pool-001",
 		httpmock.NewStringResponder(200, `{
 			"id": "pool-001",
-			"name": "my-pool",
-			"algorithm": "roundRobin",
-			"protocol": "http",
-			"operatingStatus": "online",
-			"provisioningStatus": "active",
-			"loadbalancerId": "lb-gra-001",
-			"listenerId": "lis-001"
+			"resourceStatus": "READY",
+			"createdAt": "2026-11-10T10:00:00Z",
+			"updatedAt": "2026-11-10T10:05:00Z",
+			"currentState": {
+				"name": "my-pool",
+				"algorithm": "ROUND_ROBIN",
+				"protocol": "HTTP",
+				"operatingStatus": "ONLINE",
+				"provisioningStatus": "ACTIVE",
+				"healthMonitor": {
+					"type": "HTTP",
+					"delay": 5,
+					"timeout": 3,
+					"maxRetries": 2,
+					"maxRetriesDown": 4,
+					"httpMethod": "GET",
+					"urlPath": "/health",
+					"expectedCodes": "200"
+				}
+			}
 		}`))
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "get", "pool-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "get", "lb-001", "pool-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(cleanWhitespacesHelper(out), `
   # 🏊 Pool pool-001
@@ -600,34 +605,205 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolGetCmd(assert, require *td.T) {
 
   ## General information
 
-  **Algorithm**:           roundRobin
-  **Protocol**:            http
-  **Operating status**:    online
-  **Provisioning status**: active
-  **Loadbalancer ID**:     lb-gra-001
-  **Listener ID**:         lis-001
+  **ID**:                  pool-001
+  **Status**:              READY
+  **Algorithm**:           ROUND_ROBIN
+  **Protocol**:            HTTP
+  **Operating status**:    ONLINE
+  **Provisioning status**: ACTIVE
+  **Creation date**:       2026-11-10T10:00:00Z
+  **Update date**:         2026-11-10T10:05:00Z
 
-  💡 Use option --json or --yaml to get the raw output with all information
+  ## Health monitor
+
+  **Type**:             HTTP
+  **Delay**:            5s
+  **Timeout**:          3s
+  **Max retries**:      2
+  **Max retries down**: 4
+  **HTTP method**:      GET
+  **URL path**:         /health
+  **Expected codes**:   200
+
+  💡 Use option -o json or -o yaml to get the raw output with all information
 
 `)
 }
 
-// ---------------------------------------------------------------------------
-// Pool – delete
-// ---------------------------------------------------------------------------
+func (ms *MockSuite) TestCloudLoadbalancerPoolGetWithoutHealthMonitorCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, poolsURL+"/pool-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "pool-001",
+			"resourceStatus": "CREATING",
+			"createdAt": "2026-11-10T10:00:00Z",
+			"updatedAt": "2026-11-10T10:00:00Z",
+			"currentState": null,
+			"targetSpec": {"name": "my-pool", "algorithm": "SOURCE_IP", "protocol": "TCP"}
+		}`))
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "get", "lb-001", "pool-001", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Re(`\*\*Algorithm\*\*:\s+SOURCE_IP`))
+	assert.Cmp(out, td.Contains("No health monitor"))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolCreateCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, poolsURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-pool",
+				"algorithm": "LEAST_CONNECTIONS",
+				"protocol": "HTTP",
+				"healthMonitor": {
+					"type": "HTTP",
+					"delay": 5,
+					"timeout": 3,
+					"maxRetries": 2,
+					"httpMethod": "GET",
+					"urlPath": "/health"
+				}
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "pool-001"}`),
+	)
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "create", "lb-001",
+		"--cloud-project", "fakeProjectID",
+		"--name", "my-pool",
+		"--algorithm", "least_connections",
+		"--protocol", "http",
+		"--health-monitor-type", "http",
+		"--health-monitor-delay", "5",
+		"--health-monitor-timeout", "3",
+		"--health-monitor-max-retries", "2",
+		"--health-monitor-http-method", "get",
+		"--health-monitor-url-path", "/health",
+		"-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Pool created successfully (ID: pool-001)", "details": {"id": "pool-001"}}`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolCreateWithoutHealthMonitorCmd(assert, require *td.T) {
+	// The healthMonitor key must be absent from the body when no health monitor flag is given
+	httpmock.RegisterMatcherResponder(http.MethodPost, poolsURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {"algorithm": "ROUND_ROBIN", "protocol": "TCP"}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "pool-001"}`),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "create", "lb-001",
+		"--cloud-project", "fakeProjectID",
+		"--algorithm", "ROUND_ROBIN",
+		"--protocol", "TCP")
+	require.CmpNoError(err)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolEditCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, poolsURL+"/pool-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "pool-001",
+			"checksum": "abc",
+			"targetSpec": {
+				"name": "my-pool",
+				"algorithm": "ROUND_ROBIN",
+				"protocol": "HTTP",
+				"healthMonitor": {"type": "HTTP", "delay": 5, "timeout": 3, "maxRetries": 2}
+			}
+		}`))
+
+	httpmock.RegisterMatcherResponder(http.MethodPut, poolsURL+"/pool-001",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc",
+			"targetSpec": {
+				"name": "my-pool",
+				"algorithm": "SOURCE_IP",
+				"healthMonitor": {"type": "HTTP", "delay": 10, "timeout": 3, "maxRetries": 2}
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "pool-001"}`),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "edit", "lb-001", "pool-001",
+		"--cloud-project", "fakeProjectID",
+		"--algorithm", "source_ip",
+		"--health-monitor-delay", "10")
+	require.CmpNoError(err)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolCreateIncompleteHealthMonitorCmd(assert, require *td.T) {
+	// No POST responder registered: the command must fail before calling the API
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "create", "lb-001",
+		"--cloud-project", "fakeProjectID",
+		"--algorithm", "ROUND_ROBIN",
+		"--protocol", "HTTP",
+		"--health-monitor-type", "HTTP",
+		"--health-monitor-delay", "5")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("the following parameters are required: --health-monitor-timeout, --health-monitor-max-retries"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolEditIncompleteHealthMonitorCmd(assert, require *td.T) {
+	// The pool has no health monitor: a single --health-monitor-* flag cannot create one
+	httpmock.RegisterResponder(http.MethodGet, poolsURL+"/pool-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "pool-001",
+			"checksum": "abc",
+			"targetSpec": {"name": "my-pool", "algorithm": "ROUND_ROBIN", "protocol": "HTTP"}
+		}`))
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "edit", "lb-001", "pool-001",
+		"--cloud-project", "fakeProjectID",
+		"--health-monitor-delay", "10")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("this pool has no health monitor yet"))
+	assert.Cmp(err.Error(), td.Contains("--health-monitor-type, --health-monitor-timeout, --health-monitor-max-retries"))
+	// Only the GET happened, no PUT
+	assert.Cmp(httpmock.GetCallCountInfo()["PUT "+poolsURL+"/pool-001"], 0)
+}
+
+// writeTempJSON writes content to a temporary JSON file and returns its path.
+func writeTempJSON(require *td.T, content string) string {
+	f, err := os.CreateTemp("", "lb-params-*.json")
+	require.CmpNoError(err)
+	_, err = f.WriteString(content)
+	require.CmpNoError(err)
+	require.CmpNoError(f.Close())
+	return f.Name()
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolCreateFileWithHealthMonitorAndFlagCmd(assert, require *td.T) {
+	// The file defines a complete health monitor, a single flag overrides one field:
+	// the flags alone are incomplete but the merged body is valid.
+	file := writeTempJSON(require, `{"targetSpec": {"name": "my-pool", "algorithm": "ROUND_ROBIN", "protocol": "HTTP",
+		"healthMonitor": {"type": "HTTP", "delay": 5, "timeout": 3, "maxRetries": 2}}}`)
+	defer os.Remove(file)
+
+	httpmock.RegisterMatcherResponder(http.MethodPost, poolsURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-pool",
+				"algorithm": "ROUND_ROBIN",
+				"protocol": "HTTP",
+				"healthMonitor": {"type": "HTTP", "delay": 10, "timeout": 3, "maxRetries": 2}
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "pool-001"}`),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "create", "lb-001",
+		"--cloud-project", "fakeProjectID",
+		"--from-file", file,
+		"--health-monitor-delay", "10")
+	require.CmpNoError(err)
+}
 
 func (ms *MockSuite) TestCloudLoadbalancerPoolDeleteCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001",
-		httpmock.NewStringResponder(200, `{"id":"pool-001"}`))
-
-	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/pool/pool-001",
+	httpmock.RegisterResponder(http.MethodDelete, poolsURL+"/pool-001",
 		httpmock.NewStringResponder(200, `null`))
 
-	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "delete", "pool-001", "--cloud-project", "fakeProjectID", "-o", "json")
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "delete", "lb-001", "pool-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`{
 		"message": "✅ Pool pool-001 deleted successfully"
@@ -816,111 +992,6 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberCreateWithFlagsCmd(assert, r
 				}
 			]
 		}
-	}`))
-}
-
-// ---------------------------------------------------------------------------
-// Health Monitor – list
-// ---------------------------------------------------------------------------
-
-func (ms *MockSuite) TestCloudLoadbalancerHealthMonitorListCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/healthMonitor",
-		httpmock.NewStringResponder(200, `[
-			{
-				"id": "hm-001",
-				"name": "my-health-monitor",
-				"monitorType": "http",
-				"poolId": "pool-001",
-				"operatingStatus": "online",
-				"provisioningStatus": "active"
-			}
-		]`))
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/SBG5/loadbalancing/healthMonitor",
-		httpmock.NewStringResponder(200, `[]`))
-
-	out, err := cmd.Execute("cloud", "loadbalancer", "health-monitor", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`[
-		{
-			"id": "hm-001",
-			"name": "my-health-monitor",
-			"monitorType": "http",
-			"poolId": "pool-001",
-			"operatingStatus": "online",
-			"provisioningStatus": "active"
-		}
-	]`))
-}
-
-// ---------------------------------------------------------------------------
-// Health Monitor – get
-// ---------------------------------------------------------------------------
-
-func (ms *MockSuite) TestCloudLoadbalancerHealthMonitorGetCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/healthMonitor/hm-001",
-		httpmock.NewStringResponder(200, `{
-			"id": "hm-001",
-			"name": "my-health-monitor",
-			"monitorType": "http",
-			"poolId": "pool-001",
-			"delay": 5,
-			"timeout": 10,
-			"maxRetries": 3,
-			"maxRetriesDown": 3,
-			"operatingStatus": "online",
-			"provisioningStatus": "active"
-		}`))
-
-	out, err := cmd.Execute("cloud", "loadbalancer", "health-monitor", "get", "hm-001", "--cloud-project", "fakeProjectID")
-	require.CmpNoError(err)
-	assert.Cmp(cleanWhitespacesHelper(out), `
-  # 💓 Health monitor hm-001
-
-  *my-health-monitor*
-
-  ## General information
-
-  **Monitor type**:        http
-  **Pool ID**:             pool-001
-  **Delay**:               5s
-  **Timeout**:             10s
-  **Max retries**:         3
-  **Max retries down**:    3
-  **Operating status**:    online
-  **Provisioning status**: active
-
-  💡 Use option --json or --yaml to get the raw output with all information
-
-`)
-}
-
-// ---------------------------------------------------------------------------
-// Health Monitor – delete
-// ---------------------------------------------------------------------------
-
-func (ms *MockSuite) TestCloudLoadbalancerHealthMonitorDeleteCmd(assert, require *td.T) {
-	registerLoadbalancingRegionMocks()
-
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/healthMonitor/hm-001",
-		httpmock.NewStringResponder(200, `{"id":"hm-001"}`))
-
-	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/region/GRA11/loadbalancing/healthMonitor/hm-001",
-		httpmock.NewStringResponder(200, `null`))
-
-	out, err := cmd.Execute("cloud", "loadbalancer", "health-monitor", "delete", "hm-001", "--cloud-project", "fakeProjectID", "-o", "json")
-	require.CmpNoError(err)
-	assert.Cmp(json.RawMessage(out), td.JSON(`{
-		"message": "✅ Health monitor hm-001 deleted successfully"
 	}`))
 }
 

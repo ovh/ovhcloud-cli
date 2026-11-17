@@ -3,7 +3,7 @@
 Get a specific pool
 
 ```
-ovhcloud cloud loadbalancer pool get <pool_id> [flags]
+ovhcloud cloud loadbalancer pool get <loadbalancer_id> <pool_id> [flags]
 ```
 
 ### Options

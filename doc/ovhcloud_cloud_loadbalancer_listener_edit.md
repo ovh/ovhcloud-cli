@@ -3,18 +3,18 @@
 Edit a specific listener
 
 ```
-ovhcloud cloud loadbalancer listener edit <listener_id> [flags]
+ovhcloud cloud loadbalancer listener edit <loadbalancer_id> <listener_id> [flags]
 ```
 
 ### Options
 
 ```
-      --certificate-id string    Certificate ID
-      --default-pool-id string   Default pool ID
-      --description string       Description of the listener
-      --editor                   Use a text editor to define parameters
-  -h, --help                     help for edit
-      --name string              Name of the listener
+      --default-pool-id string             Default pool ID
+      --default-tls-container-ref string   Reference of the default TLS certificate container
+      --description string                 Description of the listener
+      --editor                             Use a text editor to define parameters
+  -h, --help                               help for edit
+      --name string                        Name of the listener
 ```
 
 ### Options inherited from parent commands

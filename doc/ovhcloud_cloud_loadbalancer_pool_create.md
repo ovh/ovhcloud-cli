@@ -1,24 +1,61 @@
 ## ovhcloud cloud loadbalancer pool create
 
-Create a pool in the given region
+Create a pool on a loadbalancer
+
+### Synopsis
+
+Use this command to create a pool, optionally with its health monitor.
+There are three ways to define the parameters:
+
+1. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud loadbalancer pool create <loadbalancer_id> --init-file ./params.json
+
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud loadbalancer pool create <loadbalancer_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file.
+
+2. Using your default text editor:
+
+	ovhcloud cloud loadbalancer pool create <loadbalancer_id> --editor
+
+3. Using only CLI flags, for example a pool created with a full health monitor in one command:
+
+	ovhcloud cloud loadbalancer pool create <loadbalancer_id> --name my-pool --algorithm ROUND_ROBIN --protocol HTTP \
+		--health-monitor-type HTTP --health-monitor-delay 10 --health-monitor-timeout 5 --health-monitor-max-retries 3 \
+		--health-monitor-url-path /healthz --health-monitor-expected-codes 200
+
+  When any --health-monitor-* flag is used with flags only, type, delay, timeout and max-retries are all required.
+
 
 ```
-ovhcloud cloud loadbalancer pool create <region> [flags]
+ovhcloud cloud loadbalancer pool create <loadbalancer_id> [flags]
 ```
 
 ### Options
 
 ```
-      --algorithm string         Algorithm (roundRobin, leastConnections, sourceIp)
-      --editor                   Use a text editor to define parameters
-      --from-file string         File containing parameters
-  -h, --help                     help for create
-      --init-file string         Create a file with example parameters
-      --listener-id string       Listener ID
-      --loadbalancer-id string   Loadbalancer ID
-      --name string              Name of the pool
-      --protocol string          Protocol (http, https, tcp, udp, sctp, prometheus)
-      --replace                  Replace parameters file if it already exists
+      --algorithm string                       Algorithm (ROUND_ROBIN, LEAST_CONNECTIONS, SOURCE_IP)
+      --description string                     Description of the pool
+      --editor                                 Use a text editor to define parameters
+      --from-file string                       File containing parameters
+      --health-monitor-delay int               Time in seconds between sending health check probes to members
+      --health-monitor-expected-codes string   Expected HTTP status codes of HTTP and HTTPS health monitors (e.g. 200, 200-204)
+      --health-monitor-http-method string      HTTP method used by HTTP and HTTPS health monitors (GET, HEAD, POST, ...)
+      --health-monitor-max-retries int         Number of consecutive health check failures before marking a member as INACTIVE (1-10)
+      --health-monitor-max-retries-down int    Number of consecutive health check failures before marking a member as ERROR (1-10)
+      --health-monitor-timeout int             Maximum time in seconds to wait for a health check reply (must be less than or equal to the delay)
+      --health-monitor-type string             Type of the health monitor (HTTP, HTTPS, PING, TCP, TLS_HELLO, UDP_CONNECT, SCTP)
+      --health-monitor-url-path string         URL path requested by HTTP and HTTPS health monitors
+  -h, --help                                   help for create
+      --init-file string                       Create a file with example parameters
+      --name string                            Name of the pool
+      --protocol string                        Protocol (HTTP, HTTPS, PROXY, PROXYV2, TCP, UDP, SCTP)
+      --replace                                Replace parameters file if it already exists
 ```
 
 ### Options inherited from parent commands

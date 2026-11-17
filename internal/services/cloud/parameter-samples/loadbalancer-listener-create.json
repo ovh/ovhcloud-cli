@@ -1,6 +1,11 @@
 {
-  "loadbalancerId": "00000000-0000-0000-0000-000000000000",
-  "name": "my-listener",
-  "port": 80,
-  "protocol": "http"
+  "targetSpec": {
+    "defaultPool": {
+      "id": "00000000-0000-0000-0000-000000000000"
+    },
+    "description": "My HTTP listener",
+    "name": "my-listener",
+    "protocol": "HTTP",
+    "protocolPort": 80
+  }
 }

@@ -1,9 +1,9 @@
 ## ovhcloud cloud loadbalancer pool list
 
-List all pools
+List the pools of a loadbalancer
 
 ```
-ovhcloud cloud loadbalancer pool list [flags]
+ovhcloud cloud loadbalancer pool list <loadbalancer_id> [flags]
 ```
 
 ### Options

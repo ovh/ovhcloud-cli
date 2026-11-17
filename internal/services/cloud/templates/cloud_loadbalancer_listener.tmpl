@@ -1,15 +1,40 @@
+{{- /* currentState is null while the listener is being created: fall back on targetSpec */ -}}
+{{- $cs := index .Result "currentState" -}}
+{{- $name := "" -}}
+{{- $description := "" -}}
+{{- $protocol := "" -}}
+{{- $port := "" -}}
+{{- $defaultPool := "" -}}
+{{- with index .Result "targetSpec" -}}
+{{- $name = index . "name" -}}
+{{- $description = index . "description" -}}
+{{- $protocol = index . "protocol" -}}
+{{- $port = index . "protocolPort" -}}
+{{- with index . "defaultPool" -}}{{- $defaultPool = index . "id" -}}{{- end -}}
+{{- end -}}
+{{- with $cs -}}
+{{- $name = index . "name" -}}
+{{- $description = index . "description" -}}
+{{- $protocol = index . "protocol" -}}
+{{- $port = index . "protocolPort" -}}
+{{- with index . "defaultPool" -}}{{- $defaultPool = index . "id" -}}{{- end -}}
+{{- end -}}
 🔊 Listener {{.ServiceName}}
 =======
 
-_{{index .Result "name"}}_
+_{{$name}}_
 
 ## General information
 
-**Protocol**:            {{index .Result "protocol"}}
-**Port**:                {{index .Result "port"}}
-**Operating status**:    {{index .Result "operatingStatus"}}
-**Provisioning status**: {{index .Result "provisioningStatus"}}
-**Default pool ID**:     {{index .Result "defaultPoolId"}}
-**Description**:         {{index .Result "description"}}
+**ID**:                  {{index .Result "id"}}
+**Status**:              {{index .Result "resourceStatus"}}
+**Protocol**:            {{$protocol}}
+**Port**:                {{$port}}
+**Operating status**:    {{with $cs}}{{index . "operatingStatus"}}{{else}}_not yet available_{{end}}
+**Provisioning status**: {{with $cs}}{{index . "provisioningStatus"}}{{else}}_not yet available_{{end}}
+{{if $defaultPool}}**Default pool ID**:     {{$defaultPool}}
+{{end}}{{if $description}}**Description**:         {{$description}}
+{{end}}**Creation date**:       {{index .Result "createdAt"}}
+**Update date**:         {{index .Result "updatedAt"}}
 
-💡 Use option --json or --yaml to get the raw output with all information
+💡 Use option -o json or -o yaml to get the raw output with all information

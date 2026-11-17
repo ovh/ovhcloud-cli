@@ -1,23 +1,51 @@
 ## ovhcloud cloud loadbalancer listener create
 
-Create a listener in the given region
+Create a listener on a loadbalancer
+
+### Synopsis
+
+Use this command to create a listener, optionally with its default pool.
+There are three ways to define the parameters:
+
+1. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --init-file ./params.json
+
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file.
+
+2. Using your default text editor:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --editor
+
+3. Using only CLI flags:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --name my-listener --protocol HTTP --port 80 --default-pool-id <pool_id>
+
 
 ```
-ovhcloud cloud loadbalancer listener create <region> [flags]
+ovhcloud cloud loadbalancer listener create <loadbalancer_id> [flags]
 ```
 
 ### Options
 
 ```
-      --editor                   Use a text editor to define parameters
-      --from-file string         File containing parameters
-  -h, --help                     help for create
-      --init-file string         Create a file with example parameters
-      --loadbalancer-id string   Loadbalancer ID
-      --name string              Name of the listener
-      --port int                 Port to listen on
-      --protocol string          Protocol (http, https, tcp, udp, sctp, prometheus)
-      --replace                  Replace parameters file if it already exists
+      --default-pool-id string             Default pool ID
+      --default-tls-container-ref string   Reference of the default TLS certificate container
+      --description string                 Description of the listener
+      --editor                             Use a text editor to define parameters
+      --from-file string                   File containing parameters
+  -h, --help                               help for create
+      --init-file string                   Create a file with example parameters
+      --name string                        Name of the listener
+      --port int                           Port to listen on
+      --protocol string                    Protocol (HTTP, HTTPS, TERMINATED_HTTPS, TCP, UDP, SCTP)
+      --replace                            Replace parameters file if it already exists
 ```
 
 ### Options inherited from parent commands

@@ -3,7 +3,7 @@
 Delete a specific listener
 
 ```
-ovhcloud cloud loadbalancer listener delete <listener_id> [flags]
+ovhcloud cloud loadbalancer listener delete <loadbalancer_id> <listener_id> [flags]
 ```
 
 ### Options
