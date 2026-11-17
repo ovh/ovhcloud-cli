@@ -126,7 +126,7 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		return nil, fmt.Errorf("failed to prepare arguments from command line: %w", err)
 	}
 	var cliParameters map[string]any
-	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
+	if err := decodeJSONObject(jsonCliParameters, &cliParameters); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments from command line: %w", err)
 	}
 
@@ -143,7 +143,7 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 			return nil, err
 		}
 
-		if err := json.Unmarshal(stdin, &parameters); err != nil {
+		if err := decodeJSONObject(stdin, &parameters); err != nil {
 			return nil, fmt.Errorf("failed to parse given data: %w", err)
 		}
 
@@ -169,7 +169,7 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 			return nil, fmt.Errorf("failed to edit parameters using editor: %w", err)
 		}
 
-		if err := json.Unmarshal(newValue, &parameters); err != nil {
+		if err := decodeJSONObject(newValue, &parameters); err != nil {
 			return nil, fmt.Errorf("failed to parse given parameters: %w", err)
 		}
 
@@ -182,7 +182,7 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		}
 		defer fd.Close()
 
-		if err := json.NewDecoder(fd).Decode(&parameters); err != nil {
+		if err := decodeJSONObjectFrom(fd, &parameters); err != nil {
 			return nil, fmt.Errorf("failed to parse given file: %w", err)
 		}
 	}
@@ -227,7 +227,7 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 		return fmt.Errorf("failed to prepare arguments from command line: %w", err)
 	}
 	var cliParameters map[string]any
-	if err := json.Unmarshal(jsonCliParameters, &cliParameters); err != nil {
+	if err := decodeJSONObject(jsonCliParameters, &cliParameters); err != nil {
 		return fmt.Errorf("failed to parse arguments from command line: %w", err)
 	}
 
@@ -242,7 +242,7 @@ func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 		defer fd.Close()
 
 		var fileParameters map[string]any
-		if err := json.NewDecoder(fd).Decode(&fileParameters); err != nil {
+		if err := decodeJSONObjectFrom(fd, &fileParameters); err != nil {
 			return fmt.Errorf("failed to parse given file: %w", err)
 		}
 
