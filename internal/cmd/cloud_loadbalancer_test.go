@@ -587,6 +587,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolGetCmd(assert, require *td.T) {
 					"delay": 5,
 					"timeout": 3,
 					"maxRetries": 2,
+					"maxRetriesDown": 4,
 					"httpMethod": "GET",
 					"urlPath": "/health",
 					"expectedCodes": "200"
@@ -614,13 +615,14 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolGetCmd(assert, require *td.T) {
 
   ## Health monitor
 
-  **Type**:            HTTP
-  **Delay**:           5s
-  **Timeout**:         3s
-  **Max retries**:     2
-  **HTTP method**:     GET
-  **URL path**:        /health
-  **Expected codes**:  200
+  **Type**:             HTTP
+  **Delay**:            5s
+  **Timeout**:          3s
+  **Max retries**:      2
+  **Max retries down**: 4
+  **HTTP method**:      GET
+  **URL path**:         /health
+  **Expected codes**:   200
 
   💡 Use option -o json or -o yaml to get the raw output with all information
 
@@ -726,6 +728,38 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolEditCmd(assert, require *td.T) {
 		"--algorithm", "source_ip",
 		"--health-monitor-delay", "10")
 	require.CmpNoError(err)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolCreateIncompleteHealthMonitorCmd(assert, require *td.T) {
+	// No POST responder registered: the command must fail before calling the API
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "create", "lb-001",
+		"--cloud-project", "fakeProjectID",
+		"--algorithm", "ROUND_ROBIN",
+		"--protocol", "HTTP",
+		"--health-monitor-type", "HTTP",
+		"--health-monitor-delay", "5")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("the following parameters are required: --health-monitor-timeout, --health-monitor-max-retries"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolEditIncompleteHealthMonitorCmd(assert, require *td.T) {
+	// The pool has no health monitor: a single --health-monitor-* flag cannot create one
+	httpmock.RegisterResponder(http.MethodGet, poolsURL+"/pool-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "pool-001",
+			"checksum": "abc",
+			"targetSpec": {"name": "my-pool", "algorithm": "ROUND_ROBIN", "protocol": "HTTP"}
+		}`))
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "edit", "lb-001", "pool-001",
+		"--cloud-project", "fakeProjectID",
+		"--health-monitor-delay", "10")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("this pool has no health monitor yet"))
+	assert.Cmp(err.Error(), td.Contains("--health-monitor-type, --health-monitor-timeout, --health-monitor-max-retries"))
+	// Only the GET happened, no PUT
+	assert.Cmp(httpmock.GetCallCountInfo()["PUT "+poolsURL+"/pool-001"], 0)
 }
 
 func (ms *MockSuite) TestCloudLoadbalancerPoolDeleteCmd(assert, require *td.T) {

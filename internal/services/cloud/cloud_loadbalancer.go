@@ -238,6 +238,47 @@ type PoolHealthMonitorParams struct {
 	UrlPath        string `json:"urlPath,omitempty"`
 }
 
+// isSet reports whether at least one health monitor parameter was given.
+func (hm PoolHealthMonitorParams) isSet() bool {
+	return hm != PoolHealthMonitorParams{}
+}
+
+// missingRequired lists the flags required by the API for a health monitor
+// that are neither set in hm nor already defined by the existing health monitor.
+func (hm PoolHealthMonitorParams) missingRequired(existing map[string]any) []string {
+	var missing []string
+	has := func(flagValue bool, key string) bool {
+		if flagValue {
+			return true
+		}
+		v, ok := existing[key]
+		return ok && v != nil && v != ""
+	}
+	if !has(hm.Type != "", "type") {
+		missing = append(missing, "--health-monitor-type")
+	}
+	if !has(hm.Delay != 0, "delay") {
+		missing = append(missing, "--health-monitor-delay")
+	}
+	if !has(hm.Timeout != 0, "timeout") {
+		missing = append(missing, "--health-monitor-timeout")
+	}
+	if !has(hm.MaxRetries != 0, "maxRetries") {
+		missing = append(missing, "--health-monitor-max-retries")
+	}
+	return missing
+}
+
+// healthMonitorMissingError builds the error returned when a health monitor would be incomplete.
+// noneYet is true when the pool has no health monitor to complete, in a pool edit.
+func healthMonitorMissingError(missing []string, noneYet bool) error {
+	list := strings.Join(missing, ", ")
+	if noneYet {
+		return fmt.Errorf("this pool has no health monitor yet, %s must all be given to create one", list)
+	}
+	return fmt.Errorf("incomplete health monitor, the following parameters are required: %s", list)
+}
+
 type cloudLoadbalancerPoolMemberCreateSpec struct {
 	Address      string `json:"address,omitempty"`
 	Name         string `json:"name,omitempty"`
@@ -639,6 +680,13 @@ func CreateCloudLoadbalancerPool(cmd *cobra.Command, args []string) {
 	spec.HealthMonitor.Type = strings.ToUpper(spec.HealthMonitor.Type)
 	spec.HealthMonitor.HttpMethod = strings.ToUpper(spec.HealthMonitor.HttpMethod)
 
+	if spec.HealthMonitor.isSet() {
+		if missing := spec.HealthMonitor.missingRequired(nil); len(missing) > 0 {
+			display.OutputError(&flags.OutputFormatConfig, "failed to create pool: %s", healthMonitorMissingError(missing, false))
+			return
+		}
+	}
+
 	result, err := common.CreateResource(
 		cmd,
 		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/pool",
@@ -668,6 +716,27 @@ func EditCloudLoadbalancerPool(cmd *cobra.Command, args []string) {
 	spec.Algorithm = strings.ToUpper(spec.Algorithm)
 	spec.HealthMonitor.Type = strings.ToUpper(spec.HealthMonitor.Type)
 	spec.HealthMonitor.HttpMethod = strings.ToUpper(spec.HealthMonitor.HttpMethod)
+
+	// Health monitor flags given: make sure the resulting health monitor is complete,
+	// instead of letting the API answer with a technical 400.
+	if spec.HealthMonitor.isSet() {
+		var pool map[string]any
+		poolURL := fmt.Sprintf("%s/%s", loadbalancerPoolPath(projectID, args[0]), url.PathEscape(args[1]))
+		if err := httpLib.Client.Get(poolURL, &pool); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "error fetching %s: %s", poolURL, err)
+			return
+		}
+
+		var existing map[string]any
+		if targetSpec, ok := pool["targetSpec"].(map[string]any); ok {
+			existing, _ = targetSpec["healthMonitor"].(map[string]any)
+		}
+
+		if missing := spec.HealthMonitor.missingRequired(existing); len(missing) > 0 {
+			display.OutputError(&flags.OutputFormatConfig, "%s", healthMonitorMissingError(missing, existing == nil))
+			return
+		}
+	}
 
 	if err := common.EditResource(
 		cmd,
