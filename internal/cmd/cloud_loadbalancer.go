@@ -242,8 +242,31 @@ func getListenerCreationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <loadbalancer_id>",
 		Short: "Create a listener on a loadbalancer",
-		Run:   cloud.CreateCloudLoadbalancerListener,
-		Args:  cobra.ExactArgs(1),
+		Long: `Use this command to create a listener, optionally with its default pool.
+There are three ways to define the parameters:
+
+1. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --init-file ./params.json
+
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file.
+
+2. Using your default text editor:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --editor
+
+3. Using only CLI flags:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --name my-listener --protocol HTTP --port 80 --default-pool-id <pool_id>
+`,
+		Run:  cloud.CreateCloudLoadbalancerListener,
+		Args: cobra.ExactArgs(1),
 	}
 
 	spec := &cloud.CloudLoadbalancerListenerCreateSpec.TargetSpec
@@ -318,8 +341,35 @@ func getPoolCreationCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <loadbalancer_id>",
 		Short: "Create a pool on a loadbalancer",
-		Run:   cloud.CreateCloudLoadbalancerPool,
-		Args:  cobra.ExactArgs(1),
+		Long: `Use this command to create a pool, optionally with its health monitor.
+There are three ways to define the parameters:
+
+1. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud loadbalancer pool create <loadbalancer_id> --init-file ./params.json
+
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud loadbalancer pool create <loadbalancer_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file.
+
+2. Using your default text editor:
+
+	ovhcloud cloud loadbalancer pool create <loadbalancer_id> --editor
+
+3. Using only CLI flags, for example a pool created with a full health monitor in one command:
+
+	ovhcloud cloud loadbalancer pool create <loadbalancer_id> --name my-pool --algorithm ROUND_ROBIN --protocol HTTP \
+		--health-monitor-type HTTP --health-monitor-delay 10 --health-monitor-timeout 5 --health-monitor-max-retries 3 \
+		--health-monitor-url-path /healthz --health-monitor-expected-codes 200
+
+  When any --health-monitor-* flag is used with flags only, type, delay, timeout and max-retries are all required.
+`,
+		Run:  cloud.CreateCloudLoadbalancerPool,
+		Args: cobra.ExactArgs(1),
 	}
 
 	spec := &cloud.CloudLoadbalancerPoolCreateSpec.TargetSpec
@@ -339,10 +389,10 @@ func getPoolCreationCmd() *cobra.Command {
 // addPoolHealthMonitorFlags registers the flags describing the health monitor nested in a pool.
 func addPoolHealthMonitorFlags(cmd *cobra.Command, hm *cloud.PoolHealthMonitorParams) {
 	cmd.Flags().StringVar(&hm.Type, "health-monitor-type", "", "Type of the health monitor (HTTP, HTTPS, PING, TCP, TLS_HELLO, UDP_CONNECT, SCTP)")
-	cmd.Flags().IntVar(&hm.Delay, "health-monitor-delay", 0, "Duration between sending probes to members, in seconds")
-	cmd.Flags().IntVar(&hm.Timeout, "health-monitor-timeout", 0, "Maximum time in seconds to connect before timeout")
-	cmd.Flags().IntVar(&hm.MaxRetries, "health-monitor-max-retries", 0, "Number of successful checks before changing status to ONLINE")
-	cmd.Flags().IntVar(&hm.MaxRetriesDown, "health-monitor-max-retries-down", 0, "Number of allowed check failures before changing status to ERROR")
+	cmd.Flags().IntVar(&hm.Delay, "health-monitor-delay", 0, "Time in seconds between sending health check probes to members")
+	cmd.Flags().IntVar(&hm.Timeout, "health-monitor-timeout", 0, "Maximum time in seconds to wait for a health check reply (must be less than or equal to the delay)")
+	cmd.Flags().IntVar(&hm.MaxRetries, "health-monitor-max-retries", 0, "Number of consecutive health check failures before marking a member as INACTIVE (1-10)")
+	cmd.Flags().IntVar(&hm.MaxRetriesDown, "health-monitor-max-retries-down", 0, "Number of consecutive health check failures before marking a member as ERROR (1-10)")
 	cmd.Flags().StringVar(&hm.HttpMethod, "health-monitor-http-method", "", "HTTP method used by HTTP and HTTPS health monitors (GET, HEAD, POST, ...)")
 	cmd.Flags().StringVar(&hm.UrlPath, "health-monitor-url-path", "", "URL path requested by HTTP and HTTPS health monitors")
 	cmd.Flags().StringVar(&hm.ExpectedCodes, "health-monitor-expected-codes", "", "Expected HTTP status codes of HTTP and HTTPS health monitors (e.g. 200, 200-204)")

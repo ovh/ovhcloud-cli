@@ -7,6 +7,7 @@ package cmd_test
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/td"
@@ -760,6 +761,42 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolEditIncompleteHealthMonitorCmd(ass
 	assert.Cmp(err.Error(), td.Contains("--health-monitor-type, --health-monitor-timeout, --health-monitor-max-retries"))
 	// Only the GET happened, no PUT
 	assert.Cmp(httpmock.GetCallCountInfo()["PUT "+poolsURL+"/pool-001"], 0)
+}
+
+// writeTempJSON writes content to a temporary JSON file and returns its path.
+func writeTempJSON(require *td.T, content string) string {
+	f, err := os.CreateTemp("", "lb-params-*.json")
+	require.CmpNoError(err)
+	_, err = f.WriteString(content)
+	require.CmpNoError(err)
+	require.CmpNoError(f.Close())
+	return f.Name()
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolCreateFileWithHealthMonitorAndFlagCmd(assert, require *td.T) {
+	// The file defines a complete health monitor, a single flag overrides one field:
+	// the flags alone are incomplete but the merged body is valid.
+	file := writeTempJSON(require, `{"targetSpec": {"name": "my-pool", "algorithm": "ROUND_ROBIN", "protocol": "HTTP",
+		"healthMonitor": {"type": "HTTP", "delay": 5, "timeout": 3, "maxRetries": 2}}}`)
+	defer os.Remove(file)
+
+	httpmock.RegisterMatcherResponder(http.MethodPost, poolsURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "my-pool",
+				"algorithm": "ROUND_ROBIN",
+				"protocol": "HTTP",
+				"healthMonitor": {"type": "HTTP", "delay": 10, "timeout": 3, "maxRetries": 2}
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "pool-001"}`),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "create", "lb-001",
+		"--cloud-project", "fakeProjectID",
+		"--from-file", file,
+		"--health-monitor-delay", "10")
+	require.CmpNoError(err)
 }
 
 func (ms *MockSuite) TestCloudLoadbalancerPoolDeleteCmd(assert, require *td.T) {

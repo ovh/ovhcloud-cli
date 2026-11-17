@@ -2,6 +2,32 @@
 
 Create a listener on a loadbalancer
 
+### Synopsis
+
+Use this command to create a listener, optionally with its default pool.
+There are three ways to define the parameters:
+
+1. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --init-file ./params.json
+
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file.
+
+2. Using your default text editor:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --editor
+
+3. Using only CLI flags:
+
+	ovhcloud cloud loadbalancer listener create <loadbalancer_id> --name my-listener --protocol HTTP --port 80 --default-pool-id <pool_id>
+
+
 ```
 ovhcloud cloud loadbalancer listener create <loadbalancer_id> [flags]
 ```

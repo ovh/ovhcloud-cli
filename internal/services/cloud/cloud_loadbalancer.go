@@ -680,7 +680,9 @@ func CreateCloudLoadbalancerPool(cmd *cobra.Command, args []string) {
 	spec.HealthMonitor.Type = strings.ToUpper(spec.HealthMonitor.Type)
 	spec.HealthMonitor.HttpMethod = strings.ToUpper(spec.HealthMonitor.HttpMethod)
 
-	if spec.HealthMonitor.isSet() {
+	// With --from-file or --editor the health monitor may be defined by the file,
+	// so the flags alone cannot be checked: let the API validate the merged body.
+	if spec.HealthMonitor.isSet() && flags.ParametersFile == "" && !flags.ParametersViaEditor {
 		if missing := spec.HealthMonitor.missingRequired(nil); len(missing) > 0 {
 			display.OutputError(&flags.OutputFormatConfig, "failed to create pool: %s", healthMonitorMissingError(missing, false))
 			return
@@ -718,8 +720,9 @@ func EditCloudLoadbalancerPool(cmd *cobra.Command, args []string) {
 	spec.HealthMonitor.HttpMethod = strings.ToUpper(spec.HealthMonitor.HttpMethod)
 
 	// Health monitor flags given: make sure the resulting health monitor is complete,
-	// instead of letting the API answer with a technical 400.
-	if spec.HealthMonitor.isSet() {
+	// instead of letting the API answer with a technical 400. Skipped with --from-file
+	// or --editor, where the health monitor may be defined by the file.
+	if spec.HealthMonitor.isSet() && flags.ParametersFile == "" && !flags.ParametersViaEditor {
 		var pool map[string]any
 		poolURL := fmt.Sprintf("%s/%s", loadbalancerPoolPath(projectID, args[0]), url.PathEscape(args[1]))
 		if err := httpLib.Client.Get(poolURL, &pool); err != nil {
