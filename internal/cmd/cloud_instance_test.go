@@ -1117,6 +1117,28 @@ func (ms *MockSuite) TestCloudInstanceGroupDeleteWaitFailedCmd(assert, require *
 	assert.Cmp(err.Error(), td.All(td.Contains("failed to wait for instance group group-id-1 deletion"), td.Contains("deletion failed")))
 }
 
+func (ms *MockSuite) TestCloudInstanceGroupDeleteWaitFailedReasonCmd(assert, require *td.T) {
+	// When the backend tasks say why the deletion failed, the error says it too
+	httpmock.RegisterResponder(http.MethodDelete, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(202, `{"id": "group-id-1", "resourceStatus": "DELETING"}`).Once(),
+	)
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-1",
+		httpmock.ResponderFromMultipleResponses([]*http.Response{
+			httpmock.NewStringResponse(200, `{"id": "group-id-1", "resourceStatus": "DELETING"}`),
+			httpmock.NewStringResponse(200, `{
+				"id": "group-id-1",
+				"resourceStatus": "ERROR",
+				"currentTasks": [{"type": "DELETE", "status": "ERROR", "errors": [{"message": "group still has members"}]}]
+			}`),
+		}),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "group", "delete", "group-id-1", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("deletion failed (DELETE: group still has members)"))
+}
+
 func (ms *MockSuite) TestCloudInstanceGroupDeleteWaitNeverStartsCmd(assert, require *td.T) {
 	// ERROR that never turns into DELETING: give up after a few polls, not after the full timeout
 	httpmock.RegisterResponder(http.MethodDelete, instanceGroupsURL+"/group-id-1",

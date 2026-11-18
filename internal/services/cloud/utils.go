@@ -104,6 +104,45 @@ func runFlavorSelector(projectID string, region string) (string, string, error) 
 // It is a variable so that tests can shorten it.
 var PollInterval = 5 * time.Second
 
+// resourceTaskErrors returns the error messages of the "currentTasks" of a v2
+// resource that are in ERROR, as "<type>: <message; message>". A task in error
+// without any message is reported by its type alone.
+func resourceTaskErrors(resource map[string]any) []string {
+	tasks, ok := resource["currentTasks"].([]any)
+	if !ok {
+		return nil
+	}
+
+	var out []string
+	for _, t := range tasks {
+		task, ok := t.(map[string]any)
+		if !ok {
+			continue
+		}
+		if taskStatus, _ := task["status"].(string); taskStatus != "ERROR" {
+			continue
+		}
+
+		var messages []string
+		if taskErrors, ok := task["errors"].([]any); ok {
+			for _, e := range taskErrors {
+				if em, ok := e.(map[string]any); ok {
+					if msg, ok := em["message"].(string); ok && msg != "" {
+						messages = append(messages, msg)
+					}
+				}
+			}
+		}
+
+		if len(messages) > 0 {
+			out = append(out, fmt.Sprintf("%v: %s", task["type"], strings.Join(messages, "; ")))
+		} else {
+			out = append(out, fmt.Sprintf("%v", task["type"]))
+		}
+	}
+	return out
+}
+
 // waitForCloudResourceDeleted polls a v2 asynchronous resource at the given full
 // endpoint until the API answers 404, i.e. the deletion is over. It times out
 // after retryDuration.
@@ -138,12 +177,17 @@ func waitForCloudResourceDeleted(endpoint string, retryDuration time.Duration) e
 		case "DELETING":
 			deleting = true
 		case "ERROR":
+			// Say why the backend failed, when its tasks tell
+			reason := "resourceStatus=ERROR"
+			if taskErrors := resourceTaskErrors(resource); len(taskErrors) > 0 {
+				reason = strings.Join(taskErrors, "; ")
+			}
 			if deleting {
-				return errors.New("deletion failed (resourceStatus=ERROR)")
+				return fmt.Errorf("deletion failed (%s)", reason)
 			}
 			errorPolls++
 			if errorPolls >= maxErrorPolls {
-				return fmt.Errorf("deletion did not start: resource still in ERROR after %d polls", errorPolls)
+				return fmt.Errorf("deletion did not start: resource still in ERROR after %d polls (%s)", errorPolls, reason)
 			}
 		}
 
@@ -184,30 +228,8 @@ func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) (ma
 
 		// Log tasks reported in error but keep waiting: such errors can be
 		// temporary and get resolved by the backend.
-		if tasks, ok := resource["currentTasks"].([]any); ok {
-			for _, t := range tasks {
-				task, ok := t.(map[string]any)
-				if !ok {
-					continue
-				}
-				if taskStatus, _ := task["status"].(string); taskStatus == "ERROR" {
-					var messages []string
-					if taskErrors, ok := task["errors"].([]any); ok {
-						for _, e := range taskErrors {
-							if em, ok := e.(map[string]any); ok {
-								if msg, ok := em["message"].(string); ok && msg != "" {
-									messages = append(messages, msg)
-								}
-							}
-						}
-					}
-					if len(messages) > 0 {
-						log.Printf("resource task %v is in error state: %s (still waiting…)", task["type"], strings.Join(messages, "; "))
-					} else {
-						log.Printf("resource task %v is in error state, still waiting…", task["type"])
-					}
-				}
-			}
+		for _, taskError := range resourceTaskErrors(resource) {
+			log.Printf("resource task in error state: %s (still waiting…)", taskError)
 		}
 
 		select {
