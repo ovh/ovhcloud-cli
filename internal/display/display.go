@@ -131,7 +131,14 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		for _, selector := range selectors {
 			val, err := selector(context.Background(), value)
 			if err != nil {
-				exitError("failed to select row field: %s", err)
+				// A column that goes through a null object (e.g. "currentState.status"
+				// while a v2 resource is CREATING, where currentState is null) is an
+				// empty cell, not a failure of the whole table. gval reports it as an
+				// untyped "unknown parameter" error.
+				if !strings.Contains(err.Error(), "unknown parameter") {
+					exitError("failed to select row field: %s", err)
+				}
+				val = nil
 			}
 
 			if val == nil {

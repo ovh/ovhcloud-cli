@@ -96,7 +96,12 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 			for i, selector := range selectors {
 				val, err := selector(context.Background(), value)
 				if err != nil {
-					exitError("failed to select row field: %s", err)
+					// A column through a null object (e.g. currentState while
+					// CREATING) is an empty cell, not a failure of the table.
+					if !strings.Contains(err.Error(), "unknown parameter") {
+						exitError("failed to select row field: %s", err)
+					}
+					val = nil
 				}
 				row[columnsTitles[i]] = val
 			}
