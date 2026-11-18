@@ -16,6 +16,7 @@ ovhcloud cloud instance autobackup create <instance_id> [flags]
       --image-name string           Name prefix of the backup images (defaults to the workflow name)
       --name string                 Workflow name
       --rotation int                Number of backups to keep
+      --wait                        Wait for the backup workflow to be ready before exiting
 ```
 
 ### Options inherited from parent commands

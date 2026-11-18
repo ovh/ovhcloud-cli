@@ -1166,7 +1166,24 @@ func CreateAutobackup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Autobackup workflow created with ID: %s", response["id"])
+	autobackupID, ok := response["id"].(string)
+	if !ok || autobackupID == "" {
+		display.OutputError(&flags.OutputFormatConfig, "error creating autobackup for instance %q: no ID in the API response: %v", args[0], response)
+		return
+	}
+
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Autobackup workflow %s creation started", autobackupID)
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", autobackupV2Endpoint(projectID), url.PathEscape(autobackupID)), 10*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for autobackup workflow %s creation: %s", autobackupID, err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Autobackup workflow %s created successfully", autobackupID)
 }
 
 func DeleteAutobackup(_ *cobra.Command, args []string) {
@@ -1183,12 +1200,25 @@ func DeleteAutobackup(_ *cobra.Command, args []string) {
 	}
 
 	endpoint := fmt.Sprintf("%s/%s", autobackupV2Endpoint(projectID), url.PathEscape(args[1]))
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+
+	// The API answers with the autobackup as it is after the request (DELETING)
+	var response map[string]any
+	if err := httpLib.Client.Delete(endpoint, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting autobackup %q: %s", args[1], err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Autobackup workflow deleted")
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Autobackup workflow %s deletion started", args[1])
+		return
+	}
+
+	if err := waitForCloudResourceDeleted(endpoint, 10*time.Minute); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for autobackup workflow %s deletion: %s", args[1], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Autobackup workflow %s deleted successfully", args[1])
 }
 
 // Instance Groups

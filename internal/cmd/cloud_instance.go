@@ -518,15 +518,18 @@ still uses API v1, as API v2 does not support cross-region snapshots.`,
 	_ = createAutobackupCmd.MarkFlagRequired("cron")
 	_ = createAutobackupCmd.MarkFlagRequired("rotation")
 	_ = createAutobackupCmd.MarkFlagRequired("name")
+	createAutobackupCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the backup workflow to be ready before exiting")
 	autobackupCmd.AddCommand(createAutobackupCmd)
 
-	autobackupCmd.AddCommand(&cobra.Command{
+	deleteAutobackupCmd := &cobra.Command{
 		Use:               "delete <instance_id> <backup_workflow_id>",
 		Short:             "Delete an automatic backup workflow",
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.DeleteAutobackup,
 		Args:              cobra.ExactArgs(2),
-	})
+	}
+	deleteAutobackupCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the backup workflow to be deleted before exiting")
+	autobackupCmd.AddCommand(deleteAutobackupCmd)
 
 	// Application access subcommand
 	instanceCmd.AddCommand(&cobra.Command{
