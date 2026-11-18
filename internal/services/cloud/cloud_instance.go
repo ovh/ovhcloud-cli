@@ -62,7 +62,11 @@ var (
 	//go:embed templates/cloud_instance_group.tmpl
 	cloudInstanceGroupTemplate string
 
-	instanceGroupColumnsToDisplay = []string{"id", "name", "type", "region", "instance_ids"}
+	// Name, policy and region cannot change after creation, so targetSpec holds the same
+	// values as currentState and, unlike currentState, is set while the group is CREATING.
+	// "members" is computed by ListInstanceGroups: the number of instances in the
+	// group (v1 showed the instance IDs, unreadable as a column once a group grows).
+	instanceGroupColumnsToDisplay = []string{"id", "targetSpec.name name", "targetSpec.policy policy", "targetSpec.location.region region", "members", "resourceStatus status"}
 
 	InstanceGroupType string
 
@@ -1069,6 +1073,10 @@ func DeleteAutobackup(_ *cobra.Command, args []string) {
 
 // Instance Groups
 
+func instanceGroupV2Endpoint(projectID string) string {
+	return fmt.Sprintf("/v2/publicCloud/project/%s/compute/instanceGroup", projectID)
+}
+
 func ListInstanceGroups(_ *cobra.Command, _ []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
@@ -1076,7 +1084,44 @@ func ListInstanceGroups(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequestNoExpand(fmt.Sprintf("/v1/cloud/project/%s/instance/group", projectID), instanceGroupColumnsToDisplay, flags.GenericFilters)
+	body, err := httpLib.FetchArray(instanceGroupV2Endpoint(projectID), "")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance groups: %s", err)
+		return
+	}
+
+	groups := make([]map[string]any, 0, len(body))
+	for _, object := range body {
+		if group, ok := object.(map[string]any); ok {
+			groups = append(groups, group)
+		}
+	}
+
+	// Filter on the raw API v2 objects, so that --filter behaves the same in
+	// every output format (e.g. on currentState.members).
+	groups, err = filtersLib.FilterLines(groups, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	// For the plain table only, add the number of members to each group, as v1
+	// listed the instance IDs. Every other output (json, yaml, a custom
+	// expression, interactive) gets the raw API v2 object, like get does.
+	// currentState is null while a group is CREATING: no member yet.
+	if flags.OutputFormatConfig.Output == "" {
+		for _, group := range groups {
+			members := 0
+			if state, ok := group["currentState"].(map[string]any); ok {
+				if list, ok := state["members"].([]any); ok {
+					members = len(list)
+				}
+			}
+			group["members"] = members
+		}
+	}
+
+	display.RenderTable(groups, instanceGroupColumnsToDisplay, &flags.OutputFormatConfig)
 }
 
 func GetInstanceGroup(_ *cobra.Command, args []string) {
@@ -1086,7 +1131,20 @@ func GetInstanceGroup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	common.ManageObjectRequest(fmt.Sprintf("/v1/cloud/project/%s/instance/group", projectID), args[0], cloudInstanceGroupTemplate)
+	common.ManageObjectRequest(instanceGroupV2Endpoint(projectID), args[0], cloudInstanceGroupTemplate)
+}
+
+// instanceGroupPolicy converts the --type flag value (affinity, anti-affinity)
+// to the API v2 placement policy (AFFINITY, ANTI_AFFINITY). Only the two
+// documented spellings are accepted, as in v1.
+func instanceGroupPolicy(groupType string) (string, error) {
+	switch groupType {
+	case "affinity":
+		return "AFFINITY", nil
+	case "anti-affinity":
+		return "ANTI_AFFINITY", nil
+	}
+	return "", fmt.Errorf("invalid group type: %q. Use 'affinity' or 'anti-affinity'", groupType)
 }
 
 func CreateInstanceGroup(_ *cobra.Command, args []string) {
@@ -1096,25 +1154,44 @@ func CreateInstanceGroup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	if InstanceGroupType != "affinity" && InstanceGroupType != "anti-affinity" {
-		display.OutputError(&flags.OutputFormatConfig, "invalid group type: %q. Use 'affinity' or 'anti-affinity'.", InstanceGroupType)
+	policy, err := instanceGroupPolicy(InstanceGroupType)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/group", projectID)
 	body := map[string]any{
-		"name":   args[0],
-		"region": args[1],
-		"type":   InstanceGroupType,
+		"targetSpec": map[string]any{
+			"name":     args[0],
+			"location": map[string]any{"region": args[1]},
+			"policy":   policy,
+		},
 	}
 
 	var response map[string]any
-	if err := httpLib.Client.Post(endpoint, body, &response); err != nil {
+	if err := httpLib.Client.Post(instanceGroupV2Endpoint(projectID), body, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error creating instance group: %s", err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Instance group created with ID: %s", response["id"])
+	groupID, ok := response["id"].(string)
+	if !ok || groupID == "" {
+		display.OutputError(&flags.OutputFormatConfig, "error creating instance group: no ID in the API response: %v", response)
+		return
+	}
+
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Instance group %s creation started", groupID)
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", instanceGroupV2Endpoint(projectID), url.PathEscape(groupID)), 10*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance group %s creation: %s", groupID, err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Instance group %s created successfully", groupID)
 }
 
 func DeleteInstanceGroup(_ *cobra.Command, args []string) {
@@ -1124,12 +1201,24 @@ func DeleteInstanceGroup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/group/%s", projectID, url.PathEscape(args[0]))
+	endpoint := fmt.Sprintf("%s/%s", instanceGroupV2Endpoint(projectID), url.PathEscape(args[0]))
 
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	// The API answers with the group as it is after the request (DELETING)
+	var response map[string]any
+	if err := httpLib.Client.Delete(endpoint, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting instance group %q: %s", args[0], err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance group successfully deleted")
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Instance group %s deletion started", args[0])
+		return
+	}
+
+	if err := waitForCloudResourceDeleted(endpoint, 10*time.Minute); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance group %s deletion: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance group %s deleted successfully", args[0])
 }

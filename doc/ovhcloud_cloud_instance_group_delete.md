@@ -10,6 +10,7 @@ ovhcloud cloud instance group delete <group_id> [flags]
 
 ```
   -h, --help   help for delete
+      --wait   Wait for the instance group to be deleted before exiting
 ```
 
 ### Options inherited from parent commands

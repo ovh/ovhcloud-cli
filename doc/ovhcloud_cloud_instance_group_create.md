@@ -11,6 +11,7 @@ ovhcloud cloud instance group create <name> <region> [flags]
 ```
   -h, --help          help for create
   -t, --type string   Group type: affinity or anti-affinity (default is affinity) (default "affinity")
+      --wait          Wait for the instance group to be ready before exiting
 ```
 
 ### Options inherited from parent commands

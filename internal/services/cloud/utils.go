@@ -9,9 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
+	"github.com/ovh/go-ovh/ovh"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
@@ -98,6 +100,106 @@ func runFlavorSelector(projectID string, region string) (string, string, error) 
 	return selectedFlavor, selectedID, nil
 }
 
+// PollInterval is the delay between two polls of an asynchronous v2 resource.
+// It is a variable so that tests can shorten it.
+var PollInterval = 5 * time.Second
+
+// resourceTaskErrors returns the error messages of the "currentTasks" of a v2
+// resource that are in ERROR, as "<type>: <message; message>". A task in error
+// without any message is reported by its type alone.
+func resourceTaskErrors(resource map[string]any) []string {
+	tasks, ok := resource["currentTasks"].([]any)
+	if !ok {
+		return nil
+	}
+
+	var out []string
+	for _, t := range tasks {
+		task, ok := t.(map[string]any)
+		if !ok {
+			continue
+		}
+		if taskStatus, _ := task["status"].(string); taskStatus != "ERROR" {
+			continue
+		}
+
+		var messages []string
+		if taskErrors, ok := task["errors"].([]any); ok {
+			for _, e := range taskErrors {
+				if em, ok := e.(map[string]any); ok {
+					if msg, ok := em["message"].(string); ok && msg != "" {
+						messages = append(messages, msg)
+					}
+				}
+			}
+		}
+
+		if len(messages) > 0 {
+			out = append(out, fmt.Sprintf("%v: %s", task["type"], strings.Join(messages, "; ")))
+		} else {
+			out = append(out, fmt.Sprintf("%v", task["type"]))
+		}
+	}
+	return out
+}
+
+// waitForCloudResourceDeleted polls a v2 asynchronous resource at the given full
+// endpoint until the API answers 404, i.e. the deletion is over. It times out
+// after retryDuration.
+//
+// A resource that was already in ERROR before the DELETE (the usual reason to
+// delete one) may still report ERROR on the first polls, before the backend
+// flips it to DELETING. So ERROR is fatal once DELETING has been seen (the
+// deletion itself failed), or when it persists for maxErrorPolls polls without
+// ever reaching DELETING (the deletion never started).
+func waitForCloudResourceDeleted(endpoint string, retryDuration time.Duration) error {
+	const maxErrorPolls = 3
+
+	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
+	defer cancel()
+
+	ticker := time.NewTicker(PollInterval)
+	defer ticker.Stop()
+
+	deleting := false
+	errorPolls := 0
+	for {
+		var resource map[string]any
+		if err := httpLib.Client.Get(endpoint, &resource); err != nil {
+			if apiErr, ok := errors.AsType[*ovh.APIError](err); ok && apiErr.Code == http.StatusNotFound {
+				return nil
+			}
+			return fmt.Errorf("error fetching resource: %w", err)
+		}
+
+		status, _ := resource["resourceStatus"].(string)
+		switch status {
+		case "DELETING":
+			deleting = true
+		case "ERROR":
+			// Say why the backend failed, when its tasks tell
+			reason := "resourceStatus=ERROR"
+			if taskErrors := resourceTaskErrors(resource); len(taskErrors) > 0 {
+				reason = strings.Join(taskErrors, "; ")
+			}
+			if deleting {
+				return fmt.Errorf("deletion failed (%s)", reason)
+			}
+			errorPolls++
+			if errorPolls >= maxErrorPolls {
+				return fmt.Errorf("deletion did not start: resource still in ERROR after %d polls (%s)", errorPolls, reason)
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for resource to be deleted (last resourceStatus=%s)", status)
+		case <-ticker.C:
+			log.Printf("Still waiting for resource to be deleted (resourceStatus=%s)…", status)
+		}
+	}
+}
+
 // waitForCloudResourceReady polls a v2 asynchronous resource at the given full
 // endpoint (e.g. ".../storage/block/volume/{id}") until its "resourceStatus"
 // reaches "READY". It fails if the resource reports an "ERROR" status and times
@@ -107,7 +209,7 @@ func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) (ma
 	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
 	defer cancel()
 
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(PollInterval)
 	defer ticker.Stop()
 
 	for {
@@ -126,30 +228,8 @@ func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) (ma
 
 		// Log tasks reported in error but keep waiting: such errors can be
 		// temporary and get resolved by the backend.
-		if tasks, ok := resource["currentTasks"].([]any); ok {
-			for _, t := range tasks {
-				task, ok := t.(map[string]any)
-				if !ok {
-					continue
-				}
-				if taskStatus, _ := task["status"].(string); taskStatus == "ERROR" {
-					var messages []string
-					if taskErrors, ok := task["errors"].([]any); ok {
-						for _, e := range taskErrors {
-							if em, ok := e.(map[string]any); ok {
-								if msg, ok := em["message"].(string); ok && msg != "" {
-									messages = append(messages, msg)
-								}
-							}
-						}
-					}
-					if len(messages) > 0 {
-						log.Printf("resource task %v is in error state: %s (still waiting…)", task["type"], strings.Join(messages, "; "))
-					} else {
-						log.Printf("resource task %v is in error state, still waiting…", task["type"])
-					}
-				}
-			}
+		for _, taskError := range resourceTaskErrors(resource) {
+			log.Printf("resource task in error state: %s (still waiting…)", taskError)
 		}
 
 		select {

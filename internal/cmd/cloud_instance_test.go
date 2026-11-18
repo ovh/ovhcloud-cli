@@ -51,39 +51,6 @@ func (ms *MockSuite) TestCloudInstanceApplicationAccessCmd(assert, require *td.T
 `)
 }
 
-func (ms *MockSuite) TestCloudInstanceGroupListCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/instance/group",
-		httpmock.NewStringResponder(200, `[
-			{
-				"id": "group-id-1",
-				"name": "my-group",
-				"type": "affinity",
-				"region": "GRA9",
-				"instance_ids": ["inst-1", "inst-2"]
-			}
-		]`).Once(),
-	)
-
-	out, err := cmd.Execute("cloud", "instance", "group", "ls", "--cloud-project", "fakeProjectID")
-
-	require.CmpNoError(err)
-	assert.Contains(out, "my-group")
-	assert.Contains(out, "group-id-1")
-}
-
-func (ms *MockSuite) TestCloudInstanceGroupDeleteCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodDelete,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/instance/group/group-id-1",
-		httpmock.NewStringResponder(204, ``).Once(),
-	)
-
-	out, err := cmd.Execute("cloud", "instance", "group", "delete", "group-id-1", "--cloud-project", "fakeProjectID")
-
-	require.CmpNoError(err)
-	assert.Contains(out, "Instance group successfully deleted")
-}
-
 func (ms *MockSuite) TestCloudInstanceAutobackupListCmd(assert, require *td.T) {
 	// First call to get instance region
 	httpmock.RegisterResponder(http.MethodGet,
@@ -137,43 +104,6 @@ func (ms *MockSuite) TestCloudInstanceAutobackupDeleteCmd(assert, require *td.T)
 
 	require.CmpNoError(err)
 	assert.Contains(out, "Autobackup workflow deleted")
-}
-
-func (ms *MockSuite) TestCloudInstanceGroupGetCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodGet,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/instance/group/group-id-1",
-		httpmock.NewStringResponder(200, `{
-			"id": "group-id-1",
-			"name": "my-group",
-			"type": "affinity",
-			"region": "GRA9",
-			"instance_ids": ["inst-1", "inst-2"]
-		}`).Once(),
-	)
-
-	out, err := cmd.Execute("cloud", "instance", "group", "get", "group-id-1", "--cloud-project", "fakeProjectID")
-
-	require.CmpNoError(err)
-	assert.Contains(out, "my-group")
-	assert.Contains(out, "group-id-1")
-}
-
-func (ms *MockSuite) TestCloudInstanceGroupCreateCmd(assert, require *td.T) {
-	httpmock.RegisterResponder(http.MethodPost,
-		"https://eu.api.ovh.com/v1/cloud/project/fakeProjectID/instance/group",
-		httpmock.NewStringResponder(200, `{
-			"id": "group-id-new",
-			"name": "new-group",
-			"type": "affinity",
-			"region": "GRA9",
-			"instance_ids": []
-		}`).Once(),
-	)
-
-	out, err := cmd.Execute("cloud", "instance", "group", "create", "new-group", "GRA9", "--cloud-project", "fakeProjectID")
-
-	require.CmpNoError(err)
-	assert.Contains(out, "group-id-new")
 }
 
 func (ms *MockSuite) TestCloudInstanceAutobackupGetCmd(assert, require *td.T) {
@@ -806,4 +736,444 @@ func (ms *MockSuite) TestCloudStorageBlockVolumeDetachNotAttachedCmd(assert, req
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains("volume volume-2 is not attached to instance fakeInstanceID"))
 	assert.Cmp(httpmock.GetCallCountInfo()["PUT "+instanceV2Endpoint], 0)
+}
+
+const instanceGroupsURL = "https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instanceGroup"
+
+func (ms *MockSuite) TestCloudInstanceGroupListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL,
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "group-id-1",
+				"resourceStatus": "READY",
+				"targetSpec": {"name": "my-group", "policy": "ANTI_AFFINITY", "location": {"region": "GRA9"}},
+				"currentState": {
+					"name": "my-group",
+					"policy": "ANTI_AFFINITY",
+					"location": {"region": "GRA9"},
+					"members": [{"id": "inst-1"}]
+				}
+			}
+		]`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "ls", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	// "members" is the number of instances in the group
+	assert.Cmp(out, td.Re(`group-id-1\s+│\s+my-group\s+│\s+ANTI_AFFINITY\s+│\s+GRA9\s+│\s+1\s+│\s+READY`))
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupListCreatingCmd(assert, require *td.T) {
+	// currentState is null while the group is being created: columns come from targetSpec
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL,
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "group-id-1",
+				"resourceStatus": "CREATING",
+				"targetSpec": {"name": "my-group", "policy": "AFFINITY", "location": {"region": "GRA9"}},
+				"currentState": null
+			}
+		]`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "ls", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	// No member yet: the count is 0, not an empty cell
+	assert.Cmp(out, td.Re(`group-id-1\s+│\s+my-group\s+│\s+AFFINITY\s+│\s+GRA9\s+│\s+0\s+│\s+CREATING`))
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupListFilterCmd(assert, require *td.T) {
+	// --filter runs on the raw API v2 object, so it selects the same rows in
+	// the table and in JSON, where the computed "members" column does not exist
+	groups := `[
+		{
+			"id": "group-affinity",
+			"resourceStatus": "READY",
+			"targetSpec": {"name": "g1", "policy": "AFFINITY", "location": {"region": "GRA9"}},
+			"currentState": {"name": "g1", "policy": "AFFINITY", "location": {"region": "GRA9"}, "members": [{"id": "inst-1"}]}
+		},
+		{
+			"id": "group-anti",
+			"resourceStatus": "READY",
+			"targetSpec": {"name": "g2", "policy": "ANTI_AFFINITY", "location": {"region": "GRA9"}},
+			"currentState": {"name": "g2", "policy": "ANTI_AFFINITY", "location": {"region": "GRA9"}, "members": []}
+		}
+	]`
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL, httpmock.NewStringResponder(200, groups))
+
+	table, err := cmd.Execute("cloud", "instance", "group", "ls", "--filter", `targetSpec.policy == "AFFINITY"`, "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(table, td.All(td.Contains("group-affinity"), td.Not(td.Contains("group-anti"))))
+
+	out, err := cmd.Execute("cloud", "instance", "group", "ls", "--filter", `targetSpec.policy == "AFFINITY"`, "--cloud-project", "fakeProjectID", "-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[{"id": "group-affinity", "resourceStatus": $1, "targetSpec": $1, "currentState": $1}]`, td.Ignore()))
+
+	// A custom output expression also gets the raw object: the computed
+	// "members" column exists in the plain table only, so it prints nothing
+	// (a real field such as "id" prints its value, see the JSON test above)
+	out, err = cmd.Execute("cloud", "instance", "group", "ls", "--cloud-project", "fakeProjectID", "-o", "members")
+	require.CmpNoError(err)
+	assert.Cmp(strings.TrimSpace(out), "")
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupListJSONCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL,
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "group-id-1",
+				"resourceStatus": "READY",
+				"targetSpec": {"name": "my-group", "policy": "ANTI_AFFINITY", "location": {"region": "GRA9"}},
+				"currentState": {
+					"name": "my-group",
+					"policy": "ANTI_AFFINITY",
+					"location": {"region": "GRA9"},
+					"members": [{"id": "inst-1"}]
+				}
+			}
+		]`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	// JSON output is the raw v2 object: no table column, no computed member count
+	assert.Cmp(json.RawMessage(out), td.JSON(`[
+		{
+			"id": "group-id-1",
+			"resourceStatus": "READY",
+			"targetSpec": {"name": "my-group", "policy": "ANTI_AFFINITY", "location": {"region": "GRA9"}},
+			"currentState": {
+				"name": "my-group",
+				"policy": "ANTI_AFFINITY",
+				"location": {"region": "GRA9"},
+				"members": [{"id": "inst-1"}]
+			}
+		}
+	]`))
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupGetCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(200, `{
+			"id": "group-id-1",
+			"resourceStatus": "READY",
+			"targetSpec": {"name": "my-group", "policy": "AFFINITY", "location": {"region": "GRA9"}},
+			"currentState": {
+				"name": "my-group",
+				"policy": "AFFINITY",
+				"location": {"region": "GRA9"},
+				"members": [{"id": "inst-1"}, {"id": "inst-2"}]
+			}
+		}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "get", "group-id-1", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "my-group")
+	assert.Contains(out, "AFFINITY")
+	assert.Contains(out, "GRA9")
+	assert.Contains(out, "inst-1")
+	assert.Contains(out, "inst-2")
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupGetJSONCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(200, `{
+			"id": "group-id-1",
+			"resourceStatus": "READY",
+			"targetSpec": {"name": "my-group", "policy": "AFFINITY", "location": {"region": "GRA9"}},
+			"currentState": {
+				"name": "my-group",
+				"policy": "AFFINITY",
+				"location": {"region": "GRA9"},
+				"members": [{"id": "inst-1"}]
+			}
+		}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "get", "group-id-1", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"id": "group-id-1",
+		"resourceStatus": "READY",
+		"targetSpec": {"name": "my-group", "policy": "AFFINITY", "location": {"region": "GRA9"}},
+		"currentState": {
+			"name": "my-group",
+			"policy": "AFFINITY",
+			"location": {"region": "GRA9"},
+			"members": [{"id": "inst-1"}]
+		}
+	}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupGetNotFoundCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/missing",
+		httpmock.NewStringResponder(404, `{"class":"Client::NotFound","message":"instance group not found"}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "group", "get", "missing", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("instance group not found"))
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupGetCreatingCmd(assert, require *td.T) {
+	// currentState is null while the group is being created: fall back on targetSpec
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(200, `{
+			"id": "group-id-1",
+			"resourceStatus": "CREATING",
+			"targetSpec": {"name": "my-group", "policy": "AFFINITY", "location": {"region": "GRA9"}},
+			"currentState": null
+		}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "get", "group-id-1", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "my-group")
+	assert.Contains(out, "CREATING")
+	assert.Contains(out, "No member")
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupCreateCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, instanceGroupsURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {"name": "new-group", "location": {"region": "GRA9"}, "policy": "ANTI_AFFINITY"}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "group-id-new", "resourceStatus": "CREATING"}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "create", "new-group", "GRA9", "--type", "anti-affinity", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "group-id-new")
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupCreateJSONCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, instanceGroupsURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {"name": "new-group", "location": {"region": "GRA9"}, "policy": "ANTI_AFFINITY"}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "group-id-new", "resourceStatus": "CREATING"}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "create", "new-group", "GRA9", "--type", "anti-affinity", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "⚡️ Instance group group-id-new creation started",
+		"details": {"id": "group-id-new", "resourceStatus": "CREATING"}
+	}`))
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupCreateAPIErrorCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodPost, instanceGroupsURL,
+		httpmock.NewStringResponder(400, `{"class":"Client::BadRequest","message":"invalid region"}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "group", "create", "new-group", "XX1", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.All(td.Contains("error creating instance group"), td.Contains("invalid region")))
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupCreateDefaultTypeCmd(assert, require *td.T) {
+	httpmock.RegisterMatcherResponder(http.MethodPost, instanceGroupsURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {"name": "new-group", "location": {"region": "GRA9"}, "policy": "AFFINITY"}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "group-id-new", "resourceStatus": "CREATING"}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "group", "create", "new-group", "GRA9", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupCreateInvalidTypeCmd(assert, require *td.T) {
+	// No responder: the command must fail before calling the API
+	_, err := cmd.Execute("cloud", "instance", "group", "create", "new-group", "GRA9", "--type", "soft", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Contains(err.Error(), "invalid group type")
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupCreateUndocumentedTypeCmd(assert, require *td.T) {
+	// Only the two documented spellings are accepted, as in API v1
+	for _, groupType := range []string{"ANTI_AFFINITY", "anti_affinity", "Affinity"} {
+		_, err := cmd.Execute("cloud", "instance", "group", "create", "new-group", "GRA9", "--type", groupType, "--cloud-project", "fakeProjectID")
+
+		require.CmpError(err, "type %q", groupType)
+		assert.Contains(err.Error(), "invalid group type")
+	}
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupCreateNoIDCmd(assert, require *td.T) {
+	// A 202 without an ID must not be reported as a success, nor polled
+	httpmock.RegisterResponder(http.MethodPost, instanceGroupsURL,
+		httpmock.NewStringResponder(202, `{"resourceStatus": "CREATING"}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "group", "create", "new-group", "GRA9", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Contains(err.Error(), "no ID in the API response")
+	// Only the POST was sent: nothing was polled
+	assert.Cmp(httpmock.GetTotalCallCount(), 1)
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupCreateWaitErrorCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodPost, instanceGroupsURL,
+		httpmock.NewStringResponder(202, `{"id": "group-id-new", "resourceStatus": "CREATING"}`).Once(),
+	)
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-new",
+		httpmock.NewStringResponder(200, `{"id": "group-id-new", "resourceStatus": "ERROR"}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "create", "new-group", "GRA9", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.All(td.Contains("failed to wait for instance group group-id-new creation"), td.Contains("ERROR")))
+	assert.Cmp(out, td.Not(td.Contains("created successfully")))
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupDeleteCmd(assert, require *td.T) {
+	// The API answers 202 with the group as it is after the request
+	httpmock.RegisterResponder(http.MethodDelete, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(202, `{"id": "group-id-1", "resourceStatus": "DELETING"}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "delete", "group-id-1", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	// details carries the API answer, so a script can read resourceStatus
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "⚡️ Instance group group-id-1 deletion started",
+		"details": {"id": "group-id-1", "resourceStatus": "DELETING"}
+	}`))
+	// Without --wait, the command does not poll the group
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceGroupsURL+"/group-id-1"], 0)
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupDeleteWaitCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodDelete, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(202, ``).Once(),
+	)
+	// The group is gone once the API answers 404
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(404, `{"class":"Client::NotFound","message":"instance group not found"}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "delete", "group-id-1", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "✅ Instance group group-id-1 deleted successfully")
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupDeleteWaitErrorCmd(assert, require *td.T) {
+	// A group that was already in ERROR before the DELETE still reports ERROR on
+	// the first poll, then DELETING, then is gone: that is a success.
+	httpmock.RegisterResponder(http.MethodDelete, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(202, `{"id": "group-id-1", "resourceStatus": "ERROR"}`).Once(),
+	)
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-1",
+		httpmock.ResponderFromMultipleResponses([]*http.Response{
+			httpmock.NewStringResponse(200, `{"id": "group-id-1", "resourceStatus": "ERROR"}`),
+			httpmock.NewStringResponse(200, `{"id": "group-id-1", "resourceStatus": "DELETING"}`),
+			httpmock.NewStringResponse(404, `{"class":"Client::NotFound","message":"instance group not found"}`),
+		}),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "delete", "group-id-1", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "✅ Instance group group-id-1 deleted successfully")
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceGroupsURL+"/group-id-1"], 3)
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupDeleteWaitFailedCmd(assert, require *td.T) {
+	// ERROR after DELETING means the deletion itself failed
+	httpmock.RegisterResponder(http.MethodDelete, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(202, `{"id": "group-id-1", "resourceStatus": "DELETING"}`).Once(),
+	)
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-1",
+		httpmock.ResponderFromMultipleResponses([]*http.Response{
+			httpmock.NewStringResponse(200, `{"id": "group-id-1", "resourceStatus": "DELETING"}`),
+			httpmock.NewStringResponse(200, `{"id": "group-id-1", "resourceStatus": "ERROR"}`),
+		}),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "group", "delete", "group-id-1", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.All(td.Contains("failed to wait for instance group group-id-1 deletion"), td.Contains("deletion failed")))
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupDeleteWaitFailedReasonCmd(assert, require *td.T) {
+	// When the backend tasks say why the deletion failed, the error says it too
+	httpmock.RegisterResponder(http.MethodDelete, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(202, `{"id": "group-id-1", "resourceStatus": "DELETING"}`).Once(),
+	)
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-1",
+		httpmock.ResponderFromMultipleResponses([]*http.Response{
+			httpmock.NewStringResponse(200, `{"id": "group-id-1", "resourceStatus": "DELETING"}`),
+			httpmock.NewStringResponse(200, `{
+				"id": "group-id-1",
+				"resourceStatus": "ERROR",
+				"currentTasks": [{"type": "DELETE", "status": "ERROR", "errors": [{"message": "group still has members"}]}]
+			}`),
+		}),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "group", "delete", "group-id-1", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("deletion failed (DELETE: group still has members)"))
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupDeleteWaitNeverStartsCmd(assert, require *td.T) {
+	// ERROR that never turns into DELETING: give up after a few polls, not after the full timeout
+	httpmock.RegisterResponder(http.MethodDelete, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(202, `{"id": "group-id-1", "resourceStatus": "ERROR"}`).Once(),
+	)
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(200, `{"id": "group-id-1", "resourceStatus": "ERROR"}`),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "group", "delete", "group-id-1", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.All(td.Contains("failed to wait for instance group group-id-1 deletion"), td.Contains("deletion did not start")))
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceGroupsURL+"/group-id-1"], 3)
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupCreateWaitCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodPost, instanceGroupsURL,
+		httpmock.NewStringResponder(202, `{"id": "group-id-new", "resourceStatus": "CREATING"}`).Once(),
+	)
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-new",
+		httpmock.NewStringResponder(200, `{
+			"id": "group-id-new",
+			"resourceStatus": "READY",
+			"targetSpec": {"name": "new-group", "policy": "AFFINITY", "location": {"region": "GRA9"}},
+			"currentState": {"name": "new-group", "policy": "AFFINITY", "location": {"region": "GRA9"}, "members": []}
+		}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "group", "create", "new-group", "GRA9", "--wait", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	// details is the group as fetched once READY, not the POST response
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Instance group group-id-new created successfully",
+		"details": {"id": "group-id-new", "resourceStatus": "READY", "targetSpec": $1, "currentState": $1}
+	}`, td.Ignore()))
 }
