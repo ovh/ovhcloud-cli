@@ -63,7 +63,9 @@ var (
 	//go:embed templates/cloud_instance_group.tmpl
 	cloudInstanceGroupTemplate string
 
-	instanceGroupColumnsToDisplay = []string{"id", "currentState.name name", "currentState.policy policy", "currentState.location.region region", "resourceStatus status"}
+	// Name, policy and region cannot change after creation, so targetSpec holds the same
+	// values as currentState and, unlike currentState, is set while the group is CREATING.
+	instanceGroupColumnsToDisplay = []string{"id", "targetSpec.name name", "targetSpec.policy policy", "targetSpec.location.region region", "resourceStatus status"}
 
 	InstanceGroupType string
 
