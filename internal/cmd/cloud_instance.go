@@ -455,15 +455,18 @@ There are three ways to define the installation parameters:
 		Args:  cobra.ExactArgs(2),
 	}
 	createGroupCmd.Flags().StringVarP(&cloud.InstanceGroupType, "type", "t", "affinity", "Group type: affinity or anti-affinity (default is affinity)")
+	createGroupCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the instance group to be ready before exiting")
 	groupCmd.AddCommand(createGroupCmd)
 
-	groupCmd.AddCommand(&cobra.Command{
+	deleteGroupCmd := &cobra.Command{
 		Use:               "delete <group_id>",
 		Short:             "Delete a specific instance group",
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instanceGroup"),
 		Run:               cloud.DeleteInstanceGroup,
 		Args:              cobra.ExactArgs(1),
-	})
+	}
+	deleteGroupCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the instance group to be deleted before exiting")
+	groupCmd.AddCommand(deleteGroupCmd)
 
 	// Autobackup subcommands
 	autobackupCmd := &cobra.Command{

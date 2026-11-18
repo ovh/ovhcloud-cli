@@ -1135,7 +1135,20 @@ func CreateInstanceGroup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Instance group created with ID: %s", response["id"])
+	groupID, _ := response["id"].(string)
+
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Instance group %s creation started", groupID)
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", instanceGroupV2Endpoint(projectID), url.PathEscape(groupID)), 10*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance group %s creation: %s", groupID, err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Instance group %s created successfully", groupID)
 }
 
 func DeleteInstanceGroup(_ *cobra.Command, args []string) {
@@ -1152,5 +1165,15 @@ func DeleteInstanceGroup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance group successfully deleted")
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance group %s deletion started", args[0])
+		return
+	}
+
+	if err := waitForCloudResourceDeleted(endpoint, 10*time.Minute); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance group %s deletion: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance group %s deleted successfully", args[0])
 }

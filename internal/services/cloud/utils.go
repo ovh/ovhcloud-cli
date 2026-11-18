@@ -9,9 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
+	"github.com/ovh/go-ovh/ovh"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
 )
@@ -96,6 +98,39 @@ func runFlavorSelector(projectID string, region string) (string, string, error) 
 	}
 
 	return selectedFlavor, selectedID, nil
+}
+
+// waitForCloudResourceDeleted polls a v2 asynchronous resource at the given full
+// endpoint until the API answers 404, i.e. the deletion is over. It fails if the
+// resource reports an "ERROR" status and times out after retryDuration.
+func waitForCloudResourceDeleted(endpoint string, retryDuration time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
+	defer cancel()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		var resource map[string]any
+		if err := httpLib.Client.Get(endpoint, &resource); err != nil {
+			if apiErr, ok := errors.AsType[*ovh.APIError](err); ok && apiErr.Code == http.StatusNotFound {
+				return nil
+			}
+			return fmt.Errorf("error fetching resource: %w", err)
+		}
+
+		status, _ := resource["resourceStatus"].(string)
+		if status == "ERROR" {
+			return errors.New("resource ended in error state (resourceStatus=ERROR)")
+		}
+
+		select {
+		case <-ctx.Done():
+			return errors.New("timeout waiting for resource to be deleted")
+		case <-ticker.C:
+			log.Printf("Still waiting for resource to be deleted (resourceStatus=%s)…", status)
+		}
+	}
 }
 
 // waitForCloudResourceReady polls a v2 asynchronous resource at the given full
