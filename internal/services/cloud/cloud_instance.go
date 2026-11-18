@@ -1105,10 +1105,11 @@ func ListInstanceGroups(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	// For the table only, add the number of members to each group, as v1 listed
-	// the instance IDs. -o json|yaml keep the raw API v2 object, like get does.
+	// For the plain table only, add the number of members to each group, as v1
+	// listed the instance IDs. Every other output (json, yaml, a custom
+	// expression, interactive) gets the raw API v2 object, like get does.
 	// currentState is null while a group is CREATING: no member yet.
-	if !flags.OutputFormatConfig.IsJson() && !flags.OutputFormatConfig.IsYaml() {
+	if flags.OutputFormatConfig.Output == "" {
 		for _, group := range groups {
 			members := 0
 			if state, ok := group["currentState"].(map[string]any); ok {

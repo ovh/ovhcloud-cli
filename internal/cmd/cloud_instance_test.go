@@ -810,6 +810,13 @@ func (ms *MockSuite) TestCloudInstanceGroupListFilterCmd(assert, require *td.T) 
 	out, err := cmd.Execute("cloud", "instance", "group", "ls", "--filter", `targetSpec.policy == "AFFINITY"`, "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
 	assert.Cmp(json.RawMessage(out), td.JSON(`[{"id": "group-affinity", "resourceStatus": $1, "targetSpec": $1, "currentState": $1}]`, td.Ignore()))
+
+	// A custom output expression also gets the raw object: the computed
+	// "members" column exists in the plain table only, so it prints nothing
+	// (a real field such as "id" prints its value, see the JSON test above)
+	out, err = cmd.Execute("cloud", "instance", "group", "ls", "--cloud-project", "fakeProjectID", "-o", "members")
+	require.CmpNoError(err)
+	assert.Cmp(strings.TrimSpace(out), "")
 }
 
 func (ms *MockSuite) TestCloudInstanceGroupListJSONCmd(assert, require *td.T) {
