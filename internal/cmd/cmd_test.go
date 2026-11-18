@@ -7,6 +7,7 @@ package cmd_test
 import (
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/maxatome/go-testdeep/helpers/tdsuite"
@@ -15,6 +16,7 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/cmd"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	httplib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/services/cloud"
 )
 
 type MockSuite struct{}
@@ -22,6 +24,8 @@ type MockSuite struct{}
 func (ms *MockSuite) Setup(t *td.T) error {
 	httpmock.Activate(t)
 	display.ExitFunc = func(int) {}
+	// --wait tests chain several polls: do not wait 5s between them
+	cloud.PollInterval = time.Millisecond
 
 	client, err := ovh.NewClient("ovh-eu", "app_key", "app_secret", "consumer_key")
 	if err != nil {

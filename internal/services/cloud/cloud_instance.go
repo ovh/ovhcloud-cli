@@ -14,7 +14,6 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
@@ -65,7 +64,9 @@ var (
 
 	// Name, policy and region cannot change after creation, so targetSpec holds the same
 	// values as currentState and, unlike currentState, is set while the group is CREATING.
-	instanceGroupColumnsToDisplay = []string{"id", "targetSpec.name name", "targetSpec.policy policy", "targetSpec.location.region region", "resourceStatus status"}
+	// "members" is computed by ListInstanceGroups: the number of instances in the
+	// group (v1 showed the instance IDs, unreadable as a column once a group grows).
+	instanceGroupColumnsToDisplay = []string{"id", "targetSpec.name name", "targetSpec.policy policy", "targetSpec.location.region region", "members", "resourceStatus status"}
 
 	InstanceGroupType string
 
@@ -1083,7 +1084,37 @@ func ListInstanceGroups(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	common.ManageListRequestNoExpand(instanceGroupV2Endpoint(projectID), instanceGroupColumnsToDisplay, flags.GenericFilters)
+	body, err := httpLib.FetchArray(instanceGroupV2Endpoint(projectID), "")
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance groups: %s", err)
+		return
+	}
+
+	// Add the number of members to each group, as v1 listed the instance IDs.
+	// currentState is null while a group is CREATING: no member yet.
+	groups := make([]map[string]any, 0, len(body))
+	for _, object := range body {
+		group, ok := object.(map[string]any)
+		if !ok {
+			continue
+		}
+		members := 0
+		if state, ok := group["currentState"].(map[string]any); ok {
+			if list, ok := state["members"].([]any); ok {
+				members = len(list)
+			}
+		}
+		group["members"] = members
+		groups = append(groups, group)
+	}
+
+	groups, err = filtersLib.FilterLines(groups, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
+	display.RenderTable(groups, instanceGroupColumnsToDisplay, &flags.OutputFormatConfig)
 }
 
 func GetInstanceGroup(_ *cobra.Command, args []string) {
@@ -1098,11 +1129,13 @@ func GetInstanceGroup(_ *cobra.Command, args []string) {
 
 // instanceGroupPolicy converts the --type flag value (affinity, anti-affinity)
 // to the API v2 placement policy (AFFINITY, ANTI_AFFINITY).
+// instanceGroupPolicy maps the --type values, kept from API v1, to the API v2
+// policy enum. Only the two documented spellings are accepted, as in v1.
 func instanceGroupPolicy(groupType string) (string, error) {
-	switch strings.ToLower(groupType) {
+	switch groupType {
 	case "affinity":
 		return "AFFINITY", nil
-	case "anti-affinity", "anti_affinity":
+	case "anti-affinity":
 		return "ANTI_AFFINITY", nil
 	}
 	return "", fmt.Errorf("invalid group type: %q. Use 'affinity' or 'anti-affinity'", groupType)
@@ -1135,7 +1168,11 @@ func CreateInstanceGroup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	groupID, _ := response["id"].(string)
+	groupID, ok := response["id"].(string)
+	if !ok || groupID == "" {
+		display.OutputError(&flags.OutputFormatConfig, "error creating instance group: no ID in the API response: %v", response)
+		return
+	}
 
 	if !flags.WaitForTask {
 		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Instance group %s creation started", groupID)
@@ -1160,13 +1197,15 @@ func DeleteInstanceGroup(_ *cobra.Command, args []string) {
 
 	endpoint := fmt.Sprintf("%s/%s", instanceGroupV2Endpoint(projectID), url.PathEscape(args[0]))
 
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	// The API answers with the group as it is after the request (DELETING)
+	var response map[string]any
+	if err := httpLib.Client.Delete(endpoint, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting instance group %q: %s", args[0], err)
 		return
 	}
 
 	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance group %s deletion started", args[0])
+		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Instance group %s deletion started", args[0])
 		return
 	}
 

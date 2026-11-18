@@ -100,16 +100,26 @@ func runFlavorSelector(projectID string, region string) (string, string, error) 
 	return selectedFlavor, selectedID, nil
 }
 
+// PollInterval is the delay between two polls of an asynchronous v2 resource.
+// It is a variable so that tests can shorten it.
+var PollInterval = 5 * time.Second
+
 // waitForCloudResourceDeleted polls a v2 asynchronous resource at the given full
-// endpoint until the API answers 404, i.e. the deletion is over. It fails if the
-// resource reports an "ERROR" status and times out after retryDuration.
+// endpoint until the API answers 404, i.e. the deletion is over. It times out
+// after retryDuration.
+//
+// A resource that was already in ERROR before the DELETE (the usual reason to
+// delete one) may still report ERROR on the first polls, before the backend
+// flips it to DELETING. So ERROR is fatal only once DELETING has been seen: it
+// then means the deletion itself failed.
 func waitForCloudResourceDeleted(endpoint string, retryDuration time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
 	defer cancel()
 
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(PollInterval)
 	defer ticker.Stop()
 
+	deleting := false
 	for {
 		var resource map[string]any
 		if err := httpLib.Client.Get(endpoint, &resource); err != nil {
@@ -120,8 +130,13 @@ func waitForCloudResourceDeleted(endpoint string, retryDuration time.Duration) e
 		}
 
 		status, _ := resource["resourceStatus"].(string)
-		if status == "ERROR" {
-			return errors.New("resource ended in error state (resourceStatus=ERROR)")
+		switch status {
+		case "DELETING":
+			deleting = true
+		case "ERROR":
+			if deleting {
+				return errors.New("deletion failed (resourceStatus=ERROR)")
+			}
 		}
 
 		select {
@@ -142,7 +157,7 @@ func waitForCloudResourceReady(endpoint string, retryDuration time.Duration) (ma
 	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
 	defer cancel()
 
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(PollInterval)
 	defer ticker.Stop()
 
 	for {
