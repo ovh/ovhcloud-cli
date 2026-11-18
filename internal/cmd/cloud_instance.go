@@ -397,6 +397,7 @@ still uses API v1, as API v2 does not support cross-region snapshots.`,
 	snapshotCreateCmd.Flags().StringVar(&cloud.InstanceSnapshotSpec.DistantSnapshotName, "distant-snapshot-name", "", "Name of the snapshot in the distant region (for cross region snapshot)")
 	snapshotCreateCmd.Flags().StringVar(&cloud.InstanceSnapshotSpec.DistantRegionName, "distant-region-name", "", "Name of the distant region (for cross region snapshot)")
 	snapshotCreateCmd.MarkFlagsRequiredTogether("distant-snapshot-name", "distant-region-name")
+	snapshotCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the snapshot to be ready before exiting (not supported for cross-region snapshots)")
 	snapshotCmd.AddCommand(snapshotCreateCmd)
 
 	snapshotCmd.AddCommand(&cobra.Command{
@@ -423,12 +424,14 @@ still uses API v1, as API v2 does not support cross-region snapshots.`,
 		Args:  cobra.ExactArgs(1),
 	})
 
-	snapshotCmd.AddCommand(&cobra.Command{
+	snapshotDeleteCmd := &cobra.Command{
 		Use:   "delete <snapshot_id>",
 		Short: "Delete a specific instance snapshot in the current cloud project",
 		Run:   cloud.DeleteInstanceSnapshot,
 		Args:  cobra.ExactArgs(1),
-	})
+	}
+	snapshotDeleteCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the snapshot to be deleted before exiting")
+	snapshotCmd.AddCommand(snapshotDeleteCmd)
 
 	// Instance group subcommands
 	groupCmd := &cobra.Command{

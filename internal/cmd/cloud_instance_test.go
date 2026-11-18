@@ -1198,13 +1198,54 @@ func (ms *MockSuite) TestCloudInstanceSnapshotCreateCmd(assert, require *td.T) {
 		tdhttpmock.JSONBody(td.JSON(`{
 			"targetSpec": {"name": "my-snap", "instance": {"id": "fakeInstanceID"}, "location": {"region": "GRA11"}}
 		}`)),
-		httpmock.NewStringResponder(200, `{"id": "snap-001", "resourceStatus": "CREATING"}`).Once(),
+		httpmock.NewStringResponder(202, `{"id": "snap-001", "resourceStatus": "CREATING"}`).Once(),
 	)
 
-	out, err := cmd.Execute("cloud", "instance", "snapshot", "create", "fakeInstanceID", "my-snap", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "create", "fakeInstanceID", "my-snap", "--cloud-project", "fakeProjectID", "-o", "json")
 
 	require.CmpNoError(err)
-	assert.Contains(out, "Snapshot created successfully with ID: snap-001")
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "⚡️ Snapshot snap-001 creation started",
+		"details": {"id": "snap-001", "resourceStatus": "CREATING"}
+	}`))
+	// Without --wait, the command does not poll the snapshot
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceSnapshotsURL+"/snap-001"], 0)
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotCreateWaitCmd(assert, require *td.T) {
+	registerInstanceV2Region("GRA11")
+	httpmock.RegisterResponder(http.MethodPost, instanceSnapshotsURL,
+		httpmock.NewStringResponder(202, `{"id": "snap-001", "resourceStatus": "CREATING"}`).Once(),
+	)
+	httpmock.RegisterResponder(http.MethodGet, instanceSnapshotsURL+"/snap-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "snap-001",
+			"resourceStatus": "READY",
+			"targetSpec": {"name": "my-snap", "instance": {"id": "fakeInstanceID"}, "location": {"region": "GRA11"}},
+			"currentState": {"name": "my-snap", "status": "ACTIVE"}
+		}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "create", "fakeInstanceID", "my-snap", "--wait", "--cloud-project", "fakeProjectID", "-o", "json")
+
+	require.CmpNoError(err)
+	// details is the snapshot as fetched once READY, not the POST response
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "✅ Snapshot snap-001 created successfully",
+		"details": {"id": "snap-001", "resourceStatus": "READY", "targetSpec": $1, "currentState": $1}
+	}`, td.Ignore()))
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotCreateAPIErrorCmd(assert, require *td.T) {
+	registerInstanceV2Region("GRA11")
+	httpmock.RegisterResponder(http.MethodPost, instanceSnapshotsURL,
+		httpmock.NewStringResponder(400, `{"class":"Client::BadRequest","message":"instance is not active"}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "snapshot", "create", "fakeInstanceID", "my-snap", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.All(td.Contains("error creating snapshot for instance"), td.Contains("instance is not active")))
 }
 
 func (ms *MockSuite) TestCloudInstanceSnapshotCreateDistantCmd(assert, require *td.T) {
@@ -1242,6 +1283,7 @@ func (ms *MockSuite) TestCloudInstanceSnapshotListCmd(assert, require *td.T) {
 			{
 				"id": "snap-001",
 				"resourceStatus": "READY",
+				"targetSpec": {"name": "my-snap", "instance": {"id": "fakeInstanceID"}, "location": {"region": "GRA11"}},
 				"currentState": {
 					"name": "my-snap",
 					"instance": {"id": "fakeInstanceID"},
@@ -1258,6 +1300,25 @@ func (ms *MockSuite) TestCloudInstanceSnapshotListCmd(assert, require *td.T) {
 	assert.Cmp(out, td.Re(`snap-001\s+│\s+my-snap\s+│\s+fakeInstanceID\s+│\s+GRA11\s+│\s+ACTIVE\s+│\s+READY`))
 }
 
+func (ms *MockSuite) TestCloudInstanceSnapshotListCreatingCmd(assert, require *td.T) {
+	// currentState is null while the snapshot is being created: columns come from targetSpec
+	httpmock.RegisterResponder(http.MethodGet, instanceSnapshotsURL,
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "snap-001",
+				"resourceStatus": "CREATING",
+				"targetSpec": {"name": "my-snap", "instance": {"id": "fakeInstanceID"}, "location": {"region": "GRA11"}},
+				"currentState": null
+			}
+		]`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "ls", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Re(`snap-001\s+│\s+my-snap\s+│\s+fakeInstanceID\s+│\s+GRA11\s+│\s+│\s+CREATING`))
+}
+
 func (ms *MockSuite) TestCloudInstanceSnapshotGetCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet, instanceSnapshotsURL+"/snap-001",
 		httpmock.NewStringResponder(200, `{"id": "snap-001", "resourceStatus": "READY", "currentState": {"name": "my-snap"}}`).Once(),
@@ -1270,12 +1331,59 @@ func (ms *MockSuite) TestCloudInstanceSnapshotGetCmd(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestCloudInstanceSnapshotDeleteCmd(assert, require *td.T) {
+	// The API answers 202 with the snapshot as it is after the request
 	httpmock.RegisterResponder(http.MethodDelete, instanceSnapshotsURL+"/snap-001",
-		httpmock.NewStringResponder(204, ``).Once(),
+		httpmock.NewStringResponder(202, `{"id": "snap-001", "resourceStatus": "DELETING"}`).Once(),
 	)
 
-	out, err := cmd.Execute("cloud", "instance", "snapshot", "delete", "snap-001", "--cloud-project", "fakeProjectID")
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "delete", "snap-001", "--cloud-project", "fakeProjectID", "-o", "json")
 
 	require.CmpNoError(err)
-	assert.Contains(out, "Snapshot successfully deleted")
+	// details carries the API answer, so a script can read resourceStatus
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"message": "⚡️ Snapshot snap-001 deletion started",
+		"details": {"id": "snap-001", "resourceStatus": "DELETING"}
+	}`))
+	// Without --wait, the command does not poll the snapshot
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceSnapshotsURL+"/snap-001"], 0)
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotCreateNoIDCmd(assert, require *td.T) {
+	// A 202 without an ID must not be reported as a success, nor polled
+	registerInstanceV2Region("GRA11")
+	httpmock.RegisterResponder(http.MethodPost, instanceSnapshotsURL,
+		httpmock.NewStringResponder(202, `{"resourceStatus": "CREATING"}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "snapshot", "create", "fakeInstanceID", "my-snap", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Contains(err.Error(), "no ID in the API response")
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceSnapshotsURL+"/"], 0)
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotDeleteWaitCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodDelete, instanceSnapshotsURL+"/snap-001",
+		httpmock.NewStringResponder(202, ``).Once(),
+	)
+	// The snapshot is gone once the API answers 404
+	httpmock.RegisterResponder(http.MethodGet, instanceSnapshotsURL+"/snap-001",
+		httpmock.NewStringResponder(404, `{"class":"Client::NotFound","message":"snapshot not found"}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "delete", "snap-001", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "✅ Snapshot snap-001 deleted successfully")
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotDeleteAPIErrorCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodDelete, instanceSnapshotsURL+"/missing",
+		httpmock.NewStringResponder(404, `{"class":"Client::NotFound","message":"snapshot not found"}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "snapshot", "delete", "missing", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.All(td.Contains("error deleting snapshot"), td.Contains("snapshot not found")))
 }

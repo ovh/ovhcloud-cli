@@ -106,11 +106,13 @@ var (
 		UserData         string
 	}
 
+	// Name, instance and region cannot change after creation: targetSpec holds them
+	// and, unlike currentState, is set while the snapshot is CREATING.
 	instanceSnapshotColumnsToDisplay = []string{
 		"id",
-		"currentState.name name",
-		"currentState.instance.id instanceId",
-		"currentState.location.region region",
+		"targetSpec.name name",
+		"targetSpec.instance.id instanceId",
+		"targetSpec.location.region region",
 		"currentState.status snapshotStatus",
 		"resourceStatus status",
 	}
@@ -904,7 +906,24 @@ func CreateInstanceSnapshot(_ *cobra.Command, args []string) {
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, response, "✅ Snapshot created successfully with ID: %s", response["id"])
+	snapshotID, ok := response["id"].(string)
+	if !ok || snapshotID == "" {
+		display.OutputError(&flags.OutputFormatConfig, "error creating snapshot for instance %q: no ID in the API response: %v", args[0], response)
+		return
+	}
+
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Snapshot %s creation started", snapshotID)
+		return
+	}
+
+	ready, err := waitForCloudResourceReady(fmt.Sprintf("%s/%s", instanceSnapshotV2Endpoint(projectID), url.PathEscape(snapshotID)), 30*time.Minute)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for snapshot %s creation: %s", snapshotID, err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, ready, "✅ Snapshot %s created successfully", snapshotID)
 }
 
 // createDistantInstanceSnapshot creates a snapshot copied to another region,
@@ -974,12 +993,24 @@ func DeleteInstanceSnapshot(_ *cobra.Command, args []string) {
 
 	endpoint := fmt.Sprintf("%s/%s", instanceSnapshotV2Endpoint(projectID), url.PathEscape(args[0]))
 
-	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
+	// The API answers with the snapshot as it is after the request (DELETING)
+	var response map[string]any
+	if err := httpLib.Client.Delete(endpoint, &response); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error deleting snapshot %q: %s", args[0], err)
 		return
 	}
 
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot successfully deleted")
+	if !flags.WaitForTask {
+		display.OutputInfo(&flags.OutputFormatConfig, response, "⚡️ Snapshot %s deletion started", args[0])
+		return
+	}
+
+	if err := waitForCloudResourceDeleted(endpoint, 10*time.Minute); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to wait for snapshot %s deletion: %s", args[0], err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Snapshot %s deleted successfully", args[0])
 }
 
 // Application Access

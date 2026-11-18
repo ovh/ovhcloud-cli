@@ -10,6 +10,7 @@ ovhcloud cloud instance snapshot delete <snapshot_id> [flags]
 
 ```
   -h, --help   help for delete
+      --wait   Wait for the snapshot to be deleted before exiting
 ```
 
 ### Options inherited from parent commands
