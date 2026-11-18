@@ -784,6 +784,34 @@ func (ms *MockSuite) TestCloudInstanceGroupListCreatingCmd(assert, require *td.T
 	assert.Cmp(out, td.Re(`group-id-1\s+│\s+my-group\s+│\s+AFFINITY\s+│\s+GRA9\s+│\s+0\s+│\s+CREATING`))
 }
 
+func (ms *MockSuite) TestCloudInstanceGroupListFilterCmd(assert, require *td.T) {
+	// --filter runs on the raw API v2 object, so it selects the same rows in
+	// the table and in JSON, where the computed "members" column does not exist
+	groups := `[
+		{
+			"id": "group-affinity",
+			"resourceStatus": "READY",
+			"targetSpec": {"name": "g1", "policy": "AFFINITY", "location": {"region": "GRA9"}},
+			"currentState": {"name": "g1", "policy": "AFFINITY", "location": {"region": "GRA9"}, "members": [{"id": "inst-1"}]}
+		},
+		{
+			"id": "group-anti",
+			"resourceStatus": "READY",
+			"targetSpec": {"name": "g2", "policy": "ANTI_AFFINITY", "location": {"region": "GRA9"}},
+			"currentState": {"name": "g2", "policy": "ANTI_AFFINITY", "location": {"region": "GRA9"}, "members": []}
+		}
+	]`
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL, httpmock.NewStringResponder(200, groups))
+
+	table, err := cmd.Execute("cloud", "instance", "group", "ls", "--filter", `targetSpec.policy == "AFFINITY"`, "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(table, td.All(td.Contains("group-affinity"), td.Not(td.Contains("group-anti"))))
+
+	out, err := cmd.Execute("cloud", "instance", "group", "ls", "--filter", `targetSpec.policy == "AFFINITY"`, "--cloud-project", "fakeProjectID", "-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`[{"id": "group-affinity", "resourceStatus": $1, "targetSpec": $1, "currentState": $1}]`, td.Ignore()))
+}
+
 func (ms *MockSuite) TestCloudInstanceGroupListJSONCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL,
 		httpmock.NewStringResponder(200, `[

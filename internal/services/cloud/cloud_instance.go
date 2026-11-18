@@ -1090,17 +1090,26 @@ func ListInstanceGroups(_ *cobra.Command, _ []string) {
 		return
 	}
 
+	groups := make([]map[string]any, 0, len(body))
+	for _, object := range body {
+		if group, ok := object.(map[string]any); ok {
+			groups = append(groups, group)
+		}
+	}
+
+	// Filter on the raw API v2 objects, so that --filter behaves the same in
+	// every output format (e.g. on currentState.members).
+	groups, err = filtersLib.FilterLines(groups, flags.GenericFilters)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
+		return
+	}
+
 	// For the table only, add the number of members to each group, as v1 listed
 	// the instance IDs. -o json|yaml keep the raw API v2 object, like get does.
 	// currentState is null while a group is CREATING: no member yet.
-	rawOutput := flags.OutputFormatConfig.IsJson() || flags.OutputFormatConfig.IsYaml()
-	groups := make([]map[string]any, 0, len(body))
-	for _, object := range body {
-		group, ok := object.(map[string]any)
-		if !ok {
-			continue
-		}
-		if !rawOutput {
+	if !flags.OutputFormatConfig.IsJson() && !flags.OutputFormatConfig.IsYaml() {
+		for _, group := range groups {
 			members := 0
 			if state, ok := group["currentState"].(map[string]any); ok {
 				if list, ok := state["members"].([]any); ok {
@@ -1109,13 +1118,6 @@ func ListInstanceGroups(_ *cobra.Command, _ []string) {
 			}
 			group["members"] = members
 		}
-		groups = append(groups, group)
-	}
-
-	groups, err = filtersLib.FilterLines(groups, flags.GenericFilters)
-	if err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to filter results: %s", err)
-		return
 	}
 
 	display.RenderTable(groups, instanceGroupColumnsToDisplay, &flags.OutputFormatConfig)
