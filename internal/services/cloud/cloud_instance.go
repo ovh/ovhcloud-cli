@@ -1090,21 +1090,25 @@ func ListInstanceGroups(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	// Add the number of members to each group, as v1 listed the instance IDs.
+	// For the table only, add the number of members to each group, as v1 listed
+	// the instance IDs. -o json|yaml keep the raw API v2 object, like get does.
 	// currentState is null while a group is CREATING: no member yet.
+	rawOutput := flags.OutputFormatConfig.IsJson() || flags.OutputFormatConfig.IsYaml()
 	groups := make([]map[string]any, 0, len(body))
 	for _, object := range body {
 		group, ok := object.(map[string]any)
 		if !ok {
 			continue
 		}
-		members := 0
-		if state, ok := group["currentState"].(map[string]any); ok {
-			if list, ok := state["members"].([]any); ok {
-				members = len(list)
+		if !rawOutput {
+			members := 0
+			if state, ok := group["currentState"].(map[string]any); ok {
+				if list, ok := state["members"].([]any); ok {
+					members = len(list)
+				}
 			}
+			group["members"] = members
 		}
-		group["members"] = members
 		groups = append(groups, group)
 	}
 
@@ -1128,9 +1132,8 @@ func GetInstanceGroup(_ *cobra.Command, args []string) {
 }
 
 // instanceGroupPolicy converts the --type flag value (affinity, anti-affinity)
-// to the API v2 placement policy (AFFINITY, ANTI_AFFINITY).
-// instanceGroupPolicy maps the --type values, kept from API v1, to the API v2
-// policy enum. Only the two documented spellings are accepted, as in v1.
+// to the API v2 placement policy (AFFINITY, ANTI_AFFINITY). Only the two
+// documented spellings are accepted, as in v1.
 func instanceGroupPolicy(groupType string) (string, error) {
 	switch groupType {
 	case "affinity":

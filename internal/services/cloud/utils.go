@@ -110,9 +110,12 @@ var PollInterval = 5 * time.Second
 //
 // A resource that was already in ERROR before the DELETE (the usual reason to
 // delete one) may still report ERROR on the first polls, before the backend
-// flips it to DELETING. So ERROR is fatal only once DELETING has been seen: it
-// then means the deletion itself failed.
+// flips it to DELETING. So ERROR is fatal once DELETING has been seen (the
+// deletion itself failed), or when it persists for maxErrorPolls polls without
+// ever reaching DELETING (the deletion never started).
 func waitForCloudResourceDeleted(endpoint string, retryDuration time.Duration) error {
+	const maxErrorPolls = 3
+
 	ctx, cancel := context.WithTimeout(context.Background(), retryDuration)
 	defer cancel()
 
@@ -120,6 +123,7 @@ func waitForCloudResourceDeleted(endpoint string, retryDuration time.Duration) e
 	defer ticker.Stop()
 
 	deleting := false
+	errorPolls := 0
 	for {
 		var resource map[string]any
 		if err := httpLib.Client.Get(endpoint, &resource); err != nil {
@@ -137,11 +141,15 @@ func waitForCloudResourceDeleted(endpoint string, retryDuration time.Duration) e
 			if deleting {
 				return errors.New("deletion failed (resourceStatus=ERROR)")
 			}
+			errorPolls++
+			if errorPolls >= maxErrorPolls {
+				return fmt.Errorf("deletion did not start: resource still in ERROR after %d polls", errorPolls)
+			}
 		}
 
 		select {
 		case <-ctx.Done():
-			return errors.New("timeout waiting for resource to be deleted")
+			return fmt.Errorf("timeout waiting for resource to be deleted (last resourceStatus=%s)", status)
 		case <-ticker.C:
 			log.Printf("Still waiting for resource to be deleted (resourceStatus=%s)…", status)
 		}

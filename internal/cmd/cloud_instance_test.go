@@ -804,7 +804,7 @@ func (ms *MockSuite) TestCloudInstanceGroupListJSONCmd(assert, require *td.T) {
 	out, err := cmd.Execute("cloud", "instance", "group", "ls", "--cloud-project", "fakeProjectID", "-o", "json")
 
 	require.CmpNoError(err)
-	// JSON output is the raw v2 object (not the table columns) plus the computed member count
+	// JSON output is the raw v2 object: no table column, no computed member count
 	assert.Cmp(json.RawMessage(out), td.JSON(`[
 		{
 			"id": "group-id-1",
@@ -815,8 +815,7 @@ func (ms *MockSuite) TestCloudInstanceGroupListJSONCmd(assert, require *td.T) {
 				"policy": "ANTI_AFFINITY",
 				"location": {"region": "GRA9"},
 				"members": [{"id": "inst-1"}]
-			},
-			"members": 1
+			}
 		}
 	]`))
 }
@@ -992,7 +991,8 @@ func (ms *MockSuite) TestCloudInstanceGroupCreateNoIDCmd(assert, require *td.T) 
 
 	require.CmpError(err)
 	assert.Contains(err.Error(), "no ID in the API response")
-	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceGroupsURL+"/"], 0)
+	// Only the POST was sent: nothing was polled
+	assert.Cmp(httpmock.GetTotalCallCount(), 1)
 }
 
 func (ms *MockSuite) TestCloudInstanceGroupCreateWaitErrorCmd(assert, require *td.T) {
@@ -1080,6 +1080,22 @@ func (ms *MockSuite) TestCloudInstanceGroupDeleteWaitFailedCmd(assert, require *
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.All(td.Contains("failed to wait for instance group group-id-1 deletion"), td.Contains("deletion failed")))
+}
+
+func (ms *MockSuite) TestCloudInstanceGroupDeleteWaitNeverStartsCmd(assert, require *td.T) {
+	// ERROR that never turns into DELETING: give up after a few polls, not after the full timeout
+	httpmock.RegisterResponder(http.MethodDelete, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(202, `{"id": "group-id-1", "resourceStatus": "ERROR"}`).Once(),
+	)
+	httpmock.RegisterResponder(http.MethodGet, instanceGroupsURL+"/group-id-1",
+		httpmock.NewStringResponder(200, `{"id": "group-id-1", "resourceStatus": "ERROR"}`),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "group", "delete", "group-id-1", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.All(td.Contains("failed to wait for instance group group-id-1 deletion"), td.Contains("deletion did not start")))
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceGroupsURL+"/group-id-1"], 3)
 }
 
 func (ms *MockSuite) TestCloudInstanceGroupCreateWaitCmd(assert, require *td.T) {
