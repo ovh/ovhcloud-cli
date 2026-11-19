@@ -5,12 +5,11 @@
 package common
 
 import (
-	"bytes"
+	"bufio"
 	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/url"
 	"os"
@@ -130,14 +129,24 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		return nil, fmt.Errorf("failed to parse arguments from command line: %w", err)
 	}
 
-	parameters, err := readInputParameters()
-	if err != nil {
-		return nil, err
-	}
+	parameters := make(map[string]any)
 
 	switch {
-	case parameters != nil:
-	case flags.ParametersViaEditor:
+	case utils.IsInputFromPipe(): // Data given through a pipe
+		var stdin []byte
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			stdin = append(stdin, scanner.Bytes()...)
+		}
+		if err := scanner.Err(); err != nil {
+			return nil, err
+		}
+
+		if err := json.Unmarshal(stdin, &parameters); err != nil {
+			return nil, fmt.Errorf("failed to parse given data: %w", err)
+		}
+
+	case flags.ParametersViaEditor: // Data given through an editor
 		log.Print("Flag --editor used, all other flags will override the example values")
 
 		examples, err := openapi.GetOperationRequestExamples(openapiSpec, path, "post", defaultExample, cliParameters)
@@ -162,8 +171,19 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		if err := json.Unmarshal(newValue, &parameters); err != nil {
 			return nil, fmt.Errorf("failed to parse given parameters: %w", err)
 		}
-	default:
-		parameters = make(map[string]any)
+
+	case flags.ParametersFile != "": // Data given in a file
+		log.Print("Flag --from-file used, all other flags will override the file values")
+
+		fd, err := os.Open(flags.ParametersFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open given file: %w", err)
+		}
+		defer fd.Close()
+
+		if err := json.NewDecoder(fd).Decode(&parameters); err != nil {
+			return nil, fmt.Errorf("failed to parse given file: %w", err)
+		}
 	}
 
 	// Only merge CLI parameters with other ones if not in --editor mode.
@@ -194,59 +214,8 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 	return createdResource, nil
 }
 
-// An empty pipe counts as no input: scripts that run edit commands without stdin data keep working.
-func readInputParameters() (map[string]any, error) {
-	var (
-		data   []byte
-		source string
-		err    error
-	)
-
-	switch {
-	case utils.IsInputFromPipe():
-		source = "data"
-		if data, err = io.ReadAll(os.Stdin); err != nil {
-			return nil, fmt.Errorf("failed to read given data: %w", err)
-		}
-		if len(bytes.TrimSpace(data)) == 0 {
-			return nil, nil
-		}
-	case flags.ParametersFile != "":
-		log.Print("Flag --from-file used, all other flags will override the file values")
-		source = "file"
-		if data, err = os.ReadFile(flags.ParametersFile); err != nil {
-			return nil, fmt.Errorf("failed to open given file: %w", err)
-		}
-	default:
-		return nil, nil
-	}
-
-	var parameters map[string]any
-	if err := json.Unmarshal(data, &parameters); err != nil {
-		return nil, fmt.Errorf("failed to parse given %s: %w", source, err)
-	}
-
-	return parameters, nil
-}
-
 func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte, extraFields ...map[string]any) error {
-	return editResource(cmd, path, url, cliParams, openapiSpec, false, extraFields)
-}
-
-// ReplaceResource is EditResource for endpoints whose PUT replaces the whole
-// resource: piped or --from-file input is sent as is instead of being merged
-// into the fetched resource, so its arrays replace the stored ones.
-func ReplaceResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte, extraFields ...map[string]any) error {
-	return editResource(cmd, path, url, cliParams, openapiSpec, true, extraFields)
-}
-
-func editResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte, replace bool, extraFields []map[string]any) error {
-	inputParameters, err := readInputParameters()
-	if err != nil {
-		return err
-	}
-
-	if cmd.Flags().NFlag() == 0 && inputParameters == nil {
+	if cmd.Flags().NFlag() == 0 {
 		display.OutputInfo(&flags.OutputFormatConfig, nil, "🟠 No parameters given, nothing to edit")
 		return nil
 	}
@@ -261,24 +230,38 @@ func editResource(cmd *cobra.Command, path, url string, cliParams any, openapiSp
 		return fmt.Errorf("failed to parse arguments from command line: %w", err)
 	}
 
-	if inputParameters != nil {
-		if err := utils.MergeMaps(inputParameters, cliParameters); err != nil {
-			return fmt.Errorf("failed to merge CLI parameters with input parameters: %w", err)
+	// Handle data from file if --from-file flag is used
+	if flags.ParametersFile != "" {
+		log.Print("Flag --from-file used, all other flags will override the file values")
+
+		fd, err := os.Open(flags.ParametersFile)
+		if err != nil {
+			return fmt.Errorf("failed to open given file: %w", err)
 		}
-		cliParameters = inputParameters
+		defer fd.Close()
+
+		var fileParameters map[string]any
+		if err := json.NewDecoder(fd).Decode(&fileParameters); err != nil {
+			return fmt.Errorf("failed to parse given file: %w", err)
+		}
+
+		// Merge CLI parameters with file parameters (CLI takes precedence)
+		if err := utils.MergeMaps(fileParameters, cliParameters); err != nil {
+			return fmt.Errorf("failed to merge CLI parameters with file parameters: %w", err)
+		}
+
+		cliParameters = fileParameters
 	}
 
+	// Fetch resource
 	var object map[string]any
-	if replace && inputParameters != nil {
-		object = cliParameters
-	} else {
-		if err := httpLib.Client.Get(url, &object); err != nil {
-			return fmt.Errorf("error fetching resource %s: %w", url, err)
-		}
+	if err := httpLib.Client.Get(url, &object); err != nil {
+		return fmt.Errorf("error fetching resource %s: %w", url, err)
+	}
 
-		if err := utils.MergeMaps(object, cliParameters); err != nil {
-			return fmt.Errorf("failed to merge CLI parameters into example: %w", err)
-		}
+	// Merge CLI parameters with the fetched object
+	if err := utils.MergeMaps(object, cliParameters); err != nil {
+		return fmt.Errorf("failed to merge CLI parameters into example: %w", err)
 	}
 
 	// Filter editable fields from OpenAPI spec

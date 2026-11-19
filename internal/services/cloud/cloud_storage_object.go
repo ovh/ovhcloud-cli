@@ -5,13 +5,16 @@
 package cloud
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"maps"
 	"net/url"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -20,7 +23,9 @@ import (
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/openapi"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
+	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -726,16 +731,68 @@ func editBucketRules(cmd *cobra.Command, args []string, configuration string) {
 	}
 
 	endpoint := bucketEndpoint(projectID, bucketID) + "/" + configuration
+	schemaPath := "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/" + configuration
 
-	if err := common.ReplaceResource(
-		cmd,
-		"/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/"+configuration,
-		endpoint,
-		struct{}{},
-		assets.CloudV2OpenapiSchema,
-	); err != nil {
+	rules, err := readBucketRulesInput()
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
 	}
+
+	if rules == nil {
+		if err := common.EditResource(cmd, schemaPath, endpoint, struct{}{}, assets.CloudV2OpenapiSchema); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		}
+		return
+	}
+
+	// common.EditResource merges the input into the fetched rules and appends arrays, but this PUT replaces all rules.
+	body, err := openapi.FilterEditableFields(assets.CloudV2OpenapiSchema, schemaPath, "put", rules)
+	if err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to extract writable properties: %s", err)
+		return
+	}
+
+	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to update %s configuration: %s", configuration, err)
+		return
+	}
+
+	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Resource updated successfully")
+}
+
+// An empty pipe counts as no input: scripts that run the command without stdin data keep working.
+func readBucketRulesInput() (map[string]any, error) {
+	var (
+		data   []byte
+		source string
+		err    error
+	)
+
+	switch {
+	case utils.IsInputFromPipe():
+		source = "data"
+		if data, err = io.ReadAll(os.Stdin); err != nil {
+			return nil, fmt.Errorf("failed to read given data: %w", err)
+		}
+		if len(bytes.TrimSpace(data)) == 0 {
+			return nil, nil
+		}
+	case flags.ParametersFile != "":
+		source = "file"
+		if data, err = os.ReadFile(flags.ParametersFile); err != nil {
+			return nil, fmt.Errorf("failed to open given file: %w", err)
+		}
+	default:
+		return nil, nil
+	}
+
+	var rules map[string]any
+	if err := json.Unmarshal(data, &rules); err != nil {
+		return nil, fmt.Errorf("failed to parse given %s: %w", source, err)
+	}
+
+	return rules, nil
 }
 
 func deleteBucketRules(bucketID, configuration string) {
