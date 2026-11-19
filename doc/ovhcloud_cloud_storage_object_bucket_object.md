@@ -33,7 +33,7 @@ Manage objects in the given storage container
 * [ovhcloud cloud storage object bucket](ovhcloud_cloud_storage_object_bucket.md)	 - Manage object storage buckets in the given cloud project
 * [ovhcloud cloud storage object bucket object copy](ovhcloud_cloud_storage_object_bucket_object_copy.md)	 - Copy the given object to another bucket or key
 * [ovhcloud cloud storage object bucket object delete](ovhcloud_cloud_storage_object_bucket_object_delete.md)	 - Delete the given object from the storage container
-* [ovhcloud cloud storage object bucket object edit](ovhcloud_cloud_storage_object_bucket_object_edit.md)	 - Edit the given object in the storage container
+* [ovhcloud cloud storage object bucket object edit](ovhcloud_cloud_storage_object_bucket_object_edit.md)	 - Edit the legal hold and lock of the given object
 * [ovhcloud cloud storage object bucket object get](ovhcloud_cloud_storage_object_bucket_object_get.md)	 - Get a specific object from the given storage container
 * [ovhcloud cloud storage object bucket object list](ovhcloud_cloud_storage_object_bucket_object_list.md)	 - List objects in the given storage container
 * [ovhcloud cloud storage object bucket object restore](ovhcloud_cloud_storage_object_bucket_object_restore.md)	 - Restore the given object from archival storage

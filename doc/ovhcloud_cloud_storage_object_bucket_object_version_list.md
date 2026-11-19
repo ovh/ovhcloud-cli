@@ -3,15 +3,20 @@
 List versions of a specific object in the given storage container
 
 ```
-ovhcloud cloud storage object bucket object version list <container_name> <object_name> [flags]
+ovhcloud cloud storage object bucket object version list <bucket_id> <object_key> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                       help for list
-      --limit int                  Maximum number of versions to return (default 1000)
-      --version-id-marker string   Version ID marker for pagination
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands

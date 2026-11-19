@@ -1,9 +1,31 @@
 ## ovhcloud cloud storage object bucket lifecycle edit
 
-Edit the lifecycle configuration of the given storage container
+Replace the lifecycle rules of the given bucket
+
+### Synopsis
+
+Use this command to replace all the lifecycle rules of the given bucket.
+There are two ways to define the new rules:
+
+1. Using a configuration file:
+
+  First you can generate an example of rules file using the following command:
+
+	ovhcloud cloud storage object bucket lifecycle edit --init-file ./rules.json
+
+  After editing the file, run:
+
+	ovhcloud cloud storage object bucket lifecycle edit GRA_my-bucket --from-file ./rules.json
+
+  The rules of the file replace all the current rules of the bucket.
+
+2. Using your default text editor, starting from the current rules:
+
+	ovhcloud cloud storage object bucket lifecycle edit GRA_my-bucket --editor
+
 
 ```
-ovhcloud cloud storage object bucket lifecycle edit <container_name> [flags]
+ovhcloud cloud storage object bucket lifecycle edit <bucket_id> [flags]
 ```
 
 ### Options
@@ -38,5 +60,5 @@ ovhcloud cloud storage object bucket lifecycle edit <container_name> [flags]
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket lifecycle](ovhcloud_cloud_storage_object_bucket_lifecycle.md)	 - Manage S3™* compatible storage container lifecycle configuration (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+* [ovhcloud cloud storage object bucket lifecycle](ovhcloud_cloud_storage_object_bucket_lifecycle.md)	 - Manage the lifecycle rules of S3™* compatible buckets (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 

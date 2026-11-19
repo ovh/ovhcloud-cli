@@ -1,15 +1,15 @@
-## ovhcloud cloud storage object bucket replication-job create
+## ovhcloud cloud storage object bucket replication get
 
-Create a replication job on the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+Get the replication rules of the given bucket
 
 ```
-ovhcloud cloud storage object bucket replication-job create <container_name> [flags]
+ovhcloud cloud storage object bucket replication get <bucket_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for create
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -34,5 +34,5 @@ ovhcloud cloud storage object bucket replication-job create <container_name> [fl
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket replication-job](ovhcloud_cloud_storage_object_bucket_replication-job.md)	 - Manage replication jobs for S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+* [ovhcloud cloud storage object bucket replication](ovhcloud_cloud_storage_object_bucket_replication.md)	 - Manage the replication rules of S3™* compatible buckets (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
 

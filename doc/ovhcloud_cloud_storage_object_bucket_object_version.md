@@ -33,7 +33,7 @@ Manage versions of objects in the given storage container
 * [ovhcloud cloud storage object bucket object](ovhcloud_cloud_storage_object_bucket_object.md)	 - Manage objects in the given storage container
 * [ovhcloud cloud storage object bucket object version copy](ovhcloud_cloud_storage_object_bucket_object_version_copy.md)	 - Copy a specific version of an object to another bucket or key
 * [ovhcloud cloud storage object bucket object version delete](ovhcloud_cloud_storage_object_bucket_object_version_delete.md)	 - Delete a specific version of an object from the storage container
-* [ovhcloud cloud storage object bucket object version edit](ovhcloud_cloud_storage_object_bucket_object_version_edit.md)	 - Edit the given version of an object in the storage container
+* [ovhcloud cloud storage object bucket object version edit](ovhcloud_cloud_storage_object_bucket_object_version_edit.md)	 - Edit the legal hold and lock of the given object version
 * [ovhcloud cloud storage object bucket object version get](ovhcloud_cloud_storage_object_bucket_object_version_get.md)	 - Get a specific version of an object from the given storage container
 * [ovhcloud cloud storage object bucket object version list](ovhcloud_cloud_storage_object_bucket_object_version_list.md)	 - List versions of a specific object in the given storage container
 * [ovhcloud cloud storage object bucket object version restore](ovhcloud_cloud_storage_object_bucket_object_version_restore.md)	 - Restore a specific version of an object from archival storage

@@ -23845,7 +23845,7 @@
           },
           "id": {
             "type": "string",
-            "description": "Lifecycle rule unique identifier"
+            "description": "Unique identifier of the lifecycle rule"
           },
           "noncurrentVersionExpiration": {
             "allOf": [
@@ -23984,7 +23984,7 @@
           "storageClass": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/publicCloud.storage.object.StorageClassEnum"
+                "$ref": "#/components/schemas/publicCloud.storage.object.StorageClassLifecycleEnum"
               }
             ],
             "description": "Target storage class for the transition"
@@ -24195,7 +24195,7 @@
                 "$ref": "#/components/schemas/publicCloud.storage.object.ReplicationDestinationReasonEnum"
               }
             ],
-            "description": "Why the bucket cannot be used as a destination; set only when eligible is false",
+            "description": "Why the bucket cannot be used as a destination. Set only when eligible is false.",
             "nullable": true,
             "readOnly": true
           },
@@ -24208,7 +24208,7 @@
       },
       "publicCloud.storage.object.ReplicationDestinationReasonEnum": {
         "type": "string",
-        "description": "Reason a bucket cannot be used as a replication destination\n\nValues\nOBJECT_LOCK_INCOMPATIBLE — The object lock configuration of the destination bucket is incompatible with the one of the source bucket.\nREGION_NOT_REPLICATION_TARGET — The region of the destination bucket does not accept replicated objects.\nVERSIONING_DISABLED — Versioning is not enabled on the destination bucket.",
+        "description": "Reason a bucket cannot be used as a replication destination. `OBJECT_LOCK_INCOMPATIBLE`: The object lock configuration of the destination bucket is incompatible with the one of the source bucket. `REGION_NOT_REPLICATION_TARGET`: The region of the destination bucket does not accept replicated objects. `VERSIONING_DISABLED`: Versioning is not enabled on the destination bucket.",
         "enum": [
           "OBJECT_LOCK_INCOMPATIBLE",
           "REGION_NOT_REPLICATION_TARGET",
@@ -24237,7 +24237,7 @@
           },
           "id": {
             "type": "string",
-            "description": "Job identifier",
+            "description": "Unique identifier of the job",
             "readOnly": true
           },
           "status": {
@@ -24304,7 +24304,7 @@
           },
           "id": {
             "type": "string",
-            "description": "Replication rule unique identifier"
+            "description": "Unique identifier of the replication rule"
           },
           "priority": {
             "type": "integer",
@@ -24455,7 +24455,7 @@
           },
           "versionId": {
             "type": "string",
-            "description": "Version identifier",
+            "description": "Identifier of the version",
             "nullable": true,
             "readOnly": true
           }
@@ -24471,7 +24471,7 @@
           },
           "versionId": {
             "type": "string",
-            "description": "Version identifier",
+            "description": "Identifier of the version",
             "nullable": true
           }
         },
@@ -24518,7 +24518,7 @@
           },
           "versionId": {
             "type": "string",
-            "description": "Version identifier",
+            "description": "Identifier of the version",
             "nullable": true,
             "readOnly": true
           },
@@ -24627,7 +24627,7 @@
           },
           "versionId": {
             "type": "string",
-            "description": "Version identifier",
+            "description": "Identifier of the version",
             "nullable": true,
             "readOnly": true
           }
@@ -24639,7 +24639,7 @@
         "properties": {
           "destinationBucket": {
             "type": "string",
-            "description": "Destination bucket name"
+            "description": "Destination bucket ID, written like the bucket ID in the path (REGION_NAME, for example GRA_my-bucket)"
           },
           "destinationKey": {
             "type": "string",
@@ -24652,6 +24652,11 @@
               }
             ],
             "description": "Storage class for the copy",
+            "nullable": true
+          },
+          "versionId": {
+            "type": "string",
+            "description": "Version of the source object to copy. When omitted, the current version is copied. Leave it absent on a bucket without versioning.",
             "nullable": true
           }
         },
@@ -24712,7 +24717,7 @@
                 "$ref": "#/components/schemas/publicCloud.storage.object.PresignedURLMethodEnum"
               }
             ],
-            "description": "Presigned URL method.",
+            "description": "Presigned URL method",
             "readOnly": true
           },
           "signedHeaders": {
@@ -24730,7 +24735,7 @@
           },
           "versionId": {
             "type": "string",
-            "description": "Version identifier",
+            "description": "Identifier of the version",
             "nullable": true,
             "readOnly": true
           }
@@ -24742,7 +24747,7 @@
         "properties": {
           "expiresIn": {
             "type": "integer",
-            "description": "URL expiration time in seconds",
+            "description": "URL expiration time in seconds. When omitted, one hour (3600).",
             "nullable": true
           },
           "key": {
@@ -24768,7 +24773,7 @@
           },
           "versionId": {
             "type": "string",
-            "description": "Object version identifier",
+            "description": "Identifier of the object version",
             "nullable": true
           }
         },
@@ -24795,6 +24800,11 @@
           "days": {
             "type": "integer",
             "description": "Number of days to keep the restored copy"
+          },
+          "versionId": {
+            "type": "string",
+            "description": "Version of the archived object to restore. When omitted, the current version is restored. Leave it absent on a bucket without versioning.",
+            "nullable": true
           }
         },
         "required": [
@@ -96992,6 +97002,7 @@
     },
     "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/bulkDeleteObjects": {
       "post": {
+        "operationId": "bulkDeleteBucketObjects",
         "summary": "Delete several objects",
         "description": "Deletes a list of objects in one request. To delete a large number of objects, use lifecycle rules instead.",
         "security": [
@@ -97084,8 +97095,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -97098,6 +97109,7 @@
     },
     "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/lifecycle": {
       "get": {
+        "operationId": "getBucketLifecycle",
         "summary": "List lifecycle rules",
         "description": "Returns the rules that expire objects or move them to another storage class.",
         "security": [
@@ -97180,8 +97192,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -97192,6 +97204,7 @@
         ]
       },
       "put": {
+        "operationId": "editBucketLifecycle",
         "summary": "Replace lifecycle rules",
         "description": "Replaces all lifecycle rules of the bucket. An empty list deletes all rules.",
         "security": [
@@ -97284,8 +97297,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -97631,6 +97644,7 @@
     },
     "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/object": {
       "get": {
+        "operationId": "getBucketObjects",
         "summary": "List objects",
         "description": "Returns the objects of the bucket. Filter by key prefix, and group keys with a delimiter.",
         "security": [
@@ -97667,7 +97681,7 @@
           {
             "in": "query",
             "name": "delimiter",
-            "description": "Delimiter for grouping keys into common prefixes (default: /)",
+            "description": "Delimiter for grouping keys into common prefixes. Defaults to /.",
             "schema": {
               "type": "string"
             }
@@ -97756,8 +97770,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -97772,6 +97786,7 @@
     },
     "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/object/{key}": {
       "delete": {
+        "operationId": "deleteBucketObject",
         "summary": "Delete an object",
         "description": "Deletes the object. On a versioned bucket, adds a delete marker instead of removing the object.",
         "security": [
@@ -97863,8 +97878,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -97875,6 +97890,7 @@
         ]
       },
       "get": {
+        "operationId": "getBucketObject",
         "summary": "Get object metadata",
         "description": "Returns the object metadata, without its content.",
         "security": [
@@ -97966,8 +97982,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -97979,6 +97995,7 @@
         "x-response-identifier": "key"
       },
       "put": {
+        "operationId": "editBucketObject",
         "summary": "Update object lock or legal hold",
         "description": "Sets the retention period or the legal hold of the object. A locked object cannot be deleted or overwritten.",
         "security": [
@@ -98080,8 +98097,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -98092,10 +98109,11 @@
         ]
       }
     },
-    "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/object/{key}/copyLastVersion": {
+    "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/object/{key}/copy": {
       "post": {
-        "summary": "Copy the latest object version",
-        "description": "Copies the latest version of the object to another key or bucket, optionally in another storage class.",
+        "operationId": "copyBucketObject",
+        "summary": "Copy an object",
+        "description": "Copies the object to another key or bucket, optionally in another storage class. The current version is copied unless a versionId is given in the body.",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -98195,13 +98213,13 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
           {
-            "name": "publicCloudProject:apiovh:storage/object/bucket/object/version/copy",
+            "name": "publicCloudProject:apiovh:storage/object/bucket/object/copy",
             "required": true
           }
         ]
@@ -98650,10 +98668,11 @@
         ]
       }
     },
-    "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/object/{key}/restoreLastVersion": {
+    "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/object/{key}/restore": {
       "post": {
-        "summary": "Restore the latest archived object version",
-        "description": "Makes the latest version of an archived object readable again for a given number of days.",
+        "operationId": "restoreBucketObject",
+        "summary": "Restore an archived object",
+        "description": "Makes an archived object readable again for a given number of days. Works whether or not versioning is enabled on the bucket. The current version is restored unless a versionId is given in the body.",
         "security": [
           {
             "oAuth2AuthCode": []
@@ -98782,13 +98801,13 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
           {
-            "name": "publicCloudProject:apiovh:storage/object/bucket/object/version/restore",
+            "name": "publicCloudProject:apiovh:storage/object/bucket/object/restore",
             "required": true
           }
         ]
@@ -99269,285 +99288,9 @@
         ]
       }
     },
-    "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/object/{key}/version/{versionId}/copy": {
-      "post": {
-        "summary": "Copy an object version",
-        "description": "Copies one version of the object to another key or bucket, optionally in another storage class.",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "bucketName",
-            "description": "Bucket name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "key",
-            "description": "Key",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "projectId",
-            "description": "Project ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "versionId",
-            "description": "Version ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/publicCloud.storage.object.S3ObjectCopy"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/publicCloud.storage.object.S3Object"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error 404 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Common error model",
-                  "properties": {
-                    "class": {
-                      "type": "string",
-                      "description": "Class of the error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  }
-                },
-                "examples": {
-                  "Client::NotFound::BucketDoesNotExist": {
-                    "value": {
-                      "class": "Client::NotFound::BucketDoesNotExist",
-                      "message": "S3 bucket not found"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Storage",
-          "Object"
-        ],
-        "x-developer-hub-navigation": [
-          [
-            "Public Cloud",
-            "Storage",
-            "Object Storage",
-            "Object Management@@@150"
-          ]
-        ],
-        "x-badges": [
-          {
-            "color": "orange",
-            "label": "Internal use only"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:storage/object/bucket/object/version/copy",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/object/{key}/version/{versionId}/restore": {
-      "post": {
-        "summary": "Restore an archived object version",
-        "description": "Makes one archived version of the object readable again for a given number of days.",
-        "security": [
-          {
-            "oAuth2AuthCode": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "bucketName",
-            "description": "Bucket name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "key",
-            "description": "Key",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "projectId",
-            "description": "Project ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "versionId",
-            "description": "Version ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/publicCloud.storage.object.S3ObjectRestore"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/publicCloud.storage.object.S3Object"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error 404 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Common error model",
-                  "properties": {
-                    "class": {
-                      "type": "string",
-                      "description": "Class of the error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  }
-                },
-                "examples": {
-                  "Client::NotFound::BucketDoesNotExist": {
-                    "value": {
-                      "class": "Client::NotFound::BucketDoesNotExist",
-                      "message": "S3 bucket not found"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error 409 response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Common error model",
-                  "properties": {
-                    "class": {
-                      "type": "string",
-                      "description": "Class of the error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  }
-                },
-                "examples": {
-                  "Client::Conflict::ResourceInInvalidState": {
-                    "value": {
-                      "class": "Client::Conflict::ResourceInInvalidState",
-                      "message": "Resource cannot be modified in its current state"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Storage",
-          "Object"
-        ],
-        "x-developer-hub-navigation": [
-          [
-            "Public Cloud",
-            "Storage",
-            "Object Storage",
-            "Object Management@@@160"
-          ]
-        ],
-        "x-badges": [
-          {
-            "color": "orange",
-            "label": "Internal use only"
-          }
-        ],
-        "x-iam-actions": [
-          {
-            "name": "publicCloudProject:apiovh:storage/object/bucket/object/version/restore",
-            "required": true
-          }
-        ]
-      }
-    },
     "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/presign": {
       "post": {
+        "operationId": "createBucketPresignedUrl",
         "summary": "Create a presigned URL",
         "description": "Creates a temporary URL to download or upload an object without credentials. The URL expires after the given time.",
         "security": [
@@ -99640,8 +99383,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -99654,6 +99397,7 @@
     },
     "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/replication": {
       "get": {
+        "operationId": "getBucketReplication",
         "summary": "List replication rules",
         "description": "Returns the rules that copy new objects to other buckets.",
         "security": [
@@ -99736,8 +99480,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -99748,6 +99492,7 @@
         ]
       },
       "put": {
+        "operationId": "editBucketReplication",
         "summary": "Replace replication rules",
         "description": "Replaces all replication rules of the bucket. An empty list deletes all rules.",
         "security": [
@@ -99840,8 +99585,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -99854,6 +99599,7 @@
     },
     "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/replication/destination": {
       "get": {
+        "operationId": "getBucketReplicationDestinations",
         "summary": "List possible replication destinations",
         "description": "Returns the other buckets of the project and whether each one can receive objects replicated from this bucket. A bucket that cannot gives a reason: versioning disabled, incompatible object lock, or a region that does not accept replicated objects.",
         "security": [
@@ -99984,8 +99730,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -99999,6 +99745,7 @@
     },
     "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/replication/trigger": {
       "get": {
+        "operationId": "getBucketReplicationJobs",
         "summary": "List batch replication jobs",
         "description": "Returns the batch replication jobs of the bucket and their progress.",
         "security": [
@@ -100100,8 +99847,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -100114,6 +99861,7 @@
         "x-expanded-response": "PublicCloudStorageObjectReplicationJob"
       },
       "post": {
+        "operationId": "createBucketReplicationJob",
         "summary": "Start a batch replication job",
         "description": "Applies the current replication rules to the objects already in the bucket.",
         "security": [
@@ -100196,8 +99944,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [
@@ -100210,6 +99958,7 @@
     },
     "/publicCloud/project/{projectId}/storage/object/bucket/{bucketName}/replication/trigger/{id}": {
       "get": {
+        "operationId": "getBucketReplicationJob",
         "summary": "Get a batch replication job",
         "description": "Returns the progress of a batch replication job: total, completed, failed and stuck objects.",
         "security": [
@@ -100307,8 +100056,8 @@
         ],
         "x-badges": [
           {
-            "color": "orange",
-            "label": "Internal use only"
+            "color": "blue",
+            "label": "Alpha version"
           }
         ],
         "x-iam-actions": [

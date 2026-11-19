@@ -3,7 +3,7 @@
 Delete the given object from the storage container
 
 ```
-ovhcloud cloud storage object bucket object delete <container_name> <object_name> [flags]
+ovhcloud cloud storage object bucket object delete <bucket_id> <object_key> [flags]
 ```
 
 ### Options

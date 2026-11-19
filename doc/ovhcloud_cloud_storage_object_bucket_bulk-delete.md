@@ -3,16 +3,16 @@
 Bulk delete objects in the given storage container
 
 ```
-ovhcloud cloud storage object bucket bulk-delete <container_name> [flags]
+ovhcloud cloud storage object bucket bulk-delete <bucket_id> [flags]
 ```
 
 ### Options
 
 ```
-      --all               Delete all objects in the container
+      --all               Delete all objects in the bucket
   -h, --help              help for bulk-delete
-      --objects strings   List of objects to delete (format is '<object_name>' or '<object_name>:<version_id>'
-      --prefix string     Prefix to filter objects to delete
+      --objects strings   List of objects to delete (format is '<object_key>' or '<object_key>:<version_id>')
+      --prefix string     Delete all objects whose key begins with this prefix
 ```
 
 ### Options inherited from parent commands

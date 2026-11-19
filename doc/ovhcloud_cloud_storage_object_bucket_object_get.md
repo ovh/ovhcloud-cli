@@ -3,7 +3,7 @@
 Get a specific object from the given storage container
 
 ```
-ovhcloud cloud storage object bucket object get <container_name> <object_name> [flags]
+ovhcloud cloud storage object bucket object get <bucket_id> <object_key> [flags]
 ```
 
 ### Options

@@ -1,0 +1,17 @@
+{
+  "rules": [
+    {
+      "id": "replicate-data",
+      "priority": 1,
+      "status": "ENABLED",
+      "deleteMarkerReplication": "DISABLED",
+      "filter": {
+        "prefix": "data/"
+      },
+      "destination": {
+        "name": "my-destination-bucket",
+        "region": "DESTINATION_REGION"
+      }
+    }
+  ]
+}

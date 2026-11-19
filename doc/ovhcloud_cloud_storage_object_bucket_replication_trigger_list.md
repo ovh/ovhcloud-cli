@@ -1,11 +1,22 @@
-## ovhcloud cloud storage object bucket replication-job
+## ovhcloud cloud storage object bucket replication trigger list
 
-Manage replication jobs for S3™* compatible storage containers (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+List the replication jobs of the given bucket
+
+```
+ovhcloud cloud storage object bucket replication trigger list <bucket_id> [flags]
+```
 
 ### Options
 
 ```
-  -h, --help   help for replication-job
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
 ```
 
 ### Options inherited from parent commands
@@ -30,6 +41,5 @@ Manage replication jobs for S3™* compatible storage containers (* S3 is a trad
 
 ### SEE ALSO
 
-* [ovhcloud cloud storage object bucket](ovhcloud_cloud_storage_object_bucket.md)	 - Manage object storage buckets in the given cloud project
-* [ovhcloud cloud storage object bucket replication-job create](ovhcloud_cloud_storage_object_bucket_replication-job_create.md)	 - Create a replication job on the given S3™* compatible storage container (* S3 is a trademark filed by Amazon Technologies,Inc. OVHcloud's service is not sponsored by, endorsed by, or otherwise affiliated with Amazon Technologies,Inc.)
+* [ovhcloud cloud storage object bucket replication trigger](ovhcloud_cloud_storage_object_bucket_replication_trigger.md)	 - Manage the jobs that replicate the objects already in a bucket
 

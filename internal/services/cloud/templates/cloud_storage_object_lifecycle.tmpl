@@ -1,0 +1,10 @@
+🚀 Lifecycle rules of bucket {{.ServiceName}}
+=======
+{{with index .Result "rules"}}
+| ID | Status | Prefix | Expiration (days) | Transitions |
+| --- | --- | --- | --- | --- |
+{{range .}}| {{index . "id"}} | {{index . "status"}} | {{with index . "filter"}}{{with index . "prefix"}}{{.}}{{end}}{{end}} | {{with index . "expiration"}}{{with index . "days"}}{{.}}{{end}}{{end}} | {{with index . "transitions"}}{{len .}}{{end}} |
+{{end}}{{else}}
+No lifecycle rule configured.
+{{end}}
+💡 Use option -o json or -o yaml to get the raw output with all information

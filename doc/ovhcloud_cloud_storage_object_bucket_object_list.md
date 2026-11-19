@@ -3,18 +3,23 @@
 List objects in the given storage container
 
 ```
-ovhcloud cloud storage object bucket object list <container_name> [flags]
+ovhcloud cloud storage object bucket object list <bucket_id> [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                       help for list
-      --key-marker string          Key marker for pagination
-      --limit int                  Maximum number of objects to return (default 1000)
-      --prefix string              Prefix to filter objects by name
-      --version-id-marker string   Version ID marker for pagination
-      --with-versions              Include object versions in the listing
+      --delimiter string     Group keys sharing the same prefix up to this delimiter (e.g. '/')
+      --filter stringArray   Filter results by any property using https://github.com/PaesslerAG/gval syntax
+                             Examples:
+                               --filter 'state=="running"'
+                               --filter 'name=~"^my.*"'
+                               --filter 'nested.property.subproperty>10'
+                               --filter 'startDate>="2023-12-01"'
+                               --filter 'name=~"something" && nbField>10'
+  -h, --help                 help for list
+      --prefix string        Only list objects whose key begins with this prefix
+      --with-versions        List every version and delete marker of the objects
 ```
 
 ### Options inherited from parent commands

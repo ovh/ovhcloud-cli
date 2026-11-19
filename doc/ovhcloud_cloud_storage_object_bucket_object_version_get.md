@@ -3,7 +3,7 @@
 Get a specific version of an object from the given storage container
 
 ```
-ovhcloud cloud storage object bucket object version get <container_name> <object_name> <version_id> [flags]
+ovhcloud cloud storage object bucket object version get <bucket_id> <object_key> <version_id> [flags]
 ```
 
 ### Options
