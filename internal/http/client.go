@@ -23,14 +23,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-// APIClient wraps a *ovh.Client to work around a go-ovh convenience (see
-// getTarget in ovh-go's ovh.go): a request path starting with "/v1/" (this
-// CLI never issues "/v2/" paths outside genuine cloud/IAM-style products) is
-// aliased to the endpoint's bare domain root instead of being appended under
-// its "/1.0" base. That aliasing only holds on the official ovh-eu/ovh-ca/
-// ovh-us gateways. Every other endpoint (Kimsufi, SoYouStart, or a custom
-// URL) only serves the API under "/1.0", so on those endpoints the "/v1/"
-// path must be rewritten before go-ovh builds and signs the request.
+// APIClient strips the "/v1" prefix on non-official "/1.0" endpoints, where go-ovh's root-aliasing does not hold.
 type APIClient struct {
 	*ovh.Client
 	rewriteV1Paths bool
@@ -38,17 +31,21 @@ type APIClient struct {
 
 // NewAPIClient wraps an already-configured *ovh.Client.
 func NewAPIClient(raw *ovh.Client) *APIClient {
-	return &APIClient{Client: raw, rewriteV1Paths: !isOfficialEndpoint(raw.Endpoint())}
+	return &APIClient{Client: raw, rewriteV1Paths: needsV1Rewrite(raw.Endpoint())}
 }
 
-// isOfficialEndpoint returns true for the 3 endpoints where go-ovh's "/v1"
-// and "/v2" root-aliasing is known to be valid.
-func isOfficialEndpoint(endpoint string) bool {
+func needsV1Rewrite(endpoint string) bool {
+	if runtime.GOARCH == "wasm" && runtime.GOOS == "js" {
+		return false
+	}
+	if !strings.HasSuffix(endpoint, "/1.0") {
+		return false
+	}
 	switch endpoint {
 	case ovh.OvhEU, ovh.OvhCA, ovh.OvhUS:
-		return true
+		return false
 	}
-	return false
+	return true
 }
 
 // fixPath undoes go-ovh's "/v1" root-aliasing when it doesn't apply to the

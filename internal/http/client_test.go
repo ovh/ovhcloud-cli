@@ -98,3 +98,17 @@ func TestAPIErrorDetailsMessage(t *testing.T) {
 	td.Require(t).True(ok, "the error must stay an *ovh.APIError")
 	td.Cmp(t, apiErr.Code, 404)
 }
+
+func TestNeedsV1Rewrite(t *testing.T) {
+	for endpoint, expected := range map[string]bool{
+		ovh.OvhEU:                         false,
+		ovh.OvhCA:                         false,
+		ovh.OvhUS:                         false,
+		ovh.KimsufiEU:                     true,
+		ovh.SoyoustartCA:                  true,
+		"https://api.example.com/1.0":     true,
+		"https://manager.example.com/api": false,
+	} {
+		td.Cmp(t, needsV1Rewrite(endpoint), expected, endpoint)
+	}
+}
