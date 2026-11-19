@@ -41,7 +41,7 @@ func EditDedicatedCeph(cmd *cobra.Command, args []string) {
 		cmd,
 		"/dedicated/ceph/{serviceName}",
 		fmt.Sprintf("/v1/dedicated/ceph/%s", url.PathEscape(args[0])),
-		DedicatedCephSpec,
+		&DedicatedCephSpec,
 		assets.DedicatedcephOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

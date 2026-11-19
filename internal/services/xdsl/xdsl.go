@@ -42,7 +42,7 @@ func EditXdsl(cmd *cobra.Command, args []string) {
 		cmd,
 		"/xdsl/{serviceName}",
 		fmt.Sprintf("/v1/xdsl/%s", url.PathEscape(args[0])),
-		XdslSpec,
+		&XdslSpec,
 		assets.XdslOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

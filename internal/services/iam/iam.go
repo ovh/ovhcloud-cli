@@ -119,7 +119,7 @@ func EditIAMPolicy(cmd *cobra.Command, args []string) {
 		cmd,
 		"/iam/policy/{policyId}",
 		fmt.Sprintf("/v2/iam/policy/%s", url.PathEscape(args[0])),
-		IAMPolicySpec,
+		&IAMPolicySpec,
 		assets.IamOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -170,7 +170,7 @@ func EditIAMPermissionsGroup(cmd *cobra.Command, args []string) {
 		cmd,
 		"/iam/permissionsGroup/{permissionsGroupURN}",
 		fmt.Sprintf("/v2/iam/permissionsGroup/%s", url.PathEscape(args[0])),
-		IAMPolicySpec,
+		&IAMPolicySpec,
 		assets.IamOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -191,7 +191,7 @@ func EditIAMResource(cmd *cobra.Command, args []string) {
 		cmd,
 		"/iam/resource/{resourceURN}",
 		fmt.Sprintf("/v2/iam/resource/%s", url.PathEscape(args[0])),
-		IAMResourceSpec,
+		&IAMResourceSpec,
 		assets.IamOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -221,7 +221,7 @@ func EditIAMResourceGroup(cmd *cobra.Command, args []string) {
 		cmd,
 		"/iam/resourceGroup/{groupId}",
 		fmt.Sprintf("/v2/iam/resourceGroup/%s", url.PathEscape(args[0])),
-		IAMPolicySpec,
+		&IAMPolicySpec,
 		assets.IamOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
@@ -278,7 +278,7 @@ func EditUser(cmd *cobra.Command, args []string) {
 		cmd,
 		"/me/identity/user/{user}",
 		fmt.Sprintf("/v1/me/identity/user/%s", url.PathEscape(args[0])),
-		UserSpec,
+		&UserSpec,
 		assets.MeOpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)

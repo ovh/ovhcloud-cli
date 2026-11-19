@@ -807,7 +807,7 @@ func EditManagedAnalyticsTopic(cmd *cobra.Command, args []string) {
 		cmd,
 		fmt.Sprintf("/publicCloud/project/{projectId}/managedAnalytics/%s/{serviceId}/topic/{topicId}", engine),
 		databaseAnalyticsEndpoint(projectID, managedAnalyticsCategory, engine, args[0], "topic", args[1]),
-		ManagedAnalyticsTopicSpec,
+		&ManagedAnalyticsTopicSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
