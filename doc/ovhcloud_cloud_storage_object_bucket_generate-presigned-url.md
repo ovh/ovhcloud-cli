@@ -1,16 +1,16 @@
-## ovhcloud cloud storage object bucket presign
+## ovhcloud cloud storage object bucket generate-presigned-url
 
 Generate a presigned URL to download, upload or delete an object in the given storage container
 
 ```
-ovhcloud cloud storage object bucket presign <bucket_id> <object_key> [flags]
+ovhcloud cloud storage object bucket generate-presigned-url <bucket_id> <object_key> [flags]
 ```
 
 ### Options
 
 ```
       --expires-in int         Validity of the URL in seconds (default 3600)
-  -h, --help                   help for presign
+  -h, --help                   help for generate-presigned-url
       --method string          HTTP method allowed by the URL (DELETE, GET, PUT) (default "GET")
       --storage-class string   Storage class of the uploaded object, for PUT (DEEP_ARCHIVE, GLACIER_IR, HIGH_PERF, STANDARD, STANDARD_IA)
       --version-id string      Version ID of the object

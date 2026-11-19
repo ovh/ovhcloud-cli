@@ -410,7 +410,7 @@ func (ms *MockSuite) TestCloudStorageS3PresignCmd(assert, require *td.T) {
 			"signedHeaders": {"x-amz-storage-class": "STANDARD", "Host": "my-bucket.s3.gra.io.cloud.ovh.net"}
 		}`))
 
-	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "presign", "GRA_my-bucket", "dir/file.txt",
+	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "generate-presigned-url", "GRA_my-bucket", "dir/file.txt",
 		"--cloud-project", "fakeProjectID",
 		"--method", "PUT",
 		"--expires-in", "600",
@@ -427,7 +427,7 @@ func (ms *MockSuite) TestCloudStorageS3PresignDefaultMethodCmd(assert, require *
 		tdhttpmock.JSONBody(td.JSON(`{"key": "file.txt", "method": "GET"}`)),
 		httpmock.NewStringResponder(201, `{"method": "GET", "key": "file.txt", "url": "https://u", "expiresAt": "2026-11-02T11:00:00Z"}`))
 
-	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "presign", "GRA_my-bucket", "file.txt",
+	out, err := cmd.Execute("cloud", "storage", "object", "bucket", "generate-presigned-url", "GRA_my-bucket", "file.txt",
 		"--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)

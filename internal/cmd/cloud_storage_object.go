@@ -222,7 +222,7 @@ func initCloudStorageS3Command(cloudCmd *cobra.Command) {
 	objectVersionCmd.AddCommand(objectVersionRestoreCmd)
 
 	presignCmd := &cobra.Command{
-		Use:               "presign <bucket_id> <object_key>",
+		Use:               "generate-presigned-url <bucket_id> <object_key>",
 		Short:             "Generate a presigned URL to download, upload or delete an object in the given storage container",
 		ValidArgsFunction: completion.CloudResources(bucketCompletionPath),
 		Run:               cloud.PresignStorageS3,
