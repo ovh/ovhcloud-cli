@@ -384,8 +384,12 @@ There are three ways to define the installation parameters:
 	instanceCmd.AddCommand(snapshotCmd)
 
 	snapshotCreateCmd := &cobra.Command{
-		Use:               "create <instance_id> <snapshot_name>",
-		Short:             "Create a snapshot of the given instance",
+		Use:   "create <instance_id> <snapshot_name>",
+		Short: "Create a snapshot of the given instance",
+		Long: `Create a snapshot of the given instance in its region.
+
+A snapshot copied to another region (--distant-region-name and --distant-snapshot-name)
+still uses API v1, as API v2 does not support cross-region snapshots.`,
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.CreateInstanceSnapshot,
 		Args:              cobra.ExactArgs(2),
@@ -393,11 +397,15 @@ There are three ways to define the installation parameters:
 	snapshotCreateCmd.Flags().StringVar(&cloud.InstanceSnapshotSpec.DistantSnapshotName, "distant-snapshot-name", "", "Name of the snapshot in the distant region (for cross region snapshot)")
 	snapshotCreateCmd.Flags().StringVar(&cloud.InstanceSnapshotSpec.DistantRegionName, "distant-region-name", "", "Name of the distant region (for cross region snapshot)")
 	snapshotCreateCmd.MarkFlagsRequiredTogether("distant-snapshot-name", "distant-region-name")
+	snapshotCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the snapshot to be ready before exiting (not supported for cross-region snapshots)")
+	// A cross-region snapshot stays on API v1, where the CLI cannot follow the creation
+	snapshotCreateCmd.MarkFlagsMutuallyExclusive("wait", "distant-region-name")
 	snapshotCmd.AddCommand(snapshotCreateCmd)
 
 	snapshotCmd.AddCommand(&cobra.Command{
 		Use:               "abort <instance_id>",
 		Short:             "Abort the snapshot creation of the given instance",
+		Long:              "Abort the snapshot creation of the given instance. This command still uses API v1, as API v2 has no equivalent.",
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.AbortInstanceSnapshot,
 		Args:              cobra.ExactArgs(1),
@@ -418,12 +426,14 @@ There are three ways to define the installation parameters:
 		Args:  cobra.ExactArgs(1),
 	})
 
-	snapshotCmd.AddCommand(&cobra.Command{
+	snapshotDeleteCmd := &cobra.Command{
 		Use:   "delete <snapshot_id>",
 		Short: "Delete a specific instance snapshot in the current cloud project",
 		Run:   cloud.DeleteInstanceSnapshot,
 		Args:  cobra.ExactArgs(1),
-	})
+	}
+	snapshotDeleteCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the snapshot to be deleted before exiting")
+	snapshotCmd.AddCommand(snapshotDeleteCmd)
 
 	// Instance group subcommands
 	groupCmd := &cobra.Command{

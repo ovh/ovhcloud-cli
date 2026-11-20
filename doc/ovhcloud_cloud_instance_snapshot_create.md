@@ -2,6 +2,13 @@
 
 Create a snapshot of the given instance
 
+### Synopsis
+
+Create a snapshot of the given instance in its region.
+
+A snapshot copied to another region (--distant-region-name and --distant-snapshot-name)
+still uses API v1, as API v2 does not support cross-region snapshots.
+
 ```
 ovhcloud cloud instance snapshot create <instance_id> <snapshot_name> [flags]
 ```
@@ -12,6 +19,7 @@ ovhcloud cloud instance snapshot create <instance_id> <snapshot_name> [flags]
       --distant-region-name string     Name of the distant region (for cross region snapshot)
       --distant-snapshot-name string   Name of the snapshot in the distant region (for cross region snapshot)
   -h, --help                           help for create
+      --wait                           Wait for the snapshot to be ready before exiting (not supported for cross-region snapshots)
 ```
 
 ### Options inherited from parent commands

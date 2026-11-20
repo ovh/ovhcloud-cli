@@ -102,8 +102,9 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 	}
 
 	var (
-		rows      [][]string
-		selectors gval.Evaluables
+		rows        [][]string
+		selectors   gval.Evaluables
+		columnPaths []string
 	)
 
 	columnsTitles := make([]string, 0, len(columnsToDisplay))
@@ -123,15 +124,22 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 			exitError("invalid column to display %q: %s", col, err)
 		}
 		selectors = append(selectors, evaluator)
+		columnPaths = append(columnPaths, col)
 	}
 
 	// Extract values to display
 	for _, value := range values {
 		var row []string
-		for _, selector := range selectors {
+		for i, selector := range selectors {
 			val, err := selector(context.Background(), value)
 			if err != nil {
-				exitError("failed to select row field: %s", err)
+				// A column that goes through an absent or null object (e.g.
+				// "currentState.status" while a v2 resource is CREATING) is an
+				// empty cell, not a failure of the whole table.
+				if !columnParentIsMissing(value, columnPaths[i]) {
+					exitError("failed to select row field: %s", err)
+				}
+				val = nil
 			}
 
 			if val == nil {
