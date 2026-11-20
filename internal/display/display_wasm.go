@@ -98,7 +98,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 			for i, selector := range selectors {
 				val, err := selector(context.Background(), value)
 				if err != nil {
-					// A column through a null or absent object (e.g. currentState
+					// A column through an absent or null object (e.g. currentState
 					// while CREATING) is an empty cell, not a failure of the table.
 					if !columnParentIsMissing(value, columnPaths[i]) {
 						exitError("failed to select row field: %s", err)

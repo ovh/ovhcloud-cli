@@ -856,7 +856,7 @@ func instanceSnapshotV2Endpoint(projectID string) string {
 }
 
 // getInstanceRegionV2 returns the region of the given instance, read from its
-// API v2 targetSpec (currentState is null while the instance is created).
+// API v2 targetSpec (currentState is not set while the instance is created).
 func getInstanceRegionV2(projectID, instanceID string) (string, error) {
 	endpoint := fmt.Sprintf("%s/%s", instanceV2Endpoint(projectID), url.PathEscape(instanceID))
 	var instance map[string]any

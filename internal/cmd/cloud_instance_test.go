@@ -1329,13 +1329,19 @@ func (ms *MockSuite) TestCloudInstanceSnapshotListCmd(assert, require *td.T) {
 }
 
 func (ms *MockSuite) TestCloudInstanceSnapshotListCreatingCmd(assert, require *td.T) {
-	// currentState is null while the snapshot is being created: columns come from targetSpec
+	// currentState is not set while the snapshot is being created: the API omits
+	// it (snap-001), and null must behave the same (snap-002). Columns come from targetSpec
 	httpmock.RegisterResponder(http.MethodGet, instanceSnapshotsURL,
 		httpmock.NewStringResponder(200, `[
 			{
 				"id": "snap-001",
 				"resourceStatus": "CREATING",
-				"targetSpec": {"name": "my-snap", "instance": {"id": "fakeInstanceID"}, "location": {"region": "GRA11"}},
+				"targetSpec": {"name": "my-snap", "instance": {"id": "fakeInstanceID"}, "location": {"region": "GRA11"}}
+			},
+			{
+				"id": "snap-002",
+				"resourceStatus": "CREATING",
+				"targetSpec": {"name": "my-snap-2", "instance": {"id": "fakeInstanceID"}, "location": {"region": "GRA11"}},
 				"currentState": null
 			}
 		]`).Once(),
@@ -1345,6 +1351,7 @@ func (ms *MockSuite) TestCloudInstanceSnapshotListCreatingCmd(assert, require *t
 
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Re(`snap-001\s+│\s+my-snap\s+│\s+fakeInstanceID\s+│\s+GRA11\s+│\s+│\s+CREATING`))
+	assert.Cmp(out, td.Re(`snap-002\s+│\s+my-snap-2\s+│\s+fakeInstanceID\s+│\s+GRA11\s+│\s+│\s+CREATING`))
 }
 
 func (ms *MockSuite) TestCloudInstanceSnapshotGetCmd(assert, require *td.T) {

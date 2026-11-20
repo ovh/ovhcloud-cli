@@ -133,7 +133,7 @@ func RenderTable(values []map[string]any, columnsToDisplay []string, outputForma
 		for i, selector := range selectors {
 			val, err := selector(context.Background(), value)
 			if err != nil {
-				// A column that goes through a null or absent object (e.g.
+				// A column that goes through an absent or null object (e.g.
 				// "currentState.status" while a v2 resource is CREATING) is an
 				// empty cell, not a failure of the whole table.
 				if !columnParentIsMissing(value, columnPaths[i]) {

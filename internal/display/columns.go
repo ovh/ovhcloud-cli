@@ -14,8 +14,11 @@ import (
 var dottedColumnPath = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$`)
 
 // columnParentIsMissing reports whether the given column is a path through an
-// object that is null or absent in the row, e.g. "currentState.status" while an
+// object that is absent or null in the row, e.g. "currentState.status" while an
 // API v2 resource is CREATING. Such a column is an empty cell for that row.
+//
+// The absent case is the usual one, and cannot be told apart from a mistyped
+// parent: API v2 omits an empty currentState instead of sending null.
 //
 // It returns false when a parent of the path exists but is not an object: that
 // is a wrong column definition, which must keep failing.

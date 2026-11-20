@@ -12,10 +12,10 @@ import (
 	"github.com/maxatome/go-testdeep/td"
 )
 
-// A v2 resource has a null currentState while it is CREATING. A column such as
-// "currentState.status" must then render as an empty cell for that row, not
-// abort the whole table: gval fails on a path through a null (or absent)
-// object, which used to be fatal.
+// A v2 resource has no currentState while it is CREATING: the API omits it, and
+// some clients may get it as null. A column such as "currentState.status" must
+// then render as an empty cell for that row, not abort the whole table: gval
+// fails on a path through an absent or null object, which used to be fatal.
 func TestRenderTable_NullParentIsAnEmptyCell(t *testing.T) {
 	values := []map[string]any{
 		{"id": "ready", "resourceStatus": "READY", "currentState": map[string]any{"status": "ACTIVE"}},
@@ -32,7 +32,7 @@ func TestRenderTable_NullParentIsAnEmptyCell(t *testing.T) {
 		RenderTable(values, []string{"id", "currentState.status status", "resourceStatus"}, &OutputFormat{})
 	})
 
-	td.Cmp(t, exitCalled, false, "the table must not exit on a null parent")
+	td.Cmp(t, exitCalled, false, "the table must not exit on an absent or null parent")
 	td.Cmp(t, out, td.Re(`ready\s+│\s+ACTIVE\s+│\s+READY`))
 	td.Cmp(t, out, td.Re(`creating\s+│\s+│\s+CREATING`))
 	td.Cmp(t, out, td.Re(`absent\s+│\s+│\s+CREATING`))
