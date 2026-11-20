@@ -44,6 +44,7 @@ var (
 		"currentState.location.region region",
 		"currentState.size size",
 		"currentState.volumeId volumeId",
+		"currentState.status currentStatus",
 		"resourceStatus status",
 	}
 
