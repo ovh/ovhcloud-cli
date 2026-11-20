@@ -1189,7 +1189,7 @@ func registerInstanceV2Region(region string) {
 			"id": "fakeInstanceID",
 			"resourceStatus": "READY",
 			"targetSpec": {"name": "my-instance", "location": {"region": "`+region+`"}}
-		}`))
+		}`).Once())
 }
 
 func (ms *MockSuite) TestCloudInstanceSnapshotCreateCmd(assert, require *td.T) {
@@ -1262,6 +1262,17 @@ func (ms *MockSuite) TestCloudInstanceSnapshotCreateDistantCmd(assert, require *
 
 	require.CmpNoError(err)
 	assert.Contains(out, "Snapshot created successfully with ID: img-001")
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotCreateDistantWaitCmd(assert, require *td.T) {
+	// --wait cannot follow a cross-region snapshot (API v1): the combination is
+	// rejected before any API call instead of being silently ignored
+	_, err := cmd.Execute("cloud", "instance", "snapshot", "create", "fakeInstanceID", "my-snap", "--wait",
+		"--distant-region-name", "SBG5", "--distant-snapshot-name", "my-distant-snap", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.All(td.Contains("wait"), td.Contains("distant-region-name")))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
 }
 
 func (ms *MockSuite) TestCloudInstanceSnapshotAbortCmd(assert, require *td.T) {
@@ -1359,7 +1370,8 @@ func (ms *MockSuite) TestCloudInstanceSnapshotCreateNoIDCmd(assert, require *td.
 
 	require.CmpError(err)
 	assert.Contains(err.Error(), "no ID in the API response")
-	assert.Cmp(httpmock.GetCallCountInfo()["GET "+instanceSnapshotsURL+"/"], 0)
+	// Only the instance GET and the POST: nothing is polled
+	assert.Cmp(httpmock.GetTotalCallCount(), 2)
 }
 
 func (ms *MockSuite) TestCloudInstanceSnapshotDeleteWaitCmd(assert, require *td.T) {

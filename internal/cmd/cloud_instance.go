@@ -398,6 +398,8 @@ still uses API v1, as API v2 does not support cross-region snapshots.`,
 	snapshotCreateCmd.Flags().StringVar(&cloud.InstanceSnapshotSpec.DistantRegionName, "distant-region-name", "", "Name of the distant region (for cross region snapshot)")
 	snapshotCreateCmd.MarkFlagsRequiredTogether("distant-snapshot-name", "distant-region-name")
 	snapshotCreateCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the snapshot to be ready before exiting (not supported for cross-region snapshots)")
+	// A cross-region snapshot stays on API v1, where the CLI cannot follow the creation
+	snapshotCreateCmd.MarkFlagsMutuallyExclusive("wait", "distant-region-name")
 	snapshotCmd.AddCommand(snapshotCreateCmd)
 
 	snapshotCmd.AddCommand(&cobra.Command{
