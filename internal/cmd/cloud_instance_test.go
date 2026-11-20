@@ -1236,6 +1236,23 @@ func (ms *MockSuite) TestCloudInstanceSnapshotCreateWaitCmd(assert, require *td.
 	}`, td.Ignore()))
 }
 
+func (ms *MockSuite) TestCloudInstanceSnapshotCreateWaitErrorCmd(assert, require *td.T) {
+	// A snapshot that ends in ERROR is a failure, not a success message
+	registerInstanceV2Region("GRA11")
+	httpmock.RegisterResponder(http.MethodPost, instanceSnapshotsURL,
+		httpmock.NewStringResponder(202, `{"id": "snap-001", "resourceStatus": "CREATING"}`).Once(),
+	)
+	httpmock.RegisterResponder(http.MethodGet, instanceSnapshotsURL+"/snap-001",
+		httpmock.NewStringResponder(200, `{"id": "snap-001", "resourceStatus": "ERROR"}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "create", "fakeInstanceID", "my-snap", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.All(td.Contains("failed to wait for snapshot snap-001 creation"), td.Contains("ERROR")))
+	assert.Cmp(out, td.Not(td.Contains("created successfully")))
+}
+
 func (ms *MockSuite) TestCloudInstanceSnapshotCreateAPIErrorCmd(assert, require *td.T) {
 	registerInstanceV2Region("GRA11")
 	httpmock.RegisterResponder(http.MethodPost, instanceSnapshotsURL,
@@ -1387,6 +1404,25 @@ func (ms *MockSuite) TestCloudInstanceSnapshotDeleteWaitCmd(assert, require *td.
 
 	require.CmpNoError(err)
 	assert.Contains(out, "✅ Snapshot snap-001 deleted successfully")
+}
+
+func (ms *MockSuite) TestCloudInstanceSnapshotDeleteWaitFailedCmd(assert, require *td.T) {
+	// ERROR after DELETING means the deletion itself failed
+	httpmock.RegisterResponder(http.MethodDelete, instanceSnapshotsURL+"/snap-001",
+		httpmock.NewStringResponder(202, `{"id": "snap-001", "resourceStatus": "DELETING"}`).Once(),
+	)
+	httpmock.RegisterResponder(http.MethodGet, instanceSnapshotsURL+"/snap-001",
+		httpmock.ResponderFromMultipleResponses([]*http.Response{
+			httpmock.NewStringResponse(200, `{"id": "snap-001", "resourceStatus": "DELETING"}`),
+			httpmock.NewStringResponse(200, `{"id": "snap-001", "resourceStatus": "ERROR"}`),
+		}),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "snapshot", "delete", "snap-001", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.All(td.Contains("failed to wait for snapshot snap-001 deletion"), td.Contains("deletion failed")))
+	assert.Cmp(out, td.Not(td.Contains("deleted successfully")))
 }
 
 func (ms *MockSuite) TestCloudInstanceSnapshotDeleteAPIErrorCmd(assert, require *td.T) {
