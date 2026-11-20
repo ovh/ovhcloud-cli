@@ -1374,8 +1374,7 @@ func (ms *MockSuite) TestCloudInstanceAutobackupListCmd(assert, require *td.T) {
 			{
 				"id": "backup-id-creating",
 				"resourceStatus": "CREATING",
-				"targetSpec": {"name": "new-backup", "cron": "0 2 * * *", "rotation": 2, "instance": {"id": "fakeInstanceID"}},
-				"currentState": null
+				"targetSpec": {"name": "new-backup", "cron": "0 2 * * *", "rotation": 2, "instance": {"id": "fakeInstanceID"}}
 			}
 		]`).Once(),
 	)
@@ -1386,8 +1385,9 @@ func (ms *MockSuite) TestCloudInstanceAutobackupListCmd(assert, require *td.T) {
 	assert.Cmp(out, td.Re(`backup-id-1\s+│\s+daily-backup\s+│\s+0 0 \* \* \*\s+│\s+7\s+│\s+2026-11-18T00:00:00Z\s+│\s+READY`))
 	// Autobackups of other instances are filtered out
 	assert.Cmp(out, td.Not(td.Contains("other-backup")))
-	// A CREATING autobackup (null currentState) is listed, with empty live columns
-	assert.Cmp(out, td.Re(`backup-id-creating\s+│\s+│\s+│\s+│\s+│\s+CREATING`))
+	// A CREATING autobackup (the API omits its currentState) is listed with its
+	// definition, read from targetSpec; only the next execution is empty
+	assert.Cmp(out, td.Re(`backup-id-creating\s+│\s+new-backup\s+│\s+0 2 \* \* \*\s+│\s+2\s+│\s+│\s+CREATING`))
 }
 
 func (ms *MockSuite) TestCloudInstanceAutobackupGetCmd(assert, require *td.T) {
@@ -1402,6 +1402,30 @@ func (ms *MockSuite) TestCloudInstanceAutobackupGetCmd(assert, require *td.T) {
 	assert.Contains(out, "backup-id-1")
 	assert.Contains(out, "GRA9")
 	assert.Contains(out, "SUCCESS")
+	assert.Contains(out, "2026-11-18T00:00:00Z")
+}
+
+func (ms *MockSuite) TestCloudInstanceAutobackupGetCreatingCmd(assert, require *td.T) {
+	// The API omits currentState while the autobackup is being created: the
+	// template falls back on targetSpec
+	httpmock.RegisterResponder(http.MethodGet, autobackupsURL+"/backup-id-creating",
+		httpmock.NewStringResponder(200, `{
+			"id": "backup-id-creating",
+			"resourceStatus": "CREATING",
+			"createdAt": "2026-11-17T10:00:00Z",
+			"targetSpec": {"name": "new-backup", "imageName": "new-image", "cron": "0 2 * * *", "rotation": 2,
+				"instance": {"id": "fakeInstanceID"}, "location": {"region": "GRA9"},
+				"distant": {"region": "SBG5", "imageName": "new-image-copy"}}
+		}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "autobackup", "get", "fakeInstanceID", "backup-id-creating", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	for _, expected := range []string{"new-backup", "CREATING", "fakeInstanceID", "GRA9", "0 2 * * *", "new-image", "SBG5", "new-image-copy"} {
+		assert.Contains(out, expected)
+	}
+	assert.Cmp(out, td.Not(td.Contains("Last executions")))
 }
 
 func (ms *MockSuite) TestCloudInstanceAutobackupGetOtherInstanceCmd(assert, require *td.T) {

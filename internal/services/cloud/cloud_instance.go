@@ -49,11 +49,14 @@ var (
 	//go:embed templates/cloud_instance_autobackup.tmpl
 	cloudInstanceAutobackupTemplate string
 
+	// An autobackup cannot be edited: targetSpec holds its name, cron and rotation
+	// and, unlike currentState, is set while the autobackup is CREATING. Only the
+	// next execution is live state.
 	autobackupColumnsToDisplay = []string{
 		"id",
-		"currentState.name name",
-		"currentState.cron cron",
-		"currentState.rotation rotation",
+		"targetSpec.name name",
+		"targetSpec.cron cron",
+		"targetSpec.rotation rotation",
 		"currentState.nextExecutionTime nextExecutionTime",
 		"resourceStatus status",
 	}
