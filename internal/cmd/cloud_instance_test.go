@@ -7,6 +7,7 @@ package cmd_test
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/jarcoal/httpmock"
@@ -1568,6 +1569,73 @@ func (ms *MockSuite) TestCloudInstanceAutobackupCreateDistantIncompleteCmd(asser
 	require.CmpError(err)
 	assert.Contains(err.Error(), "--distant-region and --distant-image-name must be given together")
 	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestCloudInstanceAutobackupCreateFromFileCmd(assert, require *td.T) {
+	// The file gives the definition, a flag overrides one of its values, and the
+	// instance and its region always come from the command argument
+	file := writeTempJSON(require, `{"targetSpec": {
+		"name": "file-backup", "imageName": "file-images", "cron": "0 2 * * *", "rotation": 7,
+		"instance": {"id": "instance-of-the-file"}, "location": {"region": "SBG5"},
+		"distant": {"region": "DE1", "imageName": "file-remote-images"}
+	}}`)
+	defer os.Remove(file)
+
+	httpmock.RegisterResponder(http.MethodGet, autobackupInstances+"/fakeInstanceID",
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "targetSpec": {"location": {"region": "GRA9"}}}`).Once(),
+	)
+	httpmock.RegisterMatcherResponder(http.MethodPost, autobackupsURL,
+		tdhttpmock.JSONBody(td.JSON(`{
+			"targetSpec": {
+				"name": "file-backup",
+				"imageName": "file-images",
+				"cron": "0 2 * * *",
+				"rotation": 3,
+				"instance": {"id": "fakeInstanceID"},
+				"location": {"region": "GRA9"},
+				"distant": {"region": "DE1", "imageName": "file-remote-images"}
+			}
+		}`)),
+		httpmock.NewStringResponder(202, `{"id": "backup-new-id", "resourceStatus": "CREATING"}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "instance", "autobackup", "create", "fakeInstanceID",
+		"--from-file", file, "--rotation", "3", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Contains(out, "Autobackup workflow backup-new-id creation started")
+}
+
+func (ms *MockSuite) TestCloudInstanceAutobackupCreateFromFileNoImageNameCmd(assert, require *td.T) {
+	// The image name defaults to the workflow name for flags only: a file must give it
+	file := writeTempJSON(require, `{"targetSpec": {"name": "file-backup", "cron": "0 2 * * *", "rotation": 7}}`)
+	defer os.Remove(file)
+
+	httpmock.RegisterResponder(http.MethodGet, autobackupInstances+"/fakeInstanceID",
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "targetSpec": {"location": {"region": "GRA9"}}}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "autobackup", "create", "fakeInstanceID",
+		"--from-file", file, "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Contains(err.Error(), `mandatory field "targetSpec.imageName" is missing`)
+	assert.Cmp(httpmock.GetCallCountInfo()["POST "+autobackupsURL], 0)
+}
+
+func (ms *MockSuite) TestCloudInstanceAutobackupCreateMissingFlagCmd(assert, require *td.T) {
+	// --cron is no longer required by cobra, as it may come from a file: without
+	// it the merged parameters are rejected before the POST
+	httpmock.RegisterResponder(http.MethodGet, autobackupInstances+"/fakeInstanceID",
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "targetSpec": {"location": {"region": "GRA9"}}}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "autobackup", "create", "fakeInstanceID",
+		"--rotation", "7", "--name", "my-backup", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Contains(err.Error(), `mandatory field "targetSpec.cron" is missing`)
+	assert.Cmp(httpmock.GetCallCountInfo()["POST "+autobackupsURL], 0)
 }
 
 func (ms *MockSuite) TestCloudInstanceAutobackupDeleteCmd(assert, require *td.T) {

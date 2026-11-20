@@ -2,6 +2,16 @@
 
 Create an automatic backup workflow for the given instance
 
+### Synopsis
+
+Create an automatic backup workflow for the given instance, in the region of the instance.
+
+The parameters can be given with flags, with a parameters file (--from-file, see --init-file
+to generate an example) or with your text editor (--editor). Flags override the values of the file.
+
+The instance and its region always come from <instance_id>, whatever the file contains.
+With flags only, the backup images are named after the workflow (--name) unless --image-name is given.
+
 ```
 ovhcloud cloud instance autobackup create <instance_id> [flags]
 ```
@@ -12,9 +22,13 @@ ovhcloud cloud instance autobackup create <instance_id> [flags]
       --cron string                 Unix Cron pattern (e.g. '0 0 * * *')
       --distant-image-name string   Name of the backup images copied to the distant region
       --distant-region string       Region to copy each backup to (cross-region backup)
+      --editor                      Use a text editor to define parameters
+      --from-file string            File containing parameters
   -h, --help                        help for create
-      --image-name string           Name prefix of the backup images (defaults to the workflow name)
+      --image-name string           Name prefix of the backup images (defaults to the workflow name when it is given with --name)
+      --init-file string            Create a file with example parameters
       --name string                 Workflow name
+      --replace                     Replace parameters file if it already exists
       --rotation int                Number of backups to keep
       --wait                        Wait for the backup workflow to be ready before exiting
 ```

@@ -503,22 +503,32 @@ still uses API v1, as API v2 does not support cross-region snapshots.`,
 	})
 
 	createAutobackupCmd := &cobra.Command{
-		Use:               "create <instance_id>",
-		Short:             "Create an automatic backup workflow for the given instance",
+		Use:   "create <instance_id>",
+		Short: "Create an automatic backup workflow for the given instance",
+		Long: `Create an automatic backup workflow for the given instance, in the region of the instance.
+
+The parameters can be given with flags, with a parameters file (--from-file, see --init-file
+to generate an example) or with your text editor (--editor). Flags override the values of the file.
+
+The instance and its region always come from <instance_id>, whatever the file contains.
+With flags only, the backup images are named after the workflow (--name) unless --image-name is given.`,
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.CreateAutobackup,
 		Args:              cobra.ExactArgs(1),
 	}
-	createAutobackupCmd.Flags().StringVar(&cloud.AutobackupCreateParams.Cron, "cron", "", "Unix Cron pattern (e.g. '0 0 * * *')")
-	createAutobackupCmd.Flags().IntVar(&cloud.AutobackupCreateParams.Rotation, "rotation", 0, "Number of backups to keep")
-	createAutobackupCmd.Flags().StringVar(&cloud.AutobackupCreateParams.Name, "name", "", "Workflow name")
-	createAutobackupCmd.Flags().StringVar(&cloud.AutobackupCreateParams.ImageName, "image-name", "", "Name prefix of the backup images (defaults to the workflow name)")
-	createAutobackupCmd.Flags().StringVar(&cloud.AutobackupCreateParams.DistantRegion, "distant-region", "", "Region to copy each backup to (cross-region backup)")
-	createAutobackupCmd.Flags().StringVar(&cloud.AutobackupCreateParams.DistantImageName, "distant-image-name", "", "Name of the backup images copied to the distant region")
-	_ = createAutobackupCmd.MarkFlagRequired("cron")
-	_ = createAutobackupCmd.MarkFlagRequired("rotation")
-	_ = createAutobackupCmd.MarkFlagRequired("name")
+	autobackupSpec := &cloud.AutobackupCreateSpec.TargetSpec
+	createAutobackupCmd.Flags().StringVar(&autobackupSpec.Cron, "cron", "", "Unix Cron pattern (e.g. '0 0 * * *')")
+	createAutobackupCmd.Flags().IntVar(&autobackupSpec.Rotation, "rotation", 0, "Number of backups to keep")
+	createAutobackupCmd.Flags().StringVar(&autobackupSpec.Name, "name", "", "Workflow name")
+	createAutobackupCmd.Flags().StringVar(&autobackupSpec.ImageName, "image-name", "", "Name prefix of the backup images (defaults to the workflow name when it is given with --name)")
+	createAutobackupCmd.Flags().StringVar(&autobackupSpec.Distant.Region, "distant-region", "", "Region to copy each backup to (cross-region backup)")
+	createAutobackupCmd.Flags().StringVar(&autobackupSpec.Distant.ImageName, "distant-image-name", "", "Name of the backup images copied to the distant region")
 	createAutobackupCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the backup workflow to be ready before exiting")
+	// --cron, --rotation and --name are not marked as required: they may come from
+	// a parameters file. The merged parameters are checked before calling the API.
+	addParameterFileFlags(createAutobackupCmd, false, assets.CloudV2OpenapiSchema, "/publicCloud/project/{projectId}/compute/autobackup", "post", cloud.AutobackupCreationExample, nil)
+	addInteractiveEditorFlag(createAutobackupCmd)
+	markFlagsMutuallyExclusive(createAutobackupCmd, "from-file", "editor")
 	autobackupCmd.AddCommand(createAutobackupCmd)
 
 	deleteAutobackupCmd := &cobra.Command{

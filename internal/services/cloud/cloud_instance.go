@@ -61,14 +61,28 @@ var (
 		"resourceStatus status",
 	}
 
-	// AutobackupCreateParams holds the autobackup creation parameters given as CLI flags.
-	AutobackupCreateParams struct {
-		Name             string
-		ImageName        string
-		Cron             string
-		Rotation         int
-		DistantRegion    string
-		DistantImageName string
+	//go:embed parameter-samples/instance-autobackup-create.json
+	AutobackupCreationExample string
+
+	// AutobackupCreateSpec is the API v2 autobackup creation body, filled by the
+	// CLI flags. The instance and its region are set from the command argument.
+	AutobackupCreateSpec struct {
+		TargetSpec struct {
+			Name      string `json:"name,omitempty"`
+			ImageName string `json:"imageName,omitempty"`
+			Cron      string `json:"cron,omitempty"`
+			Rotation  int    `json:"rotation,omitempty"`
+			Instance  struct {
+				ID string `json:"id,omitempty"`
+			} `json:"instance,omitzero"`
+			Location struct {
+				Region string `json:"region,omitempty"`
+			} `json:"location,omitzero"`
+			Distant struct {
+				Region    string `json:"region,omitempty"`
+				ImageName string `json:"imageName,omitempty"`
+			} `json:"distant,omitzero"`
+		} `json:"targetSpec"`
 	}
 
 	//go:embed templates/cloud_instance_group.tmpl
@@ -1123,17 +1137,29 @@ func GetAutobackup(_ *cobra.Command, args []string) {
 	display.OutputObject(autobackup, args[1], cloudInstanceAutobackupTemplate, &flags.OutputFormatConfig)
 }
 
-func CreateAutobackup(_ *cobra.Command, args []string) {
+func CreateAutobackup(cmd *cobra.Command, args []string) {
 	projectID, err := getConfiguredCloudProject()
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
 
-	params := AutobackupCreateParams
-	if (params.DistantRegion == "") != (params.DistantImageName == "") {
-		display.OutputError(&flags.OutputFormatConfig, "--distant-region and --distant-image-name must be given together")
-		return
+	// Work on a copy: the flags are bound to the package variable
+	spec := AutobackupCreateSpec
+	targetSpec := &spec.TargetSpec
+
+	// With a parameters file, an editor or piped parameters, the values may come
+	// from there: the flags alone cannot be checked or completed.
+	flagsOnly := flags.ParametersFile == "" && !flags.ParametersViaEditor && !utils.IsInputFromPipe()
+	if flagsOnly {
+		if (targetSpec.Distant.Region == "") != (targetSpec.Distant.ImageName == "") {
+			display.OutputError(&flags.OutputFormatConfig, "--distant-region and --distant-image-name must be given together")
+			return
+		}
+		// API v1 named the backup images after the workflow: keep this default.
+		if targetSpec.ImageName == "" {
+			targetSpec.ImageName = targetSpec.Name
+		}
 	}
 
 	region, err := getInstanceRegionV2(projectID, args[0])
@@ -1142,29 +1168,21 @@ func CreateAutobackup(_ *cobra.Command, args []string) {
 		return
 	}
 
-	// API v1 named the backup images after the workflow: keep this default.
-	imageName := params.ImageName
-	if imageName == "" {
-		imageName = params.Name
-	}
+	// The instance is the command argument and the autobackup lives in its
+	// region: both override what a parameters file may contain.
+	targetSpec.Instance.ID = args[0]
+	targetSpec.Location.Region = region
 
-	targetSpec := map[string]any{
-		"name":      params.Name,
-		"imageName": imageName,
-		"cron":      params.Cron,
-		"rotation":  params.Rotation,
-		"instance":  map[string]any{"id": args[0]},
-		"location":  map[string]any{"region": region},
-	}
-	if params.DistantRegion != "" {
-		targetSpec["distant"] = map[string]any{
-			"region":    params.DistantRegion,
-			"imageName": params.DistantImageName,
-		}
-	}
-
-	var response map[string]any
-	if err := httpLib.Client.Post(autobackupV2Endpoint(projectID), map[string]any{"targetSpec": targetSpec}, &response); err != nil {
+	response, err := common.CreateResource(
+		cmd,
+		"/publicCloud/project/{projectId}/compute/autobackup",
+		autobackupV2Endpoint(projectID),
+		AutobackupCreationExample,
+		spec,
+		assets.CloudV2OpenapiSchema,
+		[]string{"targetSpec.name", "targetSpec.imageName", "targetSpec.cron", "targetSpec.rotation"},
+	)
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error creating autobackup for instance %q: %s", args[0], err)
 		return
 	}
