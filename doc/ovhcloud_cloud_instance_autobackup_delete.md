@@ -10,6 +10,7 @@ ovhcloud cloud instance autobackup delete <instance_id> <backup_workflow_id> [fl
 
 ```
   -h, --help   help for delete
+      --wait   Wait for the backup workflow to be deleted before exiting
 ```
 
 ### Options inherited from parent commands

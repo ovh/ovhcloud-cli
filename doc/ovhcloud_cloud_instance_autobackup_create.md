@@ -2,6 +2,19 @@
 
 Create an automatic backup workflow for the given instance
 
+### Synopsis
+
+Create an automatic backup workflow for the given instance, in the region of the instance.
+
+The parameters can be given with flags, with a parameters file (--from-file, see --init-file
+to generate an example) or with your text editor (--editor). Flags override the values of the file.
+
+The instance and its region come from <instance_id>: they override the values of a parameters
+file, and are pre-filled in the editor, where they should be left unchanged.
+
+With flags only, --cron, --rotation and --name are required, and the backup images are named after
+the workflow (--name) unless --image-name is given. A parameters file must give the image name.
+
 ```
 ovhcloud cloud instance autobackup create <instance_id> [flags]
 ```
@@ -9,10 +22,18 @@ ovhcloud cloud instance autobackup create <instance_id> [flags]
 ### Options
 
 ```
-      --cron string    Unix Cron pattern (e.g. '0 0 * * *')
-  -h, --help           help for create
-      --name string    Workflow name
-      --rotation int   Number of backups to keep
+      --cron string                 Unix Cron pattern (e.g. '0 0 * * *')
+      --distant-image-name string   Name of the backup images copied to the distant region
+      --distant-region string       Region to copy each backup to (cross-region backup)
+      --editor                      Use a text editor to define parameters
+      --from-file string            File containing parameters
+  -h, --help                        help for create
+      --image-name string           Name prefix of the backup images (with flags only, defaults to the workflow name)
+      --init-file string            Create a file with example parameters
+      --name string                 Workflow name
+      --replace                     Replace parameters file if it already exists
+      --rotation int                Number of backups to keep
+      --wait                        Wait for the backup workflow to be ready before exiting
 ```
 
 ### Options inherited from parent commands

@@ -1,0 +1,8 @@
+{
+  "targetSpec": {
+    "cron": "0 2 * * *",
+    "imageName": "my-instance-backup",
+    "name": "my-autobackup",
+    "rotation": 7
+  }
+}
