@@ -1722,3 +1722,59 @@ func (ms *MockSuite) TestCloudInstanceAutobackupDeleteOtherInstanceCmd(assert, r
 	assert.Contains(err.Error(), "does not belong to instance")
 	assert.Cmp(httpmock.GetCallCountInfo()["DELETE "+autobackupsURL+"/backup-id-1"], 0)
 }
+
+func (ms *MockSuite) TestCloudInstanceSetFlavorCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID",
+		httpmock.NewStringResponder(200, instanceV2Response))
+
+	// The PUT sends back the whole editable targetSpec with the new flavor,
+	// which makes API v2 resize the instance.
+	httpmock.RegisterMatcherResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc123",
+			"targetSpec": {
+				"name": "my-instance",
+				"flavor": { "id": "flavor-b3-8" },
+				"image": { "id": "image-debian-12" },
+				"networks": [
+					{ "autoAssignPublicIp": true },
+					{ "id": "private-net-id", "subnetId": "private-subnet-id", "ip": "10.1.2.155" }
+				],
+				"powerState": "ACTIVE",
+				"securityGroups": [ { "id": "sg-default" } ],
+				"volumes": [ { "id": "volume-1" } ]
+			}
+		}`)),
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "instance", "set-flavor", "fakeInstanceID", "flavor-b3-8", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("Instance fakeInstanceID migration to the desired flavor started"))
+}
+
+func (ms *MockSuite) TestCloudInstanceSetFlavorWaitCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID",
+		httpmock.NewStringResponder(200, instanceV2Response))
+	httpmock.RegisterResponder(http.MethodPut,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID",
+		httpmock.NewStringResponder(202, `{"id": "fakeInstanceID", "resourceStatus": "UPDATING"}`))
+
+	out, err := cmd.Execute("cloud", "instance", "set-flavor", "fakeInstanceID", "flavor-b3-8", "--wait", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("Instance fakeInstanceID correctly migrated to the desired flavor"))
+	assert.Cmp(httpmock.GetCallCountInfo()["GET https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/compute/instance/fakeInstanceID"], 2)
+}
+
+func (ms *MockSuite) TestCloudInstanceSetFlavorMissingFlavorCmd(assert, require *td.T) {
+	// No responder: the command must fail before calling the API
+	_, err := cmd.Execute("cloud", "instance", "set-flavor", "fakeInstanceID", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Contains(err.Error(), "Flavor ID is required")
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
