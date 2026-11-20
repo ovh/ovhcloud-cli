@@ -9,8 +9,11 @@ Create an automatic backup workflow for the given instance, in the region of the
 The parameters can be given with flags, with a parameters file (--from-file, see --init-file
 to generate an example) or with your text editor (--editor). Flags override the values of the file.
 
-The instance and its region always come from <instance_id>, whatever the file contains.
-With flags only, the backup images are named after the workflow (--name) unless --image-name is given.
+The instance and its region come from <instance_id>: they override the values of a parameters
+file, and are pre-filled in the editor, where they should be left unchanged.
+
+With flags only, --cron, --rotation and --name are required, and the backup images are named after
+the workflow (--name) unless --image-name is given. A parameters file must give the image name.
 
 ```
 ovhcloud cloud instance autobackup create <instance_id> [flags]
@@ -25,7 +28,7 @@ ovhcloud cloud instance autobackup create <instance_id> [flags]
       --editor                      Use a text editor to define parameters
       --from-file string            File containing parameters
   -h, --help                        help for create
-      --image-name string           Name prefix of the backup images (defaults to the workflow name when it is given with --name)
+      --image-name string           Name prefix of the backup images (with flags only, defaults to the workflow name)
       --init-file string            Create a file with example parameters
       --name string                 Workflow name
       --replace                     Replace parameters file if it already exists

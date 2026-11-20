@@ -1356,6 +1356,9 @@ const autobackupV2Response = `{
 }`
 
 func (ms *MockSuite) TestCloudInstanceAutobackupListCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, autobackupInstances+"/fakeInstanceID",
+		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "targetSpec": {"location": {"region": "GRA9"}}}`).Once(),
+	)
 	httpmock.RegisterResponder(http.MethodGet, autobackupsURL,
 		httpmock.NewStringResponder(200, `[
 			{
@@ -1389,6 +1392,20 @@ func (ms *MockSuite) TestCloudInstanceAutobackupListCmd(assert, require *td.T) {
 	// A CREATING autobackup (the API omits its currentState) is listed with its
 	// definition, read from targetSpec; only the next execution is empty
 	assert.Cmp(out, td.Re(`backup-id-creating\s+│\s+new-backup\s+│\s+0 2 \* \* \*\s+│\s+2\s+│\s+│\s+CREATING`))
+}
+
+func (ms *MockSuite) TestCloudInstanceAutobackupListUnknownInstanceCmd(assert, require *td.T) {
+	// The v2 autobackup route is not nested under the instance: an unknown
+	// instance must be an error, not an empty list
+	httpmock.RegisterResponder(http.MethodGet, autobackupInstances+"/unknownInstanceID",
+		httpmock.NewStringResponder(404, `{"class":"Client::NotFound::InstanceDoesNotExist","message":"Instance not found"}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "instance", "autobackup", "ls", "unknownInstanceID", "--cloud-project", "fakeProjectID")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.All(td.Contains("failed to fetch instance details"), td.Contains("Instance not found")))
+	assert.Cmp(httpmock.GetCallCountInfo()["GET "+autobackupsURL], 0)
 }
 
 func (ms *MockSuite) TestCloudInstanceAutobackupGetCmd(assert, require *td.T) {
@@ -1624,18 +1641,14 @@ func (ms *MockSuite) TestCloudInstanceAutobackupCreateFromFileNoImageNameCmd(ass
 }
 
 func (ms *MockSuite) TestCloudInstanceAutobackupCreateMissingFlagCmd(assert, require *td.T) {
-	// --cron is no longer required by cobra, as it may come from a file: without
-	// it the merged parameters are rejected before the POST
-	httpmock.RegisterResponder(http.MethodGet, autobackupInstances+"/fakeInstanceID",
-		httpmock.NewStringResponder(200, `{"id": "fakeInstanceID", "targetSpec": {"location": {"region": "GRA9"}}}`).Once(),
-	)
-
+	// --cron and --rotation are no longer required by cobra, as they may come
+	// from a file. With flags only they are still required, before any API call
 	_, err := cmd.Execute("cloud", "instance", "autobackup", "create", "fakeInstanceID",
-		"--rotation", "7", "--name", "my-backup", "--cloud-project", "fakeProjectID")
+		"--name", "my-backup", "--cloud-project", "fakeProjectID")
 
 	require.CmpError(err)
-	assert.Contains(err.Error(), `mandatory field "targetSpec.cron" is missing`)
-	assert.Cmp(httpmock.GetCallCountInfo()["POST "+autobackupsURL], 0)
+	assert.Contains(err.Error(), `required flag(s) "cron", "rotation" not set`)
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
 }
 
 func (ms *MockSuite) TestCloudInstanceAutobackupDeleteCmd(assert, require *td.T) {

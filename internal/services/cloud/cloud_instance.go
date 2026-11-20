@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
@@ -1098,6 +1099,13 @@ func ListAutobackups(_ *cobra.Command, args []string) {
 		return
 	}
 
+	// The v2 route is not nested under the instance: check the instance exists,
+	// so that an unknown ID is an error and not an empty list
+	if _, err := getInstanceRegionV2(projectID, args[0]); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
+
 	backups, err := httpLib.FetchArray(autobackupV2Endpoint(projectID), "")
 	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error listing autobackups: %s", err)
@@ -1152,6 +1160,21 @@ func CreateAutobackup(cmd *cobra.Command, args []string) {
 	// from there: the flags alone cannot be checked or completed.
 	flagsOnly := flags.ParametersFile == "" && !flags.ParametersViaEditor && !utils.IsInputFromPipe()
 	if flagsOnly {
+		// Fail before any API call, as the required flags of cobra did
+		var missing []string
+		if targetSpec.Cron == "" {
+			missing = append(missing, `"cron"`)
+		}
+		if targetSpec.Name == "" {
+			missing = append(missing, `"name"`)
+		}
+		if targetSpec.Rotation == 0 {
+			missing = append(missing, `"rotation"`)
+		}
+		if len(missing) > 0 {
+			display.OutputError(&flags.OutputFormatConfig, "required flag(s) %s not set (or give the parameters with --from-file or --editor)", strings.Join(missing, ", "))
+			return
+		}
 		if (targetSpec.Distant.Region == "") != (targetSpec.Distant.ImageName == "") {
 			display.OutputError(&flags.OutputFormatConfig, "--distant-region and --distant-image-name must be given together")
 			return

@@ -510,8 +510,11 @@ still uses API v1, as API v2 does not support cross-region snapshots.`,
 The parameters can be given with flags, with a parameters file (--from-file, see --init-file
 to generate an example) or with your text editor (--editor). Flags override the values of the file.
 
-The instance and its region always come from <instance_id>, whatever the file contains.
-With flags only, the backup images are named after the workflow (--name) unless --image-name is given.`,
+The instance and its region come from <instance_id>: they override the values of a parameters
+file, and are pre-filled in the editor, where they should be left unchanged.
+
+With flags only, --cron, --rotation and --name are required, and the backup images are named after
+the workflow (--name) unless --image-name is given. A parameters file must give the image name.`,
 		ValidArgsFunction: completion.CloudResources("/v2/publicCloud/project/%s/compute/instance"),
 		Run:               cloud.CreateAutobackup,
 		Args:              cobra.ExactArgs(1),
@@ -520,7 +523,7 @@ With flags only, the backup images are named after the workflow (--name) unless 
 	createAutobackupCmd.Flags().StringVar(&autobackupSpec.Cron, "cron", "", "Unix Cron pattern (e.g. '0 0 * * *')")
 	createAutobackupCmd.Flags().IntVar(&autobackupSpec.Rotation, "rotation", 0, "Number of backups to keep")
 	createAutobackupCmd.Flags().StringVar(&autobackupSpec.Name, "name", "", "Workflow name")
-	createAutobackupCmd.Flags().StringVar(&autobackupSpec.ImageName, "image-name", "", "Name prefix of the backup images (defaults to the workflow name when it is given with --name)")
+	createAutobackupCmd.Flags().StringVar(&autobackupSpec.ImageName, "image-name", "", "Name prefix of the backup images (with flags only, defaults to the workflow name)")
 	createAutobackupCmd.Flags().StringVar(&autobackupSpec.Distant.Region, "distant-region", "", "Region to copy each backup to (cross-region backup)")
 	createAutobackupCmd.Flags().StringVar(&autobackupSpec.Distant.ImageName, "distant-image-name", "", "Name of the backup images copied to the distant region")
 	createAutobackupCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the backup workflow to be ready before exiting")
