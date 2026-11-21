@@ -77,7 +77,7 @@ fi
 EOF
 chmod +x "$work/tools/"* "$work/checksum"
 
-for TEST_CASE in valid fallback latest mismatch missing duplicate malformed empty manifest-404 download-failure no-tool corrupt-archive; do
+for TEST_CASE in valid fallback latest mismatch missing duplicate malformed valid-then-malformed empty manifest-404 download-failure no-tool corrupt-archive; do
   export TEST_CASE
   FIXTURE="$work/$TEST_CASE"
   export FIXTURE
@@ -96,6 +96,7 @@ for TEST_CASE in valid fallback latest mismatch missing duplicate malformed empt
     missing) printf '%s  another.tar.gz\n' "$digest" > "$FIXTURE/manifest" ;;
     duplicate) cat "$FIXTURE/manifest" "$FIXTURE/manifest" > "$FIXTURE/duplicate"; mv "$FIXTURE/duplicate" "$FIXTURE/manifest" ;;
     malformed) printf 'invalid  %s\n' "$archive" > "$FIXTURE/manifest" ;;
+    valid-then-malformed) printf 'invalid  %s\n' "$archive" >> "$FIXTURE/manifest" ;;
     empty) : > "$FIXTURE/manifest" ;;
   esac
   case "$TEST_CASE" in

@@ -40,12 +40,15 @@ parse_args() {
 verify_checksum() {
   expected=$(awk -v filename="$TARBALL" '
     $2 == filename {
-      if (NF != 2 || length($1) != 64 || $1 ~ /[^0-9a-fA-F]/) exit 1
+      if (NF != 2 || length($1) != 64 || $1 ~ /[^0-9a-fA-F]/) {
+        invalid = 1
+        next
+      }
       hash = tolower($1)
       matches++
     }
     END {
-      if (matches != 1) exit 1
+      if (invalid || matches != 1) exit 1
       print hash
     }
   ' "$tmpdir/$CHECKSUMS") || {
