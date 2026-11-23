@@ -41,6 +41,9 @@ To install the OVHcloud CLI, you can use the following command:
 curl -fsSL https://raw.githubusercontent.com/ovh/ovhcloud-cli/main/install.sh | sh
 ```
 
+The installer verifies the archive against the release SHA-256 checksums before
+extracting it. It requires `sha256sum` or `shasum`.
+
 ## Binary download
 
 1. Download [latest release](https://github.com/ovh/ovhcloud-cli/releases/latest)
