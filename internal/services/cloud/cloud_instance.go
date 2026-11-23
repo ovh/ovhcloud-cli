@@ -822,14 +822,11 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 	if InstanceFlavorViaInteractiveSelector {
 		log.Print("Flag --flavor-selector used, all other flags will be ignored")
 
-		// Fetch instance details to get its region
-		endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s", projectID, url.PathEscape(args[0]))
-		var instance map[string]any
-		if err := httpLib.Client.Get(endpoint, &instance); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "failed to fetch instance details: %s", err)
+		region, err := getInstanceRegionV2(projectID, args[0])
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "%s", err)
 			return
 		}
-		region := instance["region"].(string)
 
 		// Run interactive flavor selector
 		selectedFlavor, selectedID, err := runFlavorSelector(projectID, region)
@@ -853,29 +850,17 @@ func SetInstanceFlavor(_ *cobra.Command, args []string) {
 
 	log.Printf("Selected flavor %s", flavor)
 
-	endpoint := fmt.Sprintf("/v1/cloud/project/%s/instance/%s/resize", projectID, url.PathEscape(args[0]))
-	body := map[string]any{
-		"flavorId": flavor,
-	}
-
-	if err := httpLib.Client.Post(endpoint, body, nil); err != nil {
+	// Changing targetSpec.flavor makes API v2 resize the instance
+	ready, err := updateInstanceTargetSpec(projectID, args[0], func(targetSpec map[string]any) error {
+		targetSpec["flavor"] = map[string]any{"id": flavor}
+		return nil
+	})
+	if err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "error setting flavor for instance %q: %s", args[0], err)
 		return
 	}
 
-	log.Println("⚡️ Migrating instance to the desired flavor…")
-
-	if !flags.WaitForTask {
-		display.OutputInfo(&flags.OutputFormatConfig, nil, "⚡️ Instance migration to the desired flavor started…")
-		return
-	}
-
-	if err := waitForInstanceStatus(projectID, args[0], "ACTIVE"); err != nil {
-		display.OutputError(&flags.OutputFormatConfig, "failed to wait for instance to migrate to the desired flavor: %s", err)
-		return
-	}
-
-	display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Instance correctly migrated to the desired flavor")
+	outputInstanceResult(ready, "⚡️ Instance %s migration to the desired flavor started…", "✅ Instance %s correctly migrated to the desired flavor", args[0])
 }
 
 func instanceSnapshotV2Endpoint(projectID string) string {
