@@ -1348,6 +1348,25 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyEditActionRejectDropsRedirectC
 	require.CmpNoError(err)
 }
 
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateUnknownActionCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "create", "lb-001", "lis-001",
+		"--cloud-project", "fakeProjectID",
+		"--action", "redirect")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`unknown action "REDIRECT", expected one of REDIRECT_TO_POOL, REDIRECT_TO_URL, REDIRECT_PREFIX, REJECT`))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyEditUnknownActionCmd(assert, require *td.T) {
+	// No responder: the policy is not even fetched
+	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "edit", "lb-001", "lis-001", "pol-001",
+		"--cloud-project", "fakeProjectID",
+		"--action", "DENY")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`unknown action "DENY"`))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
 func (ms *MockSuite) TestCloudLoadbalancerL7RuleRemovedCmd(assert, require *td.T) {
 	// The removed commands must fail, whatever their former arguments and flags
 	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "l7rule", "create", "pol-001",

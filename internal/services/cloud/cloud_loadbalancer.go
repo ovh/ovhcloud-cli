@@ -902,6 +902,11 @@ func CreateCloudLoadbalancerL7Policy(cmd *cobra.Command, args []string) {
 	spec.Action = strings.ToUpper(spec.Action)
 	spec.Rule.upperCase()
 
+	if err := checkL7PolicyAction(spec.Action); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "failed to create L7 policy: %s", err)
+		return
+	}
+
 	if spec.Rule.isSet() {
 		// The rule would be added to the rules of the file or of the editor, not replace them
 		if flags.ParametersFile != "" || flags.ParametersViaEditor || utils.IsInputFromPipe() {
@@ -938,8 +943,12 @@ func EditCloudLoadbalancerL7Policy(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// API v2 expects upper case enum values. Rules are only editable with --editor or --from-file.
+	// API v2 expects upper case enum values. Rules are only editable with --editor.
 	CloudLoadbalancerL7PolicyUpdateSpec.TargetSpec.Action = strings.ToUpper(CloudLoadbalancerL7PolicyUpdateSpec.TargetSpec.Action)
+	if err := checkL7PolicyAction(CloudLoadbalancerL7PolicyUpdateSpec.TargetSpec.Action); err != nil {
+		display.OutputError(&flags.OutputFormatConfig, "%s", err)
+		return
+	}
 
 	const path = "/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/listener/{listenerId}/l7policy/{l7PolicyId}"
 	endpoint := fmt.Sprintf("%s/%s", loadbalancerL7PolicyPath(projectID, args[0], args[1]), url.PathEscape(args[2]))
@@ -981,6 +990,18 @@ var l7PolicyRedirectFields = map[string][]string{
 	"REDIRECT_TO_URL":  {"redirectUrl", "redirectHttpCode"},
 	"REDIRECT_PREFIX":  {"redirectPrefix", "redirectHttpCode"},
 	"REJECT":           {},
+}
+
+// l7PolicyActions lists the actions of an L7 policy, in the order of the flag help.
+var l7PolicyActions = []string{"REDIRECT_TO_POOL", "REDIRECT_TO_URL", "REDIRECT_PREFIX", "REJECT"}
+
+// checkL7PolicyAction refuses an action given with --action that the API does
+// not know. An empty action is not checked: it was not given with the flag.
+func checkL7PolicyAction(action string) error {
+	if action == "" || slices.Contains(l7PolicyActions, action) {
+		return nil
+	}
+	return fmt.Errorf("unknown action %q, expected one of %s", action, strings.Join(l7PolicyActions, ", "))
 }
 
 // changeL7PolicyAction edits an L7 policy whose action changes: the flags are
