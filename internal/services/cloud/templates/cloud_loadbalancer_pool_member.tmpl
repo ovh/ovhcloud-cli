@@ -34,7 +34,7 @@ _{{$name}}_
 **Address**:             {{$address}}
 **Protocol port**:       {{$port}}
 **Weight**:              {{$weight}}
-**Backup**:              {{$backup}}
+**Backup**:              {{if $backup}}true{{else}}false{{end}}
 **Operating status**:    {{with $cs}}{{index . "operatingStatus"}}{{else}}_not yet available_{{end}}
 **Provisioning status**: {{with $cs}}{{index . "provisioningStatus"}}{{else}}_not yet available_{{end}}
 {{if $subnet}}**Subnet ID**:           {{$subnet}}

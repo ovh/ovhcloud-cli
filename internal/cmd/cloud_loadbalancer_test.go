@@ -817,19 +817,28 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolDeleteCmd(assert, require *td.T) {
 const membersURL = poolsURL + "/pool-001/member"
 
 func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListTableCmd(assert, require *td.T) {
+	// mem-002 is being created: the API sends an empty currentState
 	httpmock.RegisterResponder(http.MethodGet, membersURL,
 		httpmock.NewStringResponder(200, `[
 			{
 				"id": "mem-001",
 				"resourceStatus": "READY",
+				"targetSpec": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 80, "weight": 1},
 				"currentState": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 80, "weight": 1, "operatingStatus": "ONLINE"}
+			},
+			{
+				"id": "mem-002",
+				"resourceStatus": "CREATING",
+				"targetSpec": {"name": "web-2", "address": "10.0.0.11", "protocolPort": 8080, "weight": 3},
+				"currentState": {}
 			}
 		]`))
 
-	// The table must read the v2 currentState, not top-level fields
+	// What the user gave is read from targetSpec, so it shows while the member is created
 	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "ls", "lb-001", "pool-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Re(`mem-001\s+│\s+web-1\s+│\s+10\.0\.0\.10\s+│\s+80\s+│\s+1\s+│\s+ONLINE`))
+	assert.Cmp(out, td.Re(`mem-002\s+│\s+web-2\s+│\s+10\.0\.0\.11\s+│\s+8080\s+│\s+3\s+│\s+│\s+│\s+CREATING`))
 }
 
 func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListCmd(assert, require *td.T) {
@@ -925,6 +934,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberGetCreatingCmd(assert, requi
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Contains("*web-1*"))
 	assert.Cmp(out, td.Re(`\*\*Address\*\*:\s+10\.0\.0\.10`))
+	assert.Cmp(out, td.Re(`\*\*Backup\*\*:\s+false`))
 	assert.Cmp(out, td.Re(`\*\*Operating status\*\*:\s+\*not yet available\*`))
 }
 
@@ -1036,6 +1046,30 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyListCmd(assert, require *td.T)
 	]`))
 }
 
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyListTableCmd(assert, require *td.T) {
+	// pol-002 is being created: the API sends an empty currentState
+	httpmock.RegisterResponder(http.MethodGet, l7PoliciesURL,
+		httpmock.NewStringResponder(200, `[
+			{
+				"id": "pol-001",
+				"resourceStatus": "READY",
+				"targetSpec": {"name": "to-api", "action": "REDIRECT_TO_POOL"},
+				"currentState": {"name": "to-api", "action": "REDIRECT_TO_POOL", "position": 1, "operatingStatus": "ONLINE", "provisioningStatus": "ACTIVE"}
+			},
+			{
+				"id": "pol-002",
+				"resourceStatus": "CREATING",
+				"targetSpec": {"name": "deny", "action": "REJECT"},
+				"currentState": {}
+			}
+		]`))
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "ls", "lb-001", "lis-001", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Re(`pol-001\s+│\s+to-api\s+│\s+REDIRECT_TO_POOL\s+│\s+1\s+│\s+ONLINE\s+│\s+ACTIVE\s+│\s+READY`))
+	assert.Cmp(out, td.Re(`pol-002\s+│\s+deny\s+│\s+REJECT\s+│\s+│\s+│\s+│\s+CREATING`))
+}
+
 func (ms *MockSuite) TestCloudLoadbalancerL7PolicyGetCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet, l7PoliciesURL+"/pol-001",
 		httpmock.NewStringResponder(200, `{
@@ -1052,7 +1086,8 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyGetCmd(assert, require *td.T) 
 				"provisioningStatus": "ACTIVE",
 				"redirectPool": {"id": "pool-001"},
 				"rules": [
-					{"id": "rule-001", "type": "PATH", "compareType": "STARTS_WITH", "value": "/api", "key": "", "invert": false}
+					{"id": "rule-001", "type": "PATH", "compareType": "STARTS_WITH", "value": "/api", "key": "", "invert": false},
+					{"id": "rule-002", "type": "HOST_NAME", "compareType": "EQUAL_TO", "value": "example.com"}
 				]
 			}
 		}`))
@@ -1064,6 +1099,8 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyGetCmd(assert, require *td.T) 
 	assert.Cmp(out, td.Re(`\*\*Redirect pool ID\*\*:\s+pool-001`))
 	assert.Cmp(out, td.Contains("/api"))
 	assert.Cmp(out, td.Contains("STARTS_WITH"))
+	// The API omits invert when it is false
+	assert.Cmp(out, td.Re(`example\.com\s+\|\s+\|\s+false`))
 	assert.Cmp(out, td.Not(td.Contains("No rule")))
 }
 

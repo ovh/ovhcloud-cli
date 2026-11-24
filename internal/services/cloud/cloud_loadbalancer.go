@@ -111,7 +111,7 @@ var (
 
 	// Pool
 	poolColumnsToDisplay       = []string{"id", "currentState.name name", "currentState.algorithm algorithm", "currentState.protocol protocol", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
-	poolMemberColumnsToDisplay = []string{"id", "currentState.name name", "currentState.address address", "currentState.protocolPort protocolPort", "currentState.weight weight", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
+	poolMemberColumnsToDisplay = []string{"id", "targetSpec.name name", "targetSpec.address address", "targetSpec.protocolPort protocolPort", "targetSpec.weight weight", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
 
 	//go:embed templates/cloud_loadbalancer_pool.tmpl
 	cloudLoadbalancerPoolTemplate string
@@ -166,7 +166,7 @@ var (
 	}
 
 	// L7 Policy
-	l7PolicyColumnsToDisplay = []string{"id", "currentState.name name", "currentState.action action", "currentState.position position", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
+	l7PolicyColumnsToDisplay = []string{"id", "targetSpec.name name", "targetSpec.action action", "currentState.position position", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
 
 	//go:embed templates/cloud_loadbalancer_l7policy.tmpl
 	cloudLoadbalancerL7PolicyTemplate string
