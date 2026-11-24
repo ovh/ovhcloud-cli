@@ -1,4 +1,4 @@
-{{- /* currentState is null while the policy is being created: fall back on targetSpec */ -}}
+{{- /* Each value is read from currentState, and from targetSpec when currentState does not have it (yet): it is absent, empty or partly filled while the policy is being created */ -}}
 {{- $cs := index .Result "currentState" -}}
 {{- $name := "" -}}
 {{- $description := "" -}}
@@ -18,15 +18,19 @@
 {{- $code = index . "redirectHttpCode" -}}
 {{- with index . "redirectPool" -}}{{- $poolID = index . "id" -}}{{- end -}}
 {{- end -}}
+{{- $operatingStatus := "" -}}
+{{- $provisioningStatus := "" -}}
 {{- with $cs -}}
-{{- $name = index . "name" -}}
-{{- $description = index . "description" -}}
-{{- $action = index . "action" -}}
-{{- $position = index . "position" -}}
-{{- $url = index . "redirectUrl" -}}
-{{- $prefix = index . "redirectPrefix" -}}
-{{- $code = index . "redirectHttpCode" -}}
-{{- with index . "redirectPool" -}}{{- $poolID = index . "id" -}}{{- end -}}
+{{- with index . "operatingStatus" -}}{{- $operatingStatus = . -}}{{- end -}}
+{{- with index . "provisioningStatus" -}}{{- $provisioningStatus = . -}}{{- end -}}
+{{- with index . "name" -}}{{- $name = . -}}{{- end -}}
+{{- with index . "description" -}}{{- $description = . -}}{{- end -}}
+{{- with index . "action" -}}{{- $action = . -}}{{- end -}}
+{{- with index . "position" -}}{{- $position = . -}}{{- end -}}
+{{- with index . "redirectUrl" -}}{{- $url = . -}}{{- end -}}
+{{- with index . "redirectPrefix" -}}{{- $prefix = . -}}{{- end -}}
+{{- with index . "redirectHttpCode" -}}{{- $code = . -}}{{- end -}}
+{{- with index . "redirectPool" -}}{{- with index . "id" -}}{{- $poolID = . -}}{{- end -}}{{- end -}}
 {{- end -}}
 📋 L7 policy {{.ServiceName}}
 =======
@@ -39,8 +43,8 @@ _{{$name}}_
 **Status**:              {{index .Result "resourceStatus"}}
 **Action**:              {{$action}}
 **Position**:            {{$position}}
-**Operating status**:    {{with $cs}}{{index . "operatingStatus"}}{{else}}_not yet available_{{end}}
-**Provisioning status**: {{with $cs}}{{index . "provisioningStatus"}}{{else}}_not yet available_{{end}}
+**Operating status**:    {{with $operatingStatus}}{{.}}{{else}}_not yet available_{{end}}
+**Provisioning status**: {{with $provisioningStatus}}{{.}}{{else}}_not yet available_{{end}}
 {{if $description}}**Description**:         {{$description}}
 {{end}}{{if $poolID}}**Redirect pool ID**:    {{$poolID}}
 {{end}}{{if $url}}**Redirect URL**:        {{$url}}
@@ -52,7 +56,8 @@ _{{$name}}_
 ## Rules
 
 {{- $rules := "" -}}
-{{- with $cs -}}{{- $rules = index . "rules" -}}{{- else -}}{{- with index .Result "targetSpec" -}}{{- $rules = index . "rules" -}}{{- end -}}{{- end }}
+{{- with index .Result "targetSpec" -}}{{- $rules = index . "rules" -}}{{- end -}}
+{{- with $cs -}}{{- with index . "rules" -}}{{- $rules = . -}}{{- end -}}{{- end }}
 {{if $rules}}| Type | Compare type | Value | Key | Invert |
 |------|--------------|-------|-----|--------|
 {{range $rules}}| {{.type}} | {{.compareType}} | {{.value}} | {{.key}} | {{if .invert}}true{{else}}false{{end}} |

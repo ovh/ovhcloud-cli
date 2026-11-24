@@ -29,7 +29,7 @@ There are three ways to define the parameters:
 		--rule-type HOST_NAME --rule-compare-type EQUAL_TO --rule-value example.com
 
   At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor:
-  the --rule-* flags cannot be combined with them.
+  the --rule-* flags cannot be combined with them, nor with parameters piped to the command.
 
 
 ```

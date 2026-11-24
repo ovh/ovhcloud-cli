@@ -909,8 +909,13 @@ func CreateCloudLoadbalancerL7Policy(cmd *cobra.Command, args []string) {
 
 	if spec.Rule.isSet() {
 		// The rule would be added to the rules of the file or of the editor, not replace them
-		if flags.ParametersFile != "" || flags.ParametersViaEditor || utils.IsInputFromPipe() {
-			display.OutputError(&flags.OutputFormatConfig, "failed to create L7 policy: the --rule-* flags cannot be used with --from-file, --editor or piped parameters, give the rules in the parameters instead")
+		if flags.ParametersFile != "" || flags.ParametersViaEditor {
+			display.OutputError(&flags.OutputFormatConfig, "failed to create L7 policy: the --rule-* flags cannot be used with --from-file or --editor, give the rules in the parameters instead")
+			return
+		}
+		// Parameters are read from the standard input whenever it is not a terminal
+		if utils.IsInputFromPipe() {
+			display.OutputError(&flags.OutputFormatConfig, "failed to create L7 policy: the --rule-* flags cannot be used when the standard input is not a terminal, as the parameters are then read from it: give the rules in these parameters instead")
 			return
 		}
 		if missing := spec.Rule.missingFlags(); len(missing) > 0 {
@@ -984,24 +989,32 @@ var l7PolicyRedirectFlags = map[string]string{
 	"redirectHttpCode": "redirect-http-code",
 }
 
-// l7PolicyRedirectFields lists the redirect fields that each action accepts.
-var l7PolicyRedirectFields = map[string][]string{
-	"REDIRECT_TO_POOL": {"redirectPool"},
-	"REDIRECT_TO_URL":  {"redirectUrl", "redirectHttpCode"},
-	"REDIRECT_PREFIX":  {"redirectPrefix", "redirectHttpCode"},
-	"REJECT":           {},
+// l7PolicyActions lists the actions of an L7 policy, in the order of the flag
+// help, each with the redirect fields that it accepts.
+var l7PolicyActions = []struct {
+	name           string
+	redirectFields []string
+}{
+	{"REDIRECT_TO_POOL", []string{"redirectPool"}},
+	{"REDIRECT_TO_URL", []string{"redirectUrl", "redirectHttpCode"}},
+	{"REDIRECT_PREFIX", []string{"redirectPrefix", "redirectHttpCode"}},
+	{"REJECT", nil},
 }
-
-// l7PolicyActions lists the actions of an L7 policy, in the order of the flag help.
-var l7PolicyActions = []string{"REDIRECT_TO_POOL", "REDIRECT_TO_URL", "REDIRECT_PREFIX", "REJECT"}
 
 // checkL7PolicyAction refuses an action given with --action that the API does
 // not know. An empty action is not checked: it was not given with the flag.
 func checkL7PolicyAction(action string) error {
-	if action == "" || slices.Contains(l7PolicyActions, action) {
+	if action == "" {
 		return nil
 	}
-	return fmt.Errorf("unknown action %q, expected one of %s", action, strings.Join(l7PolicyActions, ", "))
+	names := make([]string, 0, len(l7PolicyActions))
+	for _, known := range l7PolicyActions {
+		if known.name == action {
+			return nil
+		}
+		names = append(names, known.name)
+	}
+	return fmt.Errorf("unknown action %q, expected one of %s", action, strings.Join(names, ", "))
 }
 
 // changeL7PolicyAction edits an L7 policy whose action changes: the flags are
@@ -1028,9 +1041,12 @@ func changeL7PolicyAction(cmd *cobra.Command, path, endpoint string) error {
 
 	action := CloudLoadbalancerL7PolicyUpdateSpec.TargetSpec.Action
 	targetSpec, _ := policy["targetSpec"].(map[string]any)
-	if accepted, known := l7PolicyRedirectFields[action]; known && targetSpec != nil {
+	for _, known := range l7PolicyActions {
+		if known.name != action || targetSpec == nil {
+			continue
+		}
 		for field, flag := range l7PolicyRedirectFlags {
-			if !slices.Contains(accepted, field) && !cmd.Flags().Changed(flag) {
+			if !slices.Contains(known.redirectFields, field) && !cmd.Flags().Changed(flag) {
 				delete(targetSpec, field)
 			}
 		}

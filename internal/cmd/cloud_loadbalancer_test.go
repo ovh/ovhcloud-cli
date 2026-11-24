@@ -817,7 +817,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolDeleteCmd(assert, require *td.T) {
 const membersURL = poolsURL + "/pool-001/member"
 
 func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListTableCmd(assert, require *td.T) {
-	// mem-002 is being created: the API sends an empty currentState
+	// mem-002 is being created: the list has no currentState for it yet
 	httpmock.RegisterResponder(http.MethodGet, membersURL,
 		httpmock.NewStringResponder(200, `[
 			{
@@ -829,8 +829,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListTableCmd(assert, require
 			{
 				"id": "mem-002",
 				"resourceStatus": "CREATING",
-				"targetSpec": {"name": "web-2", "address": "10.0.0.11", "protocolPort": 8080, "weight": 3},
-				"currentState": {}
+				"targetSpec": {"name": "web-2", "address": "10.0.0.11", "protocolPort": 8080, "weight": 3}
 			}
 		]`).Once())
 
@@ -937,6 +936,28 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberGetCreatingCmd(assert, requi
 	assert.Cmp(out, td.Re(`\*\*Address\*\*:\s+10\.0\.0\.10`))
 	assert.Cmp(out, td.Re(`\*\*Backup\*\*:\s+false`))
 	assert.Cmp(out, td.Re(`\*\*Operating status\*\*:\s+\*not yet available\*`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolMemberGetPartialCurrentStateCmd(assert, require *td.T) {
+	// A currentState that is only partly filled must not hide what targetSpec holds
+	httpmock.RegisterResponder(http.MethodGet, membersURL+"/mem-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "mem-001",
+			"resourceStatus": "CREATING",
+			"createdAt": "2026-11-10T10:00:00Z",
+			"updatedAt": "2026-11-10T10:00:00Z",
+			"currentState": {"provisioningStatus": "PENDING_CREATE"},
+			"targetSpec": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 8080, "subnet": {"id": "sub-001"}}
+		}`).Once())
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "get", "lb-001", "pool-001", "mem-001", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("*web-1*"))
+	assert.Cmp(out, td.Re(`\*\*Address\*\*:\s+10\.0\.0\.10`))
+	assert.Cmp(out, td.Re(`\*\*Protocol port\*\*:\s+8080`))
+	assert.Cmp(out, td.Re(`\*\*Subnet ID\*\*:\s+sub-001`))
+	assert.Cmp(out, td.Re(`\*\*Operating status\*\*:\s+\*not yet available\*`))
+	assert.Cmp(out, td.Re(`\*\*Provisioning status\*\*:\s+PENDING_CREATE`))
 }
 
 func (ms *MockSuite) TestCloudLoadbalancerPoolMemberGetNotFoundCmd(assert, require *td.T) {
@@ -1103,7 +1124,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyListCmd(assert, require *td.T)
 }
 
 func (ms *MockSuite) TestCloudLoadbalancerL7PolicyListTableCmd(assert, require *td.T) {
-	// pol-002 is being created: the API sends an empty currentState
+	// pol-002 is being created: the list has no currentState for it yet
 	httpmock.RegisterResponder(http.MethodGet, l7PoliciesURL,
 		httpmock.NewStringResponder(200, `[
 			{
@@ -1115,8 +1136,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyListTableCmd(assert, require *
 			{
 				"id": "pol-002",
 				"resourceStatus": "CREATING",
-				"targetSpec": {"name": "deny", "action": "REJECT"},
-				"currentState": {}
+				"targetSpec": {"name": "deny", "action": "REJECT"}
 			}
 		]`).Once())
 
@@ -1177,6 +1197,33 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyGetCreatingWithoutRuleCmd(asse
 	assert.Cmp(out, td.Re(`\*\*Action\*\*:\s+REJECT`))
 	assert.Cmp(out, td.Re(`\*\*Operating status\*\*:\s+\*not yet available\*`))
 	assert.Cmp(out, td.Contains("No rule"))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyGetPartialCurrentStateCmd(assert, require *td.T) {
+	// While a policy is created, its currentState is filled before its rules are
+	httpmock.RegisterResponder(http.MethodGet, l7PoliciesURL+"/pol-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "pol-001",
+			"resourceStatus": "CREATING",
+			"createdAt": "2026-11-10T10:00:00Z",
+			"updatedAt": "2026-11-10T10:00:00Z",
+			"currentState": {"provisioningStatus": "PENDING_CREATE"},
+			"targetSpec": {
+				"name": "to-api",
+				"action": "REDIRECT_TO_POOL",
+				"redirectPool": {"id": "pool-001"},
+				"rules": [{"type": "PATH", "compareType": "STARTS_WITH", "value": "/api"}]
+			}
+		}`).Once())
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "get", "lb-001", "lis-001", "pol-001", "--cloud-project", "fakeProjectID")
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("*to-api*"))
+	assert.Cmp(out, td.Re(`\*\*Action\*\*:\s+REDIRECT_TO_POOL`))
+	assert.Cmp(out, td.Re(`\*\*Redirect pool ID\*\*:\s+pool-001`))
+	assert.Cmp(out, td.Re(`\*\*Provisioning status\*\*:\s+PENDING_CREATE`))
+	assert.Cmp(out, td.Contains("STARTS_WITH"))
+	assert.Cmp(out, td.Not(td.Contains("No rule")))
 }
 
 func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateWithRuleCmd(assert, require *td.T) {
