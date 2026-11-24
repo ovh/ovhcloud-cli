@@ -431,7 +431,7 @@ func initPoolMemberSubCommands(poolCmd *cobra.Command) {
 	editSpec := &cloud.CloudLoadbalancerPoolMemberUpdateSpec.TargetSpec
 	memberEditCmd.Flags().StringVar(&editSpec.Name, "name", "", "Name of the member")
 	memberEditCmd.Flags().IntVar(&editSpec.Weight, "weight", 0, "Weight of the member (1-256)")
-	memberEditCmd.Flags().BoolVar(&editSpec.Backup, "backup", false, "Whether this is a backup member, only used when all the other members are down")
+	memberEditCmd.Flags().Bool("backup", false, "Whether this is a backup member, only used when all the other members are down")
 	addInteractiveEditorFlag(memberEditCmd)
 	memberCmd.AddCommand(memberEditCmd)
 
@@ -541,6 +541,16 @@ The flags leave the rules of the policy untouched. To add, change or remove rule
 		Run:   cloud.DeleteCloudLoadbalancerL7Policy,
 		Args:  cobra.ExactArgs(3),
 	})
+
+	// The l7rule commands were removed with API v2. Without this hidden command,
+	// calling one would print the help of l7policy and exit with code 0.
+	l7PolicyCmd.AddCommand(&cobra.Command{
+		Use:                "l7rule",
+		Hidden:             true,
+		Args:               cobra.ArbitraryArgs,
+		FParseErrWhitelist: cobra.FParseErrWhitelist{UnknownFlags: true},
+		Run:                cloud.RemovedCloudLoadbalancerL7Rule,
+	})
 }
 
 func getL7PolicyCreationCmd() *cobra.Command {
@@ -571,7 +581,8 @@ There are three ways to define the parameters:
 	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --action REDIRECT_TO_POOL --redirect-pool-id <pool_id> --name my-policy \
 		--rule-type HOST_NAME --rule-compare-type EQUAL_TO --rule-value example.com
 
-  At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor.
+  At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor:
+  the --rule-* flags cannot be combined with them.
 `,
 		Run:  cloud.CreateCloudLoadbalancerL7Policy,
 		Args: cobra.ExactArgs(2),

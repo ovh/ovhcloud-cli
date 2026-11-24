@@ -9,13 +9,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/display"
 	"github.com/ovh/ovhcloud-cli/internal/flags"
 	httpLib "github.com/ovh/ovhcloud-cli/internal/http"
+	"github.com/ovh/ovhcloud-cli/internal/openapi"
 	"github.com/ovh/ovhcloud-cli/internal/services/common"
+	"github.com/ovh/ovhcloud-cli/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -111,7 +114,7 @@ var (
 
 	// Pool
 	poolColumnsToDisplay       = []string{"id", "currentState.name name", "currentState.algorithm algorithm", "currentState.protocol protocol", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
-	poolMemberColumnsToDisplay = []string{"id", "targetSpec.name name", "targetSpec.address address", "targetSpec.protocolPort protocolPort", "targetSpec.weight weight", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
+	poolMemberColumnsToDisplay = []string{"id", "targetSpec.name name", "targetSpec.address address", "targetSpec.protocolPort protocolPort", "currentState.weight weight", "currentState.operatingStatus operatingStatus", "currentState.provisioningStatus provisioningStatus", "resourceStatus"}
 
 	//go:embed templates/cloud_loadbalancer_pool.tmpl
 	cloudLoadbalancerPoolTemplate string
@@ -146,7 +149,8 @@ var (
 
 	CloudLoadbalancerPoolMemberUpdateSpec struct {
 		TargetSpec struct {
-			Backup bool   `json:"backup,omitempty"`
+			// Backup is a pointer so that an explicit --backup=false is sent
+			Backup *bool  `json:"backup,omitempty"`
 			Name   string `json:"name,omitempty"`
 			Weight int    `json:"weight,omitempty"`
 		} `json:"targetSpec"`
@@ -179,7 +183,7 @@ var (
 	}
 
 	// CloudLoadbalancerL7PolicyUpdateSpec carries no rule: the rules of a policy are
-	// kept as is unless they are edited with --editor or --from-file.
+	// kept as is unless they are edited with --editor.
 	CloudLoadbalancerL7PolicyUpdateSpec struct {
 		TargetSpec struct {
 			Action           string `json:"action,omitempty"`
@@ -278,6 +282,24 @@ type L7PolicyRuleParams struct {
 
 func (r *L7PolicyRuleParams) isSet() bool {
 	return *r != L7PolicyRuleParams{}
+}
+
+// missingFlags returns the --rule-* flags that a rule given with flags still needs.
+func (r *L7PolicyRuleParams) missingFlags() []string {
+	var missing []string
+	if r.Type == "" {
+		missing = append(missing, "--rule-type")
+	}
+	if r.CompareType == "" {
+		missing = append(missing, "--rule-compare-type")
+	}
+	if r.Value == "" {
+		missing = append(missing, "--rule-value")
+	}
+	if r.Key == "" && (r.Type == "COOKIE" || r.Type == "HEADER") {
+		missing = append(missing, "--rule-key")
+	}
+	return missing
 }
 
 func (r *L7PolicyRuleParams) upperCase() {
@@ -801,6 +823,17 @@ func EditCloudLoadbalancerPoolMember(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// Only send backup when the flag is given, so that --backup=false is not dropped
+	CloudLoadbalancerPoolMemberUpdateSpec.TargetSpec.Backup = nil
+	if cmd.Flags().Changed("backup") {
+		backup, err := cmd.Flags().GetBool("backup")
+		if err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "%s", err)
+			return
+		}
+		CloudLoadbalancerPoolMemberUpdateSpec.TargetSpec.Backup = &backup
+	}
+
 	if err := common.EditResource(
 		cmd,
 		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/pool/{poolId}/member/{memberId}",
@@ -869,6 +902,18 @@ func CreateCloudLoadbalancerL7Policy(cmd *cobra.Command, args []string) {
 	spec.Action = strings.ToUpper(spec.Action)
 	spec.Rule.upperCase()
 
+	if spec.Rule.isSet() {
+		// The rule would be added to the rules of the file or of the editor, not replace them
+		if flags.ParametersFile != "" || flags.ParametersViaEditor || utils.IsInputFromPipe() {
+			display.OutputError(&flags.OutputFormatConfig, "failed to create L7 policy: the --rule-* flags cannot be used with --from-file, --editor or piped parameters, give the rules in the parameters instead")
+			return
+		}
+		if missing := spec.Rule.missingFlags(); len(missing) > 0 {
+			display.OutputError(&flags.OutputFormatConfig, "failed to create L7 policy: incomplete rule, the following flags are required: %s", strings.Join(missing, ", "))
+			return
+		}
+	}
+
 	result, err := common.CreateResource(
 		cmd,
 		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/listener/{listenerId}/l7policy",
@@ -896,16 +941,95 @@ func EditCloudLoadbalancerL7Policy(cmd *cobra.Command, args []string) {
 	// API v2 expects upper case enum values. Rules are only editable with --editor or --from-file.
 	CloudLoadbalancerL7PolicyUpdateSpec.TargetSpec.Action = strings.ToUpper(CloudLoadbalancerL7PolicyUpdateSpec.TargetSpec.Action)
 
+	const path = "/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/listener/{listenerId}/l7policy/{l7PolicyId}"
+	endpoint := fmt.Sprintf("%s/%s", loadbalancerL7PolicyPath(projectID, args[0], args[1]), url.PathEscape(args[2]))
+
+	// A new action makes the redirect fields of the previous one invalid. In the
+	// editor, the user sees the whole policy and removes them there.
+	if cmd.Flags().Changed("action") && !flags.ParametersViaEditor {
+		if err := changeL7PolicyAction(cmd, path, endpoint); err != nil {
+			display.OutputError(&flags.OutputFormatConfig, "%s", err)
+			return
+		}
+		display.OutputInfo(&flags.OutputFormatConfig, nil, "✅ Resource updated successfully")
+		return
+	}
+
 	if err := common.EditResource(
 		cmd,
-		"/publicCloud/project/{projectId}/loadbalancer/{loadbalancerId}/listener/{listenerId}/l7policy/{l7PolicyId}",
-		fmt.Sprintf("%s/%s", loadbalancerL7PolicyPath(projectID, args[0], args[1]), url.PathEscape(args[2])),
+		path,
+		endpoint,
 		CloudLoadbalancerL7PolicyUpdateSpec,
 		assets.CloudV2OpenapiSchema,
 	); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "%s", err)
 		return
 	}
+}
+
+// l7PolicyRedirectFlags maps the redirect fields of an L7 policy to their flag.
+var l7PolicyRedirectFlags = map[string]string{
+	"redirectPool":     "redirect-pool-id",
+	"redirectUrl":      "redirect-url",
+	"redirectPrefix":   "redirect-prefix",
+	"redirectHttpCode": "redirect-http-code",
+}
+
+// l7PolicyRedirectFields lists the redirect fields that each action accepts.
+var l7PolicyRedirectFields = map[string][]string{
+	"REDIRECT_TO_POOL": {"redirectPool"},
+	"REDIRECT_TO_URL":  {"redirectUrl", "redirectHttpCode"},
+	"REDIRECT_PREFIX":  {"redirectPrefix", "redirectHttpCode"},
+	"REJECT":           {},
+}
+
+// changeL7PolicyAction edits an L7 policy whose action changes: the flags are
+// merged into the current targetSpec, as common.EditResource does, then the
+// redirect fields that the new action does not accept are removed, unless
+// their flag was given.
+func changeL7PolicyAction(cmd *cobra.Command, path, endpoint string) error {
+	jsonParameters, err := json.Marshal(CloudLoadbalancerL7PolicyUpdateSpec)
+	if err != nil {
+		return fmt.Errorf("failed to prepare arguments from command line: %w", err)
+	}
+	var parameters map[string]any
+	if err := json.Unmarshal(jsonParameters, &parameters); err != nil {
+		return fmt.Errorf("failed to parse arguments from command line: %w", err)
+	}
+
+	var policy map[string]any
+	if err := httpLib.Client.Get(endpoint, &policy); err != nil {
+		return fmt.Errorf("error fetching resource %s: %w", endpoint, err)
+	}
+	if err := utils.MergeMaps(policy, parameters); err != nil {
+		return fmt.Errorf("failed to merge CLI parameters into the L7 policy: %w", err)
+	}
+
+	action := CloudLoadbalancerL7PolicyUpdateSpec.TargetSpec.Action
+	targetSpec, _ := policy["targetSpec"].(map[string]any)
+	if accepted, known := l7PolicyRedirectFields[action]; known && targetSpec != nil {
+		for field, flag := range l7PolicyRedirectFlags {
+			if !slices.Contains(accepted, field) && !cmd.Flags().Changed(flag) {
+				delete(targetSpec, field)
+			}
+		}
+	}
+
+	body, err := openapi.FilterEditableFields(assets.CloudV2OpenapiSchema, path, "put", policy)
+	if err != nil {
+		return fmt.Errorf("failed to extract writable properties: %w", err)
+	}
+	if err := httpLib.Client.Put(endpoint, body, nil); err != nil {
+		return fmt.Errorf("failed to update resource: %w", err)
+	}
+
+	return nil
+}
+
+// RemovedCloudLoadbalancerL7Rule answers the removed "l7policy l7rule" commands.
+func RemovedCloudLoadbalancerL7Rule(_ *cobra.Command, _ []string) {
+	display.OutputError(&flags.OutputFormatConfig, "the l7rule commands were removed: in API v2 the rules are part of the L7 policy. "+
+		"Read them with 'l7policy get', give one at creation with the --rule-* flags of 'l7policy create', and change them with 'l7policy edit --editor'")
 }
 
 func DeleteCloudLoadbalancerL7Policy(_ *cobra.Command, args []string) {

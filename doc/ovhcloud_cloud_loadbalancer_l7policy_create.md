@@ -28,7 +28,8 @@ There are three ways to define the parameters:
 	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --action REDIRECT_TO_POOL --redirect-pool-id <pool_id> --name my-policy \
 		--rule-type HOST_NAME --rule-compare-type EQUAL_TO --rule-value example.com
 
-  At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor.
+  At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor:
+  the --rule-* flags cannot be combined with them.
 
 
 ```

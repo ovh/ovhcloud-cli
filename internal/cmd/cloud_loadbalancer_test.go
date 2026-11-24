@@ -823,7 +823,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListTableCmd(assert, require
 			{
 				"id": "mem-001",
 				"resourceStatus": "READY",
-				"targetSpec": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 80, "weight": 1},
+				"targetSpec": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 80},
 				"currentState": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 80, "weight": 1, "operatingStatus": "ONLINE"}
 			},
 			{
@@ -832,13 +832,14 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListTableCmd(assert, require
 				"targetSpec": {"name": "web-2", "address": "10.0.0.11", "protocolPort": 8080, "weight": 3},
 				"currentState": {}
 			}
-		]`))
+		]`).Once())
 
-	// What the user gave is read from targetSpec, so it shows while the member is created
+	// What the user must give is read from targetSpec, so it shows while the member is
+	// created. The weight is optional: its real value is only in currentState.
 	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "ls", "lb-001", "pool-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
 	assert.Cmp(out, td.Re(`mem-001\s+│\s+web-1\s+│\s+10\.0\.0\.10\s+│\s+80\s+│\s+1\s+│\s+ONLINE`))
-	assert.Cmp(out, td.Re(`mem-002\s+│\s+web-2\s+│\s+10\.0\.0\.11\s+│\s+8080\s+│\s+3\s+│\s+│\s+│\s+CREATING`))
+	assert.Cmp(out, td.Re(`mem-002\s+│\s+web-2\s+│\s+10\.0\.0\.11\s+│\s+8080\s+│\s+│\s+│\s+│\s+CREATING`))
 }
 
 func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListCmd(assert, require *td.T) {
@@ -855,7 +856,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberListCmd(assert, require *td.
 					"operatingStatus": "ONLINE"
 				}
 			}
-		]`))
+		]`).Once())
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "ls", "lb-001", "pool-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
@@ -891,7 +892,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberGetCmd(assert, require *td.T
 				"provisioningStatus": "ACTIVE",
 				"subnet": {"id": "sub-001"}
 			}
-		}`))
+		}`).Once())
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "get", "lb-001", "pool-001", "mem-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
@@ -928,7 +929,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberGetCreatingCmd(assert, requi
 			"updatedAt": "2026-11-10T10:00:00Z",
 			"currentState": null,
 			"targetSpec": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 8080}
-		}`))
+		}`).Once())
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "get", "lb-001", "pool-001", "mem-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
@@ -936,6 +937,15 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberGetCreatingCmd(assert, requi
 	assert.Cmp(out, td.Re(`\*\*Address\*\*:\s+10\.0\.0\.10`))
 	assert.Cmp(out, td.Re(`\*\*Backup\*\*:\s+false`))
 	assert.Cmp(out, td.Re(`\*\*Operating status\*\*:\s+\*not yet available\*`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolMemberGetNotFoundCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, membersURL+"/missing",
+		httpmock.NewStringResponder(404, `{"class":"Client::NotFound","message":"member not found"}`).Once())
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "get", "lb-001", "pool-001", "missing", "--cloud-project", "fakeProjectID")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("member not found"))
 }
 
 func (ms *MockSuite) TestCloudLoadbalancerPoolMemberCreateCmd(assert, require *td.T) {
@@ -950,7 +960,7 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberCreateCmd(assert, require *t
 				"subnet": {"id": "sub-001"}
 			}
 		}`)),
-		httpmock.NewStringResponder(200, `{"id": "mem-001"}`),
+		httpmock.NewStringResponder(200, `{"id": "mem-001"}`).Once(),
 	)
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "create", "lb-001", "pool-001",
@@ -980,14 +990,14 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberEditCmd(assert, require *td.
 			"id": "mem-001",
 			"checksum": "abc",
 			"targetSpec": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 80, "weight": 1}
-		}`))
+		}`).Once())
 
 	httpmock.RegisterMatcherResponder(http.MethodPut, membersURL+"/mem-001",
 		tdhttpmock.JSONBody(td.JSON(`{
 			"checksum": "abc",
 			"targetSpec": {"name": "web-1", "weight": 5}
 		}`)),
-		httpmock.NewStringResponder(200, `{"id": "mem-001"}`),
+		httpmock.NewStringResponder(200, `{"id": "mem-001"}`).Once(),
 	)
 
 	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "edit", "lb-001", "pool-001", "mem-001",
@@ -996,9 +1006,55 @@ func (ms *MockSuite) TestCloudLoadbalancerPoolMemberEditCmd(assert, require *td.
 	require.CmpNoError(err)
 }
 
+func (ms *MockSuite) TestCloudLoadbalancerPoolMemberEditBackupFalseCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, membersURL+"/mem-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "mem-001",
+			"checksum": "abc",
+			"targetSpec": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 80, "weight": 1, "backup": true}
+		}`).Once())
+
+	// An explicit false must be sent, or the member stays a backup member
+	httpmock.RegisterMatcherResponder(http.MethodPut, membersURL+"/mem-001",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc",
+			"targetSpec": {"name": "web-1", "weight": 1, "backup": false}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "mem-001"}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "edit", "lb-001", "pool-001", "mem-001",
+		"--cloud-project", "fakeProjectID",
+		"--backup=false")
+	require.CmpNoError(err)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerPoolMemberEditKeepsBackupCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, membersURL+"/mem-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "mem-001",
+			"checksum": "abc",
+			"targetSpec": {"name": "web-1", "address": "10.0.0.10", "protocolPort": 80, "weight": 1, "backup": true}
+		}`).Once())
+
+	// Without --backup, the member stays a backup member
+	httpmock.RegisterMatcherResponder(http.MethodPut, membersURL+"/mem-001",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc",
+			"targetSpec": {"name": "web-1b", "weight": 1, "backup": true}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "mem-001"}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "edit", "lb-001", "pool-001", "mem-001",
+		"--cloud-project", "fakeProjectID",
+		"--name", "web-1b")
+	require.CmpNoError(err)
+}
+
 func (ms *MockSuite) TestCloudLoadbalancerPoolMemberDeleteCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodDelete, membersURL+"/mem-001",
-		httpmock.NewStringResponder(200, `null`))
+		httpmock.NewStringResponder(200, `null`).Once())
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "pool", "member", "delete", "lb-001", "pool-001", "mem-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
@@ -1027,7 +1083,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyListCmd(assert, require *td.T)
 					"provisioningStatus": "ACTIVE"
 				}
 			}
-		]`))
+		]`).Once())
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "ls", "lb-001", "lis-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
@@ -1062,7 +1118,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyListTableCmd(assert, require *
 				"targetSpec": {"name": "deny", "action": "REJECT"},
 				"currentState": {}
 			}
-		]`))
+		]`).Once())
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "ls", "lb-001", "lis-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
@@ -1090,7 +1146,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyGetCmd(assert, require *td.T) 
 					{"id": "rule-002", "type": "HOST_NAME", "compareType": "EQUAL_TO", "value": "example.com"}
 				]
 			}
-		}`))
+		}`).Once())
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "get", "lb-001", "lis-001", "pol-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
@@ -1113,7 +1169,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyGetCreatingWithoutRuleCmd(asse
 			"updatedAt": "2026-11-10T10:00:00Z",
 			"currentState": null,
 			"targetSpec": {"name": "deny", "action": "REJECT", "position": 2}
-		}`))
+		}`).Once())
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "get", "lb-001", "lis-001", "pol-001", "--cloud-project", "fakeProjectID")
 	require.CmpNoError(err)
@@ -1136,7 +1192,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateWithRuleCmd(assert, requ
 				]
 			}
 		}`)),
-		httpmock.NewStringResponder(200, `{"id": "pol-001"}`),
+		httpmock.NewStringResponder(200, `{"id": "pol-001"}`).Once(),
 	)
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "create", "lb-001", "lis-001",
@@ -1159,7 +1215,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateWithoutRuleCmd(assert, r
 		tdhttpmock.JSONBody(td.JSON(`{
 			"targetSpec": {"action": "REJECT", "name": "deny"}
 		}`)),
-		httpmock.NewStringResponder(200, `{"id": "pol-001"}`),
+		httpmock.NewStringResponder(200, `{"id": "pol-001"}`).Once(),
 	)
 
 	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "create", "lb-001", "lis-001",
@@ -1177,6 +1233,131 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateMissingActionCmd(assert,
 	assert.Cmp(err.Error(), td.Contains(`targetSpec.action`))
 }
 
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateAPIErrorCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodPost, l7PoliciesURL,
+		httpmock.NewStringResponder(400, `{"class":"Client::BadRequest","message":"[targetSpec.redirectPool] Property is mandatory"}`).Once())
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "create", "lb-001", "lis-001",
+		"--cloud-project", "fakeProjectID",
+		"--action", "REDIRECT_TO_POOL")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("failed to create L7 policy"))
+	assert.Cmp(err.Error(), td.Contains("[targetSpec.redirectPool] Property is mandatory"))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateIncompleteRuleCmd(assert, require *td.T) {
+	// No responder: an incomplete rule is refused before any API call
+	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "create", "lb-001", "lis-001",
+		"--cloud-project", "fakeProjectID",
+		"--action", "REJECT",
+		"--rule-value", "/api")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("incomplete rule, the following flags are required: --rule-type, --rule-compare-type"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateRuleFlagsWithFileCmd(assert, require *td.T) {
+	// The rule of the flags would be added to the rules of the file
+	tmp, err := os.CreateTemp("", "l7policy-*.json")
+	require.CmpNoError(err)
+	defer os.Remove(tmp.Name())
+	_, err = tmp.WriteString(`{"targetSpec": {"action": "REJECT", "rules": [{"type": "PATH", "compareType": "STARTS_WITH", "value": "/api"}]}}`)
+	require.CmpNoError(err)
+	require.CmpNoError(tmp.Close())
+
+	_, err = cmd.Execute("cloud", "loadbalancer", "l7policy", "create", "lb-001", "lis-001",
+		"--cloud-project", "fakeProjectID",
+		"--from-file", tmp.Name(),
+		"--rule-type", "HOST_NAME", "--rule-compare-type", "EQUAL_TO", "--rule-value", "example.com")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("the --rule-* flags cannot be used with --from-file"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyCreateHeaderRuleWithoutKeyCmd(assert, require *td.T) {
+	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "create", "lb-001", "lis-001",
+		"--cloud-project", "fakeProjectID",
+		"--action", "REJECT",
+		"--rule-type", "header", "--rule-compare-type", "equal_to", "--rule-value", "1")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("the following flags are required: --rule-key"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyEditActionDropsStaleRedirectCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, l7PoliciesURL+"/pol-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "pol-001",
+			"checksum": "abc",
+			"targetSpec": {
+				"name": "to-api",
+				"action": "REDIRECT_TO_POOL",
+				"position": 1,
+				"redirectPool": {"id": "pool-001"},
+				"rules": [{"type": "PATH", "compareType": "STARTS_WITH", "value": "/api"}]
+			}
+		}`).Once())
+
+	// The pool of the previous action is not sent with the new one, the rules are kept
+	httpmock.RegisterMatcherResponder(http.MethodPut, l7PoliciesURL+"/pol-001",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc",
+			"targetSpec": {
+				"name": "to-api",
+				"action": "REDIRECT_TO_URL",
+				"position": 1,
+				"redirectUrl": "https://example.com",
+				"rules": [{"type": "PATH", "compareType": "STARTS_WITH", "value": "/api"}]
+			}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "pol-001"}`).Once(),
+	)
+
+	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "edit", "lb-001", "lis-001", "pol-001",
+		"--cloud-project", "fakeProjectID",
+		"--action", "redirect_to_url", "--redirect-url", "https://example.com",
+		"-o", "json")
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{"message": "✅ Resource updated successfully"}`))
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7PolicyEditActionRejectDropsRedirectCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet, l7PoliciesURL+"/pol-001",
+		httpmock.NewStringResponder(200, `{
+			"id": "pol-001",
+			"checksum": "abc",
+			"targetSpec": {
+				"name": "to-site",
+				"action": "REDIRECT_TO_URL",
+				"redirectUrl": "https://example.com",
+				"redirectHttpCode": 301
+			}
+		}`).Once())
+
+	httpmock.RegisterMatcherResponder(http.MethodPut, l7PoliciesURL+"/pol-001",
+		tdhttpmock.JSONBody(td.JSON(`{
+			"checksum": "abc",
+			"targetSpec": {"name": "to-site", "action": "REJECT"}
+		}`)),
+		httpmock.NewStringResponder(200, `{"id": "pol-001"}`).Once(),
+	)
+
+	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "edit", "lb-001", "lis-001", "pol-001",
+		"--cloud-project", "fakeProjectID",
+		"--action", "REJECT")
+	require.CmpNoError(err)
+}
+
+func (ms *MockSuite) TestCloudLoadbalancerL7RuleRemovedCmd(assert, require *td.T) {
+	// The removed commands must fail, whatever their former arguments and flags
+	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "l7rule", "create", "pol-001",
+		"--cloud-project", "fakeProjectID",
+		"--type", "PATH", "--value", "/api")
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains("the l7rule commands were removed"))
+	assert.Cmp(httpmock.GetTotalCallCount(), 0)
+}
+
 func (ms *MockSuite) TestCloudLoadbalancerL7PolicyEditKeepsRulesCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet, l7PoliciesURL+"/pol-001",
 		httpmock.NewStringResponder(200, `{
@@ -1189,7 +1370,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyEditKeepsRulesCmd(assert, requ
 				"redirectPool": {"id": "pool-001"},
 				"rules": [{"type": "PATH", "compareType": "STARTS_WITH", "value": "/api"}]
 			}
-		}`))
+		}`).Once())
 
 	// The rules of the policy are sent back unchanged: the PUT replaces the whole list
 	httpmock.RegisterMatcherResponder(http.MethodPut, l7PoliciesURL+"/pol-001",
@@ -1203,7 +1384,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyEditKeepsRulesCmd(assert, requ
 				"rules": [{"type": "PATH", "compareType": "STARTS_WITH", "value": "/api"}]
 			}
 		}`)),
-		httpmock.NewStringResponder(200, `{"id": "pol-001"}`),
+		httpmock.NewStringResponder(200, `{"id": "pol-001"}`).Once(),
 	)
 
 	_, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "edit", "lb-001", "lis-001", "pol-001",
@@ -1214,7 +1395,7 @@ func (ms *MockSuite) TestCloudLoadbalancerL7PolicyEditKeepsRulesCmd(assert, requ
 
 func (ms *MockSuite) TestCloudLoadbalancerL7PolicyDeleteCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodDelete, l7PoliciesURL+"/pol-001",
-		httpmock.NewStringResponder(200, `null`))
+		httpmock.NewStringResponder(200, `null`).Once())
 
 	out, err := cmd.Execute("cloud", "loadbalancer", "l7policy", "delete", "lb-001", "lis-001", "pol-001", "--cloud-project", "fakeProjectID", "-o", "json")
 	require.CmpNoError(err)
