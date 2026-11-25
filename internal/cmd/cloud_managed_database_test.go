@@ -79,8 +79,7 @@ func (ms *MockSuite) TestManagedDatabaseListCmd(assert, require *td.T) {
 │       id       │ engine │ version │ description │ status │
 ├────────────────┼────────┼─────────┼─────────────┼────────┤
 │ fakeDatabaseID │ mysql  │ 8       │ test db     │ READY  │
-└────────────────┴────────┴─────────┴─────────────┴────────┘
-💡 Use option -o json or -o yaml to get the raw output with all information`[1:])
+└────────────────┴────────┴─────────┴─────────────┴────────┘`[1:])
 }
 
 func (ms *MockSuite) TestManagedDatabaseGetCmd(assert, require *td.T) {
