@@ -31,6 +31,60 @@ const shareSnapshotListResponse = `[
 	}
 ]`
 
+func (ms *MockSuite) TestCloudStorageFileShareGetCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/storage/file/share/share-1",
+		httpmock.NewStringResponder(200, `{
+			"id": "share-1",
+			"resourceStatus": "UPDATING",
+			"createdAt": "2026-01-01T00:00:00Z",
+			"targetSpec": {
+				"name": "my-share",
+				"size": 200
+			},
+			"currentState": {
+				"name": "my-share",
+				"location": { "region": "EU-WEST-PAR" },
+				"protocol": "NFS",
+				"shareType": "STANDARD_1AZ",
+				"shareNetwork": { "id": "network-1" },
+				"size": 100,
+				"status": "EXTENDING"
+			}
+		}`))
+
+	out, err := cmd.Execute("cloud", "storage", "file", "share", "get", "share-1", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Contains("UPDATING"))
+	assert.Cmp(out, td.Re(`Current status.*EXTENDING`))
+	assert.Cmp(out, td.Not(td.Contains("<no value>")))
+}
+
+func (ms *MockSuite) TestCloudStorageFileShareGetWithoutCurrentStatusCmd(assert, require *td.T) {
+	httpmock.RegisterResponder(http.MethodGet,
+		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/storage/file/share/share-1",
+		httpmock.NewStringResponder(200, `{
+			"id": "share-1",
+			"resourceStatus": "READY",
+			"createdAt": "2026-01-01T00:00:00Z",
+			"currentState": {
+				"name": "my-share",
+				"location": { "region": "EU-WEST-PAR" },
+				"protocol": "NFS",
+				"shareType": "STANDARD_1AZ",
+				"shareNetwork": { "id": "network-1" },
+				"size": 100
+			}
+		}`))
+
+	out, err := cmd.Execute("cloud", "storage", "file", "share", "get", "share-1", "--cloud-project", "fakeProjectID")
+
+	require.CmpNoError(err)
+	assert.Cmp(out, td.Not(td.Contains("Current status")))
+	assert.Cmp(out, td.Not(td.Contains("<no value>")))
+}
+
 func (ms *MockSuite) TestCloudStorageFileSnapshotListCmd(assert, require *td.T) {
 	httpmock.RegisterResponder(http.MethodGet,
 		"https://eu.api.ovh.com/v2/publicCloud/project/fakeProjectID/storage/file/snapshot",

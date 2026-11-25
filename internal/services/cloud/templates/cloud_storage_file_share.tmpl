@@ -12,7 +12,8 @@ _{{index .Result "description"}}_
 **Protocol**:          {{index .Result "currentState" "protocol"}}
 **Type**:              {{index .Result "currentState" "shareType"}}
 **Status**:            {{index .Result "resourceStatus"}}
-**Size**:              {{index .Result "currentState" "size"}}GB
+{{with index .Result "currentState"}}{{with index . "status"}}**Current status**:    {{.}}
+{{end}}{{end}}**Size**:              {{index .Result "currentState" "size"}}GB
 **Network ID**:        {{index .Result "currentState" "shareNetwork" "id"}}
 **Created at**:        {{index .Result "createdAt"}}
 

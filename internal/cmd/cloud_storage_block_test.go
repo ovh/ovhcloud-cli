@@ -189,6 +189,7 @@ func (ms *MockSuite) TestCloudStorageBlockBackupListCmd(assert, require *td.T) {
 				"currentState": {
 					"name": "test-backup",
 					"size": 10,
+					"status": "RESTORING",
 					"volumeId": "vol-1",
 					"location": { "region": "EU-WEST-PAR" }
 				}
@@ -198,7 +199,8 @@ func (ms *MockSuite) TestCloudStorageBlockBackupListCmd(assert, require *td.T) {
 	out, err := cmd.Execute("cloud", "storage", "block", "backup", "list", "--cloud-project", "fakeProjectID")
 
 	require.CmpNoError(err)
-	assert.Cmp(out, td.Contains("backup-1"))
+	assert.Cmp(out, td.Re(`currentStatus`))
+	assert.Cmp(out, td.Re(`backup-1.*RESTORING.*READY`))
 }
 
 func (ms *MockSuite) TestCloudStorageBlockCreatePlainCmd(assert, require *td.T) {
