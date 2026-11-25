@@ -5,10 +5,10 @@
 package completion
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/ovh/ovhcloud-cli/internal/cache"
 )
 
 // completionCacheTTL is how long cached completion results remain valid.
@@ -18,39 +18,20 @@ import (
 // hitting the API on every keystroke.
 const completionCacheTTL = 10 * time.Minute
 
+// completionCacheNamespace is the subdirectory holding these entries. Keeping
+// each kind of cached result in its own namespace means one of them can be
+// wiped, or given a different lifetime, without touching the others.
+const completionCacheNamespace = "completion"
+
 // completionCacheDir returns the directory where completion results are cached,
 // honouring XDG_CACHE_HOME. It returns "" if it cannot be determined.
 func completionCacheDir() string {
-	base := os.Getenv("XDG_CACHE_HOME")
-	if base == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return ""
-		}
-		base = filepath.Join(home, ".cache")
-	}
-	return filepath.Join(base, "ovhcloud", "completion")
+	return cache.Dir(completionCacheNamespace)
 }
 
 func readCachedSuggestions(key string) ([]string, bool) {
-	dir := completionCacheDir()
-	if dir == "" {
-		return nil, false
-	}
-
-	path := filepath.Join(dir, key)
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, false
-	}
-	if time.Since(info.ModTime()) > completionCacheTTL {
-		// Expired: drop the stale file and report a cache miss.
-		_ = os.Remove(path)
-		return nil, false
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
+	data, found := cache.Read(completionCacheNamespace, key, completionCacheTTL)
+	if !found {
 		return nil, false
 	}
 
@@ -65,52 +46,5 @@ func readCachedSuggestions(key string) ([]string, bool) {
 // any error (no cache dir, write failure...) is silently ignored so completion
 // never fails because of the cache. The write is atomic (temp file + rename).
 func writeCachedSuggestions(key string, suggestions []string) {
-	dir := completionCacheDir()
-	if dir == "" {
-		return
-	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return
-	}
-	purgeExpiredCache(dir)
-
-	tmp, err := os.CreateTemp(dir, key+".tmp-*")
-	if err != nil {
-		return
-	}
-	defer os.Remove(tmp.Name())
-
-	if _, err := tmp.WriteString(strings.Join(suggestions, "\n")); err != nil {
-		tmp.Close()
-		return
-	}
-	if err := tmp.Close(); err != nil {
-		return
-	}
-
-	_ = os.Rename(tmp.Name(), filepath.Join(dir, key))
-}
-
-// purgeExpiredCache removes every cache entry in dir whose age exceeds
-// completionCacheTTL. It is best-effort: any error is silently ignored.
-func purgeExpiredCache(dir string) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		info, err := entry.Info()
-		if err != nil {
-			continue
-		}
-
-		if time.Since(info.ModTime()) > completionCacheTTL {
-			_ = os.Remove(filepath.Join(dir, entry.Name()))
-		}
-	}
+	cache.Write(completionCacheNamespace, key, []byte(strings.Join(suggestions, "\n")), completionCacheTTL)
 }
