@@ -3,7 +3,7 @@
 Delete a specific pool member
 
 ```
-ovhcloud cloud loadbalancer pool member delete <pool_id> <member_id> [flags]
+ovhcloud cloud loadbalancer pool member delete <loadbalancer_id> <pool_id> <member_id> [flags]
 ```
 
 ### Options

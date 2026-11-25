@@ -31,10 +31,9 @@ Manage L7 policies of loadbalancers
 ### SEE ALSO
 
 * [ovhcloud cloud loadbalancer](ovhcloud_cloud_loadbalancer.md)	 - Manage loadbalancers in the given cloud project
-* [ovhcloud cloud loadbalancer l7policy create](ovhcloud_cloud_loadbalancer_l7policy_create.md)	 - Create an L7 policy in the given region
+* [ovhcloud cloud loadbalancer l7policy create](ovhcloud_cloud_loadbalancer_l7policy_create.md)	 - Create an L7 policy on a listener
 * [ovhcloud cloud loadbalancer l7policy delete](ovhcloud_cloud_loadbalancer_l7policy_delete.md)	 - Delete a specific L7 policy
 * [ovhcloud cloud loadbalancer l7policy edit](ovhcloud_cloud_loadbalancer_l7policy_edit.md)	 - Edit a specific L7 policy
 * [ovhcloud cloud loadbalancer l7policy get](ovhcloud_cloud_loadbalancer_l7policy_get.md)	 - Get a specific L7 policy
-* [ovhcloud cloud loadbalancer l7policy l7rule](ovhcloud_cloud_loadbalancer_l7policy_l7rule.md)	 - Manage L7 rules of a loadbalancer L7 policy
-* [ovhcloud cloud loadbalancer l7policy list](ovhcloud_cloud_loadbalancer_l7policy_list.md)	 - List all L7 policies
+* [ovhcloud cloud loadbalancer l7policy list](ovhcloud_cloud_loadbalancer_l7policy_list.md)	 - List the L7 policies of a listener
 

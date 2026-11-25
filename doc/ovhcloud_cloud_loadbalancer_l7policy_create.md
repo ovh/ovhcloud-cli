@@ -1,27 +1,62 @@
 ## ovhcloud cloud loadbalancer l7policy create
 
-Create an L7 policy in the given region
+Create an L7 policy on a listener
+
+### Synopsis
+
+Use this command to create an L7 policy on a listener, optionally with a rule.
+There are three ways to define the parameters:
+
+1. Using a configuration file:
+
+  First you can generate an example of parameters file using the following command:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --init-file ./params.json
+
+  After editing the file to set the correct creation parameters, run:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --from-file ./params.json
+
+  Note that you can also pipe the content of the parameters file.
+
+2. Using your default text editor:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --editor
+
+3. Using only CLI flags:
+
+	ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> --action REDIRECT_TO_POOL --redirect-pool-id <pool_id> --name my-policy \
+		--rule-type HOST_NAME --rule-compare-type EQUAL_TO --rule-value example.com
+
+  At most one rule can be given with the --rule-* flags. To create a policy with several rules, use --from-file or --editor:
+  the --rule-* flags cannot be combined with them, nor with parameters piped to the command.
+
 
 ```
-ovhcloud cloud loadbalancer l7policy create <region> [flags]
+ovhcloud cloud loadbalancer l7policy create <loadbalancer_id> <listener_id> [flags]
 ```
 
 ### Options
 
 ```
-      --action string             L7 policy action (redirectToPool, redirectToUrl, redirectPrefix, reject)
-      --description string        Description
-      --editor                    Use a text editor to define parameters
-      --from-file string          File containing parameters
-  -h, --help                      help for create
-      --init-file string          Create a file with example parameters
-      --listener-id string        Listener ID
-      --name string               Name of the L7 policy
-      --position int              Position on the listener
-      --redirect-pool-id string   Redirect pool ID
-      --redirect-prefix string    Redirect prefix URL
-      --redirect-url string       Redirect URL
-      --replace                   Replace parameters file if it already exists
+      --action string              L7 policy action (REDIRECT_TO_POOL, REDIRECT_TO_URL, REDIRECT_PREFIX, REJECT)
+      --description string         Description
+      --editor                     Use a text editor to define parameters
+      --from-file string           File containing parameters
+  -h, --help                       help for create
+      --init-file string           Create a file with example parameters
+      --name string                Name of the L7 policy
+      --position int               Position on the listener
+      --redirect-http-code int     HTTP status code of the redirection (301, 302, 303, 307, 308)
+      --redirect-pool-id string    Pool ID to redirect to
+      --redirect-prefix string     Prefix URL to redirect to
+      --redirect-url string        URL to redirect to
+      --replace                    Replace parameters file if it already exists
+      --rule-compare-type string   Comparison type of the rule (CONTAINS, ENDS_WITH, EQUAL_TO, REGEX, STARTS_WITH)
+      --rule-invert                Invert the result of the rule
+      --rule-key string            Key of the rule, for COOKIE and HEADER rules
+      --rule-type string           Type of the rule (COOKIE, FILE_TYPE, HEADER, HOST_NAME, PATH)
+      --rule-value string          Value to compare the rule with
 ```
 
 ### Options inherited from parent commands

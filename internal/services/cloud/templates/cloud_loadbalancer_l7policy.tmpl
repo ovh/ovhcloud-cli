@@ -1,18 +1,66 @@
+{{- /* Each value is read from currentState, and from targetSpec when currentState does not have it (yet): it is absent, empty or partly filled while the policy is being created */ -}}
+{{- $cs := index .Result "currentState" -}}
+{{- $name := "" -}}
+{{- $description := "" -}}
+{{- $action := "" -}}
+{{- $position := "" -}}
+{{- $poolID := "" -}}
+{{- $url := "" -}}
+{{- $prefix := "" -}}
+{{- $code := "" -}}
+{{- with index .Result "targetSpec" -}}
+{{- $name = index . "name" -}}
+{{- $description = index . "description" -}}
+{{- $action = index . "action" -}}
+{{- $position = index . "position" -}}
+{{- $url = index . "redirectUrl" -}}
+{{- $prefix = index . "redirectPrefix" -}}
+{{- $code = index . "redirectHttpCode" -}}
+{{- with index . "redirectPool" -}}{{- $poolID = index . "id" -}}{{- end -}}
+{{- end -}}
+{{- $operatingStatus := "" -}}
+{{- $provisioningStatus := "" -}}
+{{- with $cs -}}
+{{- with index . "operatingStatus" -}}{{- $operatingStatus = . -}}{{- end -}}
+{{- with index . "provisioningStatus" -}}{{- $provisioningStatus = . -}}{{- end -}}
+{{- with index . "name" -}}{{- $name = . -}}{{- end -}}
+{{- with index . "description" -}}{{- $description = . -}}{{- end -}}
+{{- with index . "action" -}}{{- $action = . -}}{{- end -}}
+{{- with index . "position" -}}{{- $position = . -}}{{- end -}}
+{{- with index . "redirectUrl" -}}{{- $url = . -}}{{- end -}}
+{{- with index . "redirectPrefix" -}}{{- $prefix = . -}}{{- end -}}
+{{- with index . "redirectHttpCode" -}}{{- $code = . -}}{{- end -}}
+{{- with index . "redirectPool" -}}{{- with index . "id" -}}{{- $poolID = . -}}{{- end -}}{{- end -}}
+{{- end -}}
 📋 L7 policy {{.ServiceName}}
 =======
 
-_{{index .Result "name"}}_
+_{{$name}}_
 
 ## General information
 
-**Action**:              {{index .Result "action"}}
-**Position**:            {{index .Result "position"}}
-**Listener ID**:         {{index .Result "listenerId"}}
-**Operating status**:    {{index .Result "operatingStatus"}}
-**Provisioning status**: {{index .Result "provisioningStatus"}}
-**Description**:         {{index .Result "description"}}
-{{if index .Result "redirectPoolId"}}**Redirect pool ID**:    {{index .Result "redirectPoolId"}}{{end}}
-{{if index .Result "redirectUrl"}}**Redirect URL**:        {{index .Result "redirectUrl"}}{{end}}
-{{if index .Result "redirectPrefix"}}**Redirect prefix**:     {{index .Result "redirectPrefix"}}{{end}}
+**ID**:                  {{index .Result "id"}}
+**Status**:              {{index .Result "resourceStatus"}}
+**Action**:              {{$action}}
+**Position**:            {{$position}}
+**Operating status**:    {{with $operatingStatus}}{{.}}{{else}}_not yet available_{{end}}
+**Provisioning status**: {{with $provisioningStatus}}{{.}}{{else}}_not yet available_{{end}}
+{{if $description}}**Description**:         {{$description}}
+{{end}}{{if $poolID}}**Redirect pool ID**:    {{$poolID}}
+{{end}}{{if $url}}**Redirect URL**:        {{$url}}
+{{end}}{{if $prefix}}**Redirect prefix**:     {{$prefix}}
+{{end}}{{if $code}}**Redirect HTTP code**:  {{$code}}
+{{end}}**Creation date**:       {{index .Result "createdAt"}}
+**Update date**:         {{index .Result "updatedAt"}}
 
-💡 Use option --json or --yaml to get the raw output with all information
+## Rules
+
+{{- $rules := "" -}}
+{{- with index .Result "targetSpec" -}}{{- $rules = index . "rules" -}}{{- end -}}
+{{- with $cs -}}{{- with index . "rules" -}}{{- $rules = . -}}{{- end -}}{{- end }}
+{{if $rules}}| Type | Compare type | Value | Key | Invert |
+|------|--------------|-------|-----|--------|
+{{range $rules}}| {{.type}} | {{.compareType}} | {{.value}} | {{.key}} | {{if .invert}}true{{else}}false{{end}} |
+{{end}}{{else}}_No rule_
+{{end}}
+💡 Use option -o json or -o yaml to get the raw output with all information

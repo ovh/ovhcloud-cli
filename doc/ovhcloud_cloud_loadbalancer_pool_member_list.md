@@ -3,7 +3,7 @@
 List members of a specific pool
 
 ```
-ovhcloud cloud loadbalancer pool member list <pool_id> [flags]
+ovhcloud cloud loadbalancer pool member list <loadbalancer_id> <pool_id> [flags]
 ```
 
 ### Options

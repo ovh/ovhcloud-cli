@@ -1,7 +1,17 @@
 {
-  "action": "redirectToPool",
-  "listenerId": "00000000-0000-0000-0000-000000000000",
-  "name": "my-l7-policy",
-  "position": 1,
-  "redirectPoolId": "00000000-0000-0000-0000-000000000000"
+  "targetSpec": {
+    "action": "REDIRECT_TO_POOL",
+    "name": "my-l7-policy",
+    "position": 1,
+    "redirectPool": {
+      "id": "00000000-0000-0000-0000-000000000000"
+    },
+    "rules": [
+      {
+        "compareType": "STARTS_WITH",
+        "type": "PATH",
+        "value": "/api"
+      }
+    ]
+  }
 }
