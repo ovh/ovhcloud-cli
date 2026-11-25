@@ -148,6 +148,18 @@ func CreateIAMPolicy(cmd *cobra.Command, _ []string) {
 
 func DeleteIAMPolicy(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/v2/iam/policy/%s", url.PathEscape(args[0]))
+
+	if !common.ConfirmAction(common.Destructive, args[0], fmt.Sprintf(
+		"Deleting IAM policy %s removes every permission and restriction it sets, for every identity it applies to. This cannot be undone.",
+		args[0])) {
+		display.OutputError(&flags.OutputFormatConfig, "deletion of IAM policy %s cancelled", args[0])
+		return
+	}
+
+	if common.ReportDryRun(common.Call{Method: "DELETE", Endpoint: endpoint}) {
+		return
+	}
+
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete IAM policy %s: %s", args[0], err)
 		return
@@ -288,6 +300,17 @@ func EditUser(cmd *cobra.Command, args []string) {
 
 func DeleteUser(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/v1/me/identity/user/%s", url.PathEscape(args[0]))
+
+	if !common.ConfirmAction(common.Destructive, args[0], fmt.Sprintf(
+		"Deleting IAM user %s removes the user and the access it had. This cannot be undone.", args[0])) {
+		display.OutputError(&flags.OutputFormatConfig, "deletion of user %s cancelled", args[0])
+		return
+	}
+
+	if common.ReportDryRun(common.Call{Method: "DELETE", Endpoint: endpoint}) {
+		return
+	}
+
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete user %s: %s", args[0], err)
 		return
@@ -325,6 +348,19 @@ func CreateUserToken(cmd *cobra.Command, args []string) {
 
 func DeleteUserToken(_ *cobra.Command, args []string) {
 	endpoint := fmt.Sprintf("/v1/me/identity/user/%s/token/%s", url.PathEscape(args[0]), url.PathEscape(args[1]))
+
+	// The token is what is typed back, not the user: it is the thing that goes.
+	if !common.ConfirmAction(common.Destructive, args[1], fmt.Sprintf(
+		"Deleting token %s of user %s breaks every script and integration that authenticates with it. This cannot be undone.",
+		args[1], args[0])) {
+		display.OutputError(&flags.OutputFormatConfig, "deletion of token %s for user %s cancelled", args[1], args[0])
+		return
+	}
+
+	if common.ReportDryRun(common.Call{Method: "DELETE", Endpoint: endpoint}) {
+		return
+	}
+
 	if err := httpLib.Client.Delete(endpoint, nil); err != nil {
 		display.OutputError(&flags.OutputFormatConfig, "failed to delete token %s for user %s: %s", args[1], args[0], err)
 		return
