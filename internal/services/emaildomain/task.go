@@ -60,6 +60,20 @@ func taskIdentifier(task map[string]any) string {
 	return fmt.Sprintf("%v", id)
 }
 
+// taskDescription names a task for a message: its identifier, plus the
+// operation it carries when the API sent one.
+//
+// "function" is a free string ("dkim/enable", "add"...) and the only field of
+// email.domain.task that says what the task was trying to do. A failure that
+// names it can be acted on; "task 221587412 failed" cannot.
+func taskDescription(taskID string, task map[string]any) string {
+	if function, _ := task["function"].(string); function != "" {
+		return fmt.Sprintf("task %s (%s)", taskID, function)
+	}
+
+	return fmt.Sprintf("task %s", taskID)
+}
+
 // isNotFound reports whether an API call failed because the object is not (or
 // no longer) known.
 func isNotFound(err error) bool {
@@ -130,7 +144,7 @@ func waitForTask(ctx context.Context, domain, family, taskID string) error {
 		// The terminal failures of the API enum. They mean the operation
 		// failed, not that the CLI failed to understand the answer.
 		case "cancelled", "customerError", "ovhError":
-			return fmt.Errorf("task %s ended with status %q", taskID, status)
+			return fmt.Errorf("%s ended with status %q", taskDescription(taskID, task), status)
 		}
 
 		select {
@@ -142,7 +156,8 @@ func waitForTask(ctx context.Context, domain, family, taskID string) error {
 			if status != "" {
 				seen = fmt.Sprintf(" (last status seen: %s)", status)
 			}
-			return fmt.Errorf("%s: task %s had not completed%s, and it was not cancelled", gaveUp, taskID, seen)
+			return fmt.Errorf("%s: %s had not completed%s, and it was not cancelled",
+				gaveUp, taskDescription(taskID, task), seen)
 
 		case <-ticker.C:
 			if status != "" {

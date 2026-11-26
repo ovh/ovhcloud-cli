@@ -437,10 +437,10 @@ func (ms *MockSuite) TestEmailDomainDkimEnableWaitTaskFailed(assert, require *td
 		httpmock.NewStringResponder(200, `{"id": 1234567, "function": "dkim/enable", "status": "todo"}`))
 
 	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/task/all/1234567",
-		httpmock.NewStringResponder(200, `{"id": 1234567, "status": "ovhError"}`))
+		httpmock.NewStringResponder(200, `{"id": 1234567, "function": "dkim/enable", "status": "ovhError"}`))
 
 	_, err := cmd.Execute("email-domain", "dkim", "enable", "example.com", "--wait")
 
 	require.CmpError(err)
-	assert.Cmp(err.Error(), td.Contains(`task 1234567 ended with status "ovhError"`))
+	assert.Cmp(err.Error(), td.Contains(`task 1234567 (dkim/enable) ended with status "ovhError"`))
 }

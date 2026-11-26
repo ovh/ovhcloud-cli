@@ -100,7 +100,7 @@ func TestWaitForTask_HonoursAStatusWhenTheAPISendsOne(t *testing.T) {
 func TestWaitForTask_ReportsATerminalFailure(t *testing.T) {
 	withTaskAPI(t)
 	respondInSequence(redirectionTaskURL,
-		answer{200, `{"id": "42", "status": "customerError"}`},
+		answer{200, `{"id": "42", "function": "add", "status": "customerError"}`},
 	)
 
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
@@ -111,6 +111,25 @@ func TestWaitForTask_ReportsATerminalFailure(t *testing.T) {
 	td.Require(t).CmpError(err)
 	td.Cmp(t, err.Error(), td.Contains("customerError"))
 	td.Cmp(t, err.Error(), td.Contains("42"))
+	td.Cmp(t, err.Error(), td.Contains("(add)"),
+		"the operation is named, so the failure says what did not happen")
+}
+
+// Nothing forces the API to send a function, and a message built around one
+// that is missing must not print "task 42 () ended".
+func TestWaitForTask_ReportsATerminalFailureWithoutAFunction(t *testing.T) {
+	withTaskAPI(t)
+	respondInSequence(redirectionTaskURL,
+		answer{200, `{"id": "42", "status": "ovhError"}`},
+	)
+
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+
+	err := waitForTask(ctx, "example.com", taskFamilyRedirection, "42")
+
+	td.Require(t).CmpError(err)
+	td.Cmp(t, err.Error(), td.Contains(`task 42 ended with status "ovhError"`))
 }
 
 // Running out of time is the CLI giving up, not the task failing and not the
