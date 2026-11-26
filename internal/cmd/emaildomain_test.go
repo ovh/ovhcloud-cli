@@ -305,3 +305,142 @@ func (ms *MockSuite) TestEmailDomainRedirectionDeleteWait(assert, require *td.T)
 	require.CmpNoError(err)
 	assert.String(out, `✅ Email redirection 12345 deleted successfully`)
 }
+
+func (ms *MockSuite) TestEmailDomainDkimGet(assert, require *td.T) {
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim",
+		httpmock.NewStringResponder(200, `{
+			"status": "enabled",
+			"activeSelector": "ovhse1",
+			"autoconfig": true,
+			"selectors": [
+				{"selectorName": "ovhse1", "cname": "ovhse1.dkim.mail.ovh.net", "status": "set"}
+			]
+		}`).Once())
+
+	out, err := cmd.Execute("email-domain", "dkim", "get", "example.com", "-o", "json")
+
+	require.CmpNoError(err)
+	assert.Cmp(json.RawMessage(out), td.JSON(`{
+		"status": "enabled",
+		"activeSelector": "ovhse1",
+		"autoconfig": true,
+		"selectors": [
+			{"selectorName": "ovhse1", "cname": "ovhse1.dkim.mail.ovh.net", "status": "set"}
+		]
+	}`))
+}
+
+// Switching DKIM is a PUT that answers with a task. Its identifier describes
+// the task, not the DKIM configuration, and is named as such.
+func (ms *MockSuite) TestEmailDomainDkimEnable(assert, require *td.T) {
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim/enable",
+		httpmock.NewStringResponder(200, `{
+			"id": 1234567,
+			"domain": "example.com",
+			"function": "dkim/enable",
+			"status": "todo"
+		}`).Once())
+
+	out, err := cmd.Execute("email-domain", "dkim", "enable", "example.com")
+
+	require.CmpNoError(err)
+	assert.String(out, `⏳ Request to enable DKIM on example.com accepted (task ID: 1234567). Use --wait to wait for it to be applied.`)
+}
+
+// With --wait the task is followed and then the DKIM configuration itself is
+// checked: a task reaching "done" says the operation ran, not what state DKIM
+// came to rest in.
+func (ms *MockSuite) TestEmailDomainDkimEnableWait(assert, require *td.T) {
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim/enable",
+		httpmock.NewStringResponder(200, `{"id": 1234567, "function": "dkim/enable", "status": "todo"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/task/all/1234567",
+		httpmock.NewStringResponder(200, `{"id": 1234567, "status": "done"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim",
+		httpmock.NewStringResponder(200, `{"status": "enabled", "activeSelector": "ovhse1"}`))
+
+	out, err := cmd.Execute("email-domain", "dkim", "enable", "example.com", "--wait")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ DKIM is now enabled on example.com`)
+}
+
+// "toConfigure" is where an enabled DKIM rests until the selectors are
+// published in DNS. The task is done, but DKIM signs nothing yet, so this is
+// not reported as a success.
+func (ms *MockSuite) TestEmailDomainDkimEnableWaitToConfigure(assert, require *td.T) {
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim/enable",
+		httpmock.NewStringResponder(200, `{"id": 1234567, "function": "dkim/enable", "status": "todo"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/task/all/1234567",
+		httpmock.NewStringResponder(200, `{"id": 1234567, "status": "done"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim",
+		httpmock.NewStringResponder(200, `{"status": "modifying"}`).Then(
+			httpmock.NewStringResponder(200, `{
+				"status": "toConfigure",
+				"selectors": [
+					{"selectorName": "ovhse1", "cname": "ovhse1.dkim.mail.ovh.net", "status": "toSet"}
+				]
+			}`)))
+
+	out, err := cmd.Execute("email-domain", "dkim", "enable", "example.com", "--wait")
+
+	require.CmpNoError(err)
+	assert.String(out, `⚠️ DKIM on example.com is in status "toConfigure", not "enabled" yet: `+
+		`the API reports these selectors as not set in DNS: ovhse1: ovhse1.dkim.mail.ovh.net`)
+}
+
+// A task the API no longer serves answers 404, which the task wait counts as
+// "over" -- and that is also what a task the answer never named leaves behind.
+// The DKIM configuration is what settles it either way: here the task is never
+// found, and the ✅ comes from the configuration reaching "enabled" on its own.
+func (ms *MockSuite) TestEmailDomainDkimEnableWaitWithoutTheTask(assert, require *td.T) {
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim/enable",
+		httpmock.NewStringResponder(200, `{"id": 1234567, "function": "dkim/enable", "status": "todo"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/task/all/1234567",
+		httpmock.NewStringResponder(404, `{"message": "This task does not exist"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim",
+		httpmock.NewStringResponder(200, `{"status": "disabled"}`).Then(
+			httpmock.NewStringResponder(200, `{"status": "modifying"}`)).Then(
+			httpmock.NewStringResponder(200, `{"status": "enabled", "activeSelector": "ovhse1"}`)))
+
+	out, err := cmd.Execute("email-domain", "dkim", "enable", "example.com", "--wait")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ DKIM is now enabled on example.com`)
+}
+
+func (ms *MockSuite) TestEmailDomainDkimDisableWait(assert, require *td.T) {
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim/disable",
+		httpmock.NewStringResponder(200, `{"id": 7654321, "function": "dkim/disable", "status": "todo"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/task/all/7654321",
+		httpmock.NewStringResponder(200, `{"id": 7654321, "status": "done"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim",
+		httpmock.NewStringResponder(200, `{"status": "disabled"}`))
+
+	out, err := cmd.Execute("email-domain", "dkim", "disable", "example.com", "--wait")
+
+	require.CmpNoError(err)
+	assert.String(out, `✅ DKIM is now disabled on example.com`)
+}
+
+// This task family carries a status, so a failure is read from the task itself
+// rather than from its disappearance.
+func (ms *MockSuite) TestEmailDomainDkimEnableWaitTaskFailed(assert, require *td.T) {
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim/enable",
+		httpmock.NewStringResponder(200, `{"id": 1234567, "function": "dkim/enable", "status": "todo"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/task/all/1234567",
+		httpmock.NewStringResponder(200, `{"id": 1234567, "status": "ovhError"}`))
+
+	_, err := cmd.Execute("email-domain", "dkim", "enable", "example.com", "--wait")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`task 1234567 ended with status "ovhError"`))
+}

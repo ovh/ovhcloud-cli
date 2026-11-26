@@ -22,6 +22,11 @@ import (
 // the family has to travel with the identifier.
 const (
 	taskFamilyRedirection = "redirection"
+
+	// taskFamilyAll is the queue holding every task of a domain. It is the
+	// only one for operations that have no family of their own, such as
+	// switching DKIM on or off.
+	taskFamilyAll = "all"
 )
 
 var (

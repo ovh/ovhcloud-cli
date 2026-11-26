@@ -36,6 +36,44 @@ func init() {
 		Run:               emaildomain.GetEmailDomain,
 	})
 
+	// DKIM subcommand
+	emaildomainDkimCmd := &cobra.Command{
+		Use:   "dkim",
+		Short: "Manage DKIM signing for your domain",
+	}
+	emaildomainCmd.AddCommand(emaildomainDkimCmd)
+
+	// Get the DKIM configuration
+	emaildomainDkimCmd.AddCommand(&cobra.Command{
+		Use:               "get <service_name>",
+		Short:             "Get the DKIM configuration of a domain",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
+		Run:               emaildomain.GetDKIM,
+	})
+
+	// Enable DKIM
+	enableDkimCmd := &cobra.Command{
+		Use:               "enable <service_name>",
+		Short:             "Enable DKIM signing for a domain",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
+		Run:               emaildomain.EnableDKIM,
+	}
+	enableDkimCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for DKIM to be enabled before exiting")
+	emaildomainDkimCmd.AddCommand(enableDkimCmd)
+
+	// Disable DKIM
+	disableDkimCmd := &cobra.Command{
+		Use:               "disable <service_name>",
+		Short:             "Disable DKIM signing for a domain",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
+		Run:               emaildomain.DisableDKIM,
+	}
+	disableDkimCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for DKIM to be disabled before exiting")
+	emaildomainDkimCmd.AddCommand(disableDkimCmd)
+
 	// Redirection subcommand
 	emaildomainRedirectionCmd := &cobra.Command{
 		Use:   "redirection",
