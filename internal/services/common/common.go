@@ -118,7 +118,43 @@ func isEmptyValue(v any) bool {
 	return ok && s == ""
 }
 
+// CreateResource creates a resource and returns the body the API answered with.
 func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
+	cliParams any, openapiSpec []byte, mandatoryFields []string) (map[string]any, error) {
+	created, _, err := CreateResourceWithParameters(cmd, path, endpoint, defaultExample, cliParams, openapiSpec, mandatoryFields)
+	return created, err
+}
+
+// CreateResourceWithParameters creates a resource like CreateResource does, and
+// also returns the parameters that were actually sent to the API.
+//
+// Callers need them when the response does not describe the created object: the
+// APIs that create asynchronously answer with a task, and the only way back to
+// the new object is to look it up by the values that were asked for. Those
+// values cannot be read back from the caller's own flag struct, because
+// --from-file, --editor and piped input all fill the request without going
+// through it.
+func CreateResourceWithParameters(cmd *cobra.Command, path, endpoint, defaultExample string,
+	cliParams any, openapiSpec []byte, mandatoryFields []string) (map[string]any, map[string]any, error) {
+	parameters, err := buildResourceParameters(cmd, path, defaultExample, cliParams, openapiSpec, mandatoryFields)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var createdResource map[string]any
+	if err := httpLib.Client.Post(endpoint, parameters, &createdResource); err != nil {
+		// The parameters go back with the error too: a caller that reports what
+		// it tried to create still has them.
+		return nil, parameters, fmt.Errorf("error creating resource: %w", err)
+	}
+
+	return createdResource, parameters, nil
+}
+
+// buildResourceParameters assembles the body of a creation request from the
+// command line flags and from whichever of --from-file, --editor or standard
+// input was used, then checks that the mandatory fields are filled in.
+func buildResourceParameters(cmd *cobra.Command, path, defaultExample string,
 	cliParams any, openapiSpec []byte, mandatoryFields []string) (map[string]any, error) {
 	// Create object from parameters given on command line
 	jsonCliParameters, err := json.Marshal(cliParams)
@@ -207,12 +243,7 @@ func CreateResource(cmd *cobra.Command, path, endpoint, defaultExample string,
 		}
 	}
 
-	var createdResource map[string]any
-	if err := httpLib.Client.Post(endpoint, parameters, &createdResource); err != nil {
-		return nil, fmt.Errorf("error creating resource: %w", err)
-	}
-
-	return createdResource, nil
+	return parameters, nil
 }
 
 func EditResource(cmd *cobra.Command, path, url string, cliParams any, openapiSpec []byte, extraFields ...map[string]any) error {
