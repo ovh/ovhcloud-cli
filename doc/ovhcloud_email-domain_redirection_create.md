@@ -17,6 +17,7 @@ ovhcloud email-domain redirection create <service_name> [flags]
       --local-copy         Keep a local copy of the email
       --replace            Replace parameters file if it already exists
       --to string          Destination email address
+      --wait               Wait for the redirection to be created before exiting
 ```
 
 ### Options inherited from parent commands
