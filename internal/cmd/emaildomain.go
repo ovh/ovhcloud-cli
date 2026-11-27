@@ -7,6 +7,7 @@ package cmd
 import (
 	"github.com/ovh/ovhcloud-cli/internal/assets"
 	"github.com/ovh/ovhcloud-cli/internal/completion"
+	"github.com/ovh/ovhcloud-cli/internal/flags"
 	"github.com/ovh/ovhcloud-cli/internal/services/emaildomain"
 	"github.com/spf13/cobra"
 )
@@ -34,6 +35,44 @@ func init() {
 		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
 		Run:               emaildomain.GetEmailDomain,
 	})
+
+	// DKIM subcommand
+	emaildomainDkimCmd := &cobra.Command{
+		Use:   "dkim",
+		Short: "Manage DKIM signing for your domain",
+	}
+	emaildomainCmd.AddCommand(emaildomainDkimCmd)
+
+	// Get the DKIM configuration
+	emaildomainDkimCmd.AddCommand(&cobra.Command{
+		Use:               "get <service_name>",
+		Short:             "Get the DKIM configuration of a domain",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
+		Run:               emaildomain.GetDKIM,
+	})
+
+	// Enable DKIM
+	enableDkimCmd := &cobra.Command{
+		Use:               "enable <service_name>",
+		Short:             "Enable DKIM signing for a domain",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
+		Run:               emaildomain.EnableDKIM,
+	}
+	enableDkimCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for DKIM to be enabled before exiting")
+	emaildomainDkimCmd.AddCommand(enableDkimCmd)
+
+	// Disable DKIM
+	disableDkimCmd := &cobra.Command{
+		Use:               "disable <service_name>",
+		Short:             "Disable DKIM signing for a domain",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
+		Run:               emaildomain.DisableDKIM,
+	}
+	disableDkimCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for DKIM to be disabled before exiting")
+	emaildomainDkimCmd.AddCommand(disableDkimCmd)
 
 	// Redirection subcommand
 	emaildomainRedirectionCmd := &cobra.Command{
@@ -73,6 +112,7 @@ func init() {
 	createRedirectionCmd.Flags().StringVar(&emaildomain.RedirectionSpec.From, "from", "", "Source email address (e.g., alias@domain.com)")
 	createRedirectionCmd.Flags().StringVar(&emaildomain.RedirectionSpec.To, "to", "", "Destination email address")
 	createRedirectionCmd.Flags().BoolVar(&emaildomain.RedirectionSpec.LocalCopy, "local-copy", false, "Keep a local copy of the email")
+	createRedirectionCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the redirection to be created before exiting")
 
 	addParameterFileFlags(createRedirectionCmd, false, assets.EmaildomainOpenapiSchema, "/email/domain/{serviceName}/redirection", "post", emaildomain.RedirectionCreateExample, nil)
 	addInteractiveEditorFlag(createRedirectionCmd)
@@ -81,13 +121,16 @@ func init() {
 	emaildomainRedirectionCmd.AddCommand(createRedirectionCmd)
 
 	// Delete redirection
-	emaildomainRedirectionCmd.AddCommand(&cobra.Command{
+	deleteRedirectionCmd := &cobra.Command{
 		Use:               "delete <service_name> <redirection_id>",
 		Short:             "Delete an email redirection",
 		Args:              cobra.ExactArgs(2),
 		ValidArgsFunction: completion.ServiceList("/v1/email/domain"),
 		Run:               emaildomain.DeleteRedirection,
-	})
+	}
+	deleteRedirectionCmd.Flags().BoolVar(&flags.WaitForTask, "wait", false, "Wait for the redirection to be deleted before exiting")
+
+	emaildomainRedirectionCmd.AddCommand(deleteRedirectionCmd)
 
 	rootCmd.AddCommand(emaildomainCmd)
 }

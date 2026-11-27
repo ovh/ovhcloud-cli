@@ -10,6 +10,7 @@ ovhcloud email-domain redirection delete <service_name> <redirection_id> [flags]
 
 ```
   -h, --help   help for delete
+      --wait   Wait for the redirection to be deleted before exiting
 ```
 
 ### Options inherited from parent commands
