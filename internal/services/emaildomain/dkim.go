@@ -112,7 +112,8 @@ func switchDKIM(domain, action, target string, settled []string) {
 
 	if taskID != "" {
 		if err := waitForTask(ctx, domain, taskFamilyAll, taskID); err != nil {
-			display.OutputError(&flags.OutputFormatConfig, "error waiting for DKIM to be %s on %s: %s", target, domain, err)
+			display.OutputError(&flags.OutputFormatConfig, "error waiting for DKIM to be %s on %s: %s%s",
+				target, domain, err, dkimStatusSuffix(domain))
 			return
 		}
 	}
@@ -140,6 +141,34 @@ func switchDKIM(domain, action, target string, settled []string) {
 	}
 
 	display.OutputInfo(&flags.OutputFormatConfig, dkim, "✅ DKIM is now %s on %s", status, domain)
+}
+
+// dkimStatusSuffix reads where DKIM stands right now, to be appended to an
+// error about a task that failed or was abandoned.
+//
+// A task that did not run to its end says the operation stopped, not what became
+// of DKIM, and the two readings only mean something together: the live API was
+// seen cancelling a "dkim/enable" and leaving DKIM "disabled", i.e. nothing
+// changed. Without this the caller is told an opaque identifier failed and has to
+// go and look for the rest.
+//
+// This only decorates a message that is already an error, so it never produces
+// one of its own: an answer that does not come, or that carries no status, simply
+// adds nothing. It is equally not a second opinion on the outcome — a status that
+// happens to match what was asked for does not turn a failed task into a success,
+// since what makes the API give up on a task has not been established.
+func dkimStatusSuffix(domain string) string {
+	var dkim map[string]any
+	if err := httpLib.Client.Get(dkimEndpoint(domain), &dkim); err != nil {
+		return ""
+	}
+
+	status, _ := dkim["status"].(string)
+	if status == "" {
+		return ""
+	}
+
+	return fmt.Sprintf(" (DKIM on %s is in status %q)", domain, status)
 }
 
 // dkimSelectorsToSet lists the selectors the API does not report as "set", as

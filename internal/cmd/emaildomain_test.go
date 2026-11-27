@@ -439,8 +439,54 @@ func (ms *MockSuite) TestEmailDomainDkimEnableWaitTaskFailed(assert, require *td
 	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/task/all/1234567",
 		httpmock.NewStringResponder(200, `{"id": 1234567, "function": "dkim/enable", "status": "ovhError"}`))
 
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim",
+		httpmock.NewStringResponder(200, `{"status": "disabled"}`))
+
 	_, err := cmd.Execute("email-domain", "dkim", "enable", "example.com", "--wait")
 
 	require.CmpError(err)
 	assert.Cmp(err.Error(), td.Contains(`task 1234567 (dkim/enable) ended with status "ovhError"`))
+	assert.Cmp(err.Error(), td.Contains(`DKIM on example.com is in status "disabled"`),
+		"a failed task alone does not say whether anything changed")
+}
+
+// Reading where DKIM stands is a courtesy on a path that has already failed.
+// When the API will not answer it, the task error must come out whole rather
+// than be replaced by a complaint about the second call.
+func (ms *MockSuite) TestEmailDomainDkimEnableWaitTaskFailedWithAnUnreadableStatus(assert, require *td.T) {
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim/enable",
+		httpmock.NewStringResponder(200, `{"id": 1234567, "function": "dkim/enable", "status": "todo"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/task/all/1234567",
+		httpmock.NewStringResponder(200, `{"id": 1234567, "function": "dkim/enable", "status": "ovhError"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim",
+		httpmock.NewStringResponder(500, `{"message": "Internal server error"}`))
+
+	_, err := cmd.Execute("email-domain", "dkim", "enable", "example.com", "--wait")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`task 1234567 (dkim/enable) ended with status "ovhError"`))
+	assert.Cmp(err.Error(), td.Not(td.Contains("DKIM on example.com is in status")))
+}
+
+// A DKIM that reads "enabled" next to a failed "dkim/enable" is not the command
+// having succeeded after all. Why the API gives up on a task is not established,
+// so the status is reported and nothing is concluded from it.
+func (ms *MockSuite) TestEmailDomainDkimEnableWaitTaskFailedOnAnEnabledDomain(assert, require *td.T) {
+	httpmock.RegisterResponder("PUT", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim/enable",
+		httpmock.NewStringResponder(200, `{"id": 1234567, "function": "dkim/enable", "status": "todo"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/task/all/1234567",
+		httpmock.NewStringResponder(200, `{"id": 1234567, "function": "dkim/enable", "status": "cancelled"}`))
+
+	httpmock.RegisterResponder("GET", "https://eu.api.ovh.com/1.0/email/domain/example.com/dkim",
+		httpmock.NewStringResponder(200, `{"status": "enabled"}`))
+
+	_, err := cmd.Execute("email-domain", "dkim", "enable", "example.com", "--wait")
+
+	require.CmpError(err)
+	assert.Cmp(err.Error(), td.Contains(`ended with status "cancelled"`))
+	assert.Cmp(err.Error(), td.Contains(`DKIM on example.com is in status "enabled"`))
+	assert.Cmp(err.Error(), td.Not(td.Contains("✅")))
 }

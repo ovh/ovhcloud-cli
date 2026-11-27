@@ -132,6 +132,35 @@ func TestWaitForDKIM_TimeoutNamesTheLastStatusSeen(t *testing.T) {
 	td.Cmp(t, err.Error(), td.Not(td.Contains("failed")))
 }
 
+// A task that failed says the operation stopped, not what became of DKIM. The
+// status of the domain is what says whether anything changed at all, so it is
+// quoted next to the failure.
+func TestDKIMStatusSuffix_NamesTheStatusTheDomainIsIn(t *testing.T) {
+	withTaskAPI(t)
+	respondInSequence(dkimURL, answer{200, `{"status": "disabled"}`})
+
+	td.Cmp(t, dkimStatusSuffix("example.com"), ` (DKIM on example.com is in status "disabled")`)
+}
+
+// The suffix only ever decorates a message that is already an error, so a
+// configuration that cannot be read must not add a second failure to it: the
+// task error is what the caller came for and it has to survive intact.
+func TestDKIMStatusSuffix_AConfigurationThatCannotBeReadAddsNothing(t *testing.T) {
+	withTaskAPI(t)
+	respondInSequence(dkimURL, answer{404, `{"message": "This service does not exist"}`})
+
+	td.Cmp(t, dkimStatusSuffix("example.com"), "")
+}
+
+// Same for an answer that comes but carries no status: "is in status \"\"" tells
+// nobody anything.
+func TestDKIMStatusSuffix_AnAnswerWithoutAStatusAddsNothing(t *testing.T) {
+	withTaskAPI(t)
+	respondInSequence(dkimURL, answer{200, `{"selectors": []}`})
+
+	td.Cmp(t, dkimStatusSuffix("example.com"), "")
+}
+
 // Only the selectors the API does not report as set are worth printing, and
 // they are printed as the API wrote them.
 func TestDKIMSelectorsToSet(t *testing.T) {
