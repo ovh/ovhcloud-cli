@@ -173,6 +173,10 @@ func TestDKIMSelectorsToSet(t *testing.T) {
 
 	td.Cmp(t, dkimSelectorsToSet(map[string]any{}), "",
 		"a configuration without selectors has nothing to list")
+
+	td.Cmp(t, dkimSelectorsToSet(map[string]any{"selectors": nil}), "",
+		`and neither has one that carries "selectors": null, which is what the
+		live API answers for a disabled domain`)
 }
 
 // A DKIM that is off carries no selector, no active selector and no autoconfig
@@ -190,6 +194,30 @@ func TestDKIMTemplate_RendersWithoutTheNullableFields(t *testing.T) {
 	td.Cmp(t, display.ResultString, td.Contains("disabled"))
 	td.Cmp(t, display.ResultString, td.Not(td.Contains("<no value>")))
 	td.Cmp(t, display.ResultString, td.Not(td.Contains("<nil>")))
+}
+
+// The live API does not omit those fields, it sends them as null, which is not
+// the same template path as an absent key. This is the exact answer a disabled
+// domain was seen giving.
+func TestDKIMTemplate_RendersWithTheNullableFieldsNull(t *testing.T) {
+	prevExitFunc := display.ExitFunc
+	display.ExitFunc = func(int) {}
+	t.Cleanup(func() { display.ExitFunc = prevExitFunc })
+
+	display.ResultError = nil
+	display.OutputObject(map[string]any{
+		"activeSelector": nil,
+		"autoconfig":     true,
+		"selectors":      nil,
+		"status":         "disabled",
+	}, "example.com", dkimTemplate, &flags.OutputFormatConfig)
+
+	td.CmpNoError(t, display.ResultError)
+	td.Cmp(t, display.ResultString, td.Contains("disabled"))
+	td.Cmp(t, display.ResultString, td.Not(td.Contains("<no value>")))
+	td.Cmp(t, display.ResultString, td.Not(td.Contains("<nil>")))
+	td.Cmp(t, display.ResultString, td.Not(td.Contains("Selectors")),
+		"a null list is not an empty table to draw")
 }
 
 func TestDKIMTemplate_ListsTheSelectors(t *testing.T) {
